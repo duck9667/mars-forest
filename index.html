@@ -76,7 +76,8 @@ canvas#c.grabbing{cursor:grabbing}
   <div class="pill" id="o2">🌬️ 산소 0%</div>
   <div class="pill" id="water">💧 물 0/100</div>
   <div class="pill" id="power">⚡ 0/0</div>
-  <div class="pill" id="carry">🎒 0/5</div>
+  <div class="pill" id="carry">🎒 0/4</div>
+  <div class="pill" id="cust">🧑‍🚀 손님 0</div>
   <div class="pill" id="stars">★☆☆☆☆</div>
   <div class="pill" id="bells">🔔 0</div>
   <div class="pill" id="clock">☀️ 낮</div>
@@ -100,8 +101,8 @@ canvas#c.grabbing{cursor:grabbing}
 </div></div>
 <div id="intro"><div class="box">
   <h1>화성의 숲</h1>
-  <p>버려진 붉은 행성을 다시 살 수 있는 곳으로. <b>전력 → 물 → 흙 → 식물 → 산소</b>를 차례로 만들어 녹지와 산소를 올리면 하늘이 파래지고 주민들이 돌아와요.</p><p>왼쪽 <b>목표</b> 칸이 다음 할 일을 알려줘요. 집을 클릭하면 작업대, 건물은 🧰로 회수.</p>
-  <p>🚙 로버는 E로 타고, 주민을 클릭하면 고용해서 일을 맡길 수 있어요. 바깥 구역은 🔒 표지에서 벨로 열어요. 지는 조건은 없고, 기한 도전은 보너스예요.</p>
+  <p>화성 광장에서 <b>물병 가게</b>를 시작해요. 얼음을 캐서 제빙기에 넣으면 물이 되고, 병입기가 물병을 만들어요. 물병을 카운터에 올리면 여행자 손님이 사 가요.</p><p>번 벨은 <b>노란 발판에 서 있으면</b> 빨려 들어가 업그레이드·고용이 돼요. 꽃과 사과를 키워 팔면 산소와 녹지가 오르고, 행성이 푸르게 변하면서 주민이 돌아와요.</p>
+  <p>왼쪽 목표 칸이 다음 할 일을 알려줘요. 지는 조건은 없고, 기한 도전은 보너스예요.</p>
   <button class="btn" id="go">행성에 내리기</button>
 </div></div>
 
@@ -111,11 +112,11 @@ import * as THREE from 'three';
 
 /* ---------- 상수 ---------- */
 const R=1500, WORLD=R*2+200, CX=WORLD/2, CY=WORLD/2;
-const SELL={ore:30,ice:15,apple:100};
-const NAMES={ore:'철광석',ice:'얼음',apple:'사과',seed:'꽃씨',sapling:'묘목',dust:'광물가루',compost:'퇴비',soil:'비옥토','b:solar':'태양광 패널','b:battery':'배터리','b:melter':'제빙기','b:tank':'물탱크','b:sprinkler':'스프링클러','b:grinder':'분쇄기','b:oxygen':'산소 발생기',bench:'벤치',lamp:'가로등',tent:'텐트',wheel:'관람차',pot:'화분',gift1:'풍경',gift2:'모아이',gift3:'털실 뭉치',gift4:'수정 구슬',gift5:'연',gift6:'안테나'};
-const ICON={ore:'🪨',ice:'🧊',apple:'🍎',seed:'🌱',sapling:'🌿',dust:'🫙',compost:'🟤',soil:'🟫','b:solar':'🔆','b:battery':'🔋','b:melter':'🫗','b:tank':'🛢️','b:sprinkler':'💦','b:grinder':'⚙️','b:oxygen':'🌬️',bench:'🪑',lamp:'🏮',tent:'⛺',wheel:'🎡',pot:'🪴',gift1:'🎐',gift2:'🗿',gift3:'🧶',gift4:'🔮',gift5:'🪁',gift6:'📡'};
-const BLD={solar:{name:'태양광 패널',gen:3,desc:'낮에 전력 +3'},battery:{name:'배터리',desc:'낮 전력을 저장해 밤에 공급'},melter:{name:'제빙기',use:2,desc:'얼음을 녹여 물로 (얼음 1 → 물 20)'},tank:{name:'물탱크',desc:'물 저장 용량 +200'},sprinkler:{name:'스프링클러',use:1,desc:'반경 안 식물에 자동으로 물을 줘요'},grinder:{name:'분쇄기',use:2,desc:'돌을 갈아 광물가루로 (돌 1 → 가루 2)'},oxygen:{name:'산소 발생기',use:2,desc:'전력으로 산소를 만들어요'}};
-const SHOP=[['seed','꽃씨','밭에 심고 물을 주면 꽃이 피어요',40],['sapling','사과나무 묘목','산소 20% 이상일 때 심을 수 있어요',120],['b:solar','태양광 패널','낮에 전력 +3. 모든 기계의 시작',80],['b:battery','배터리','낮 전력을 저장해 밤에 공급',150],['b:grinder','분쇄기','돌 → 광물가루. 비옥토 재료',150],['b:melter','제빙기','얼음 → 물. 전력 2',150],['b:tank','물탱크','물 저장 +200',120],['b:sprinkler','스프링클러','반경 안 자동 물주기. 전력 1',200],['b:oxygen','산소 발생기','산소 생산. 전력 2',400],['pot','화분','꾸미기',150],['bench','벤치','꾸미기',200],['lamp','가로등','밤길을 밝혀요',250],['tent','텐트','꾸미기',400],['wheel','관람차','행성의 명물!',900],['veh:truck','트럭 🚚','탄 채로 돌·얼음 캐기 · 속도 ★★☆',500],['veh:dozer','불도저 🚜','돌을 밀어 치움 · 속도 ★☆☆',800],['veh:tank','탱크 🛡️','Space 포격으로 돌 파괴 · 속도 ★★★',1500]];
+const GOODS={ore:{n:'화성 돌 기념품',icon:'🪨',price:20},bottle:{n:'물병',icon:'🧴',price:35},flower:{n:'꽃',icon:'🌸',price:60},apple:{n:'사과',icon:'🍎',price:120}};const SELL={};
+const NAMES={ore:'철광석',ice:'얼음',apple:'사과',seed:'꽃씨',sapling:'묘목',bottle:'물병',flower:'꽃',compost:'퇴비','b:battery':'배터리',bench:'벤치',lamp:'가로등',tent:'텐트',wheel:'관람차',pot:'화분',gift1:'풍경',gift2:'모아이',gift3:'털실 뭉치',gift4:'수정 구슬',gift5:'연',gift6:'안테나'};
+const ICON={ore:'🪨',ice:'🧊',apple:'🍎',seed:'🌱',sapling:'🌿',bottle:'🧴',flower:'🌸',compost:'🟤','b:battery':'🔋',bench:'🪑',lamp:'🏮',tent:'⛺',wheel:'🎡',pot:'🪴',gift1:'🎐',gift2:'🗿',gift3:'🧶',gift4:'🔮',gift5:'🪁',gift6:'📡'};
+const BLD={solar:{name:'태양광 패널',gen:3},battery:{name:'배터리'},melter:{name:'제빙기',use:2},tank:{name:'물탱크'},sprinkler:{name:'스프링클러',use:1},bottler:{name:'병입기',use:1},counter:{name:'카운터'},pad:{name:'착륙장'},oxygen:{name:'산소 발생기',use:2}};
+const SHOP=[['seed','꽃씨','밭에 심고 물을 주면 꽃이 피어요. 핀 꽃은 따서 팔아요',30],['sapling','사과나무 묘목','산소 20% 이상일 때 심을 수 있어요',120],['b:battery','배터리','낮 전력을 저장해 밤에 공급',150],['pot','화분','꾸미기',150],['bench','벤치','꾸미기',200],['lamp','가로등','밤길을 밝혀요',250],['tent','텐트','꾸미기',400],['wheel','관람차','행성의 명물!',900],['veh:truck','트럭 🚚','탄 채로 돌·얼음 캐기 · 속도 ★★☆',500],['veh:dozer','불도저 🚜','돌을 밀어 치움 · 속도 ★☆☆',800],['veh:tank','탱크 🛡️','Space 포격으로 돌 파괴 · 속도 ★★★',1500]];
 const GREEN_R={sprout:45,sapling:75,flower:95,tree:170};
 const STAGES=[{n:'황무지',cond:()=>true},{n:'첫 싹',cond:()=>cnt('flower')>=3},{n:'작은 숲',cond:()=>cnt('tree')>=3&&greenPct>=10},{n:'오아시스',cond:()=>greenPct>=25&&S.o2>=40},{n:'푸른 행성',cond:()=>greenPct>=50&&S.o2>=60}];
 const VSTAGE={'뽀삐':0,'삐걱':0,'모모':1,'꼬꼬':2,'돌이':2,'삐삐':3};
@@ -124,35 +125,52 @@ const SOLID=new Set(['rock','ice','shop','house','tree','deco','prop','bld']);
 const PLANT=new Set(['sprout','sapling','flower','tree','wilt']);
 const VILLAGERS=[['뽀삐','alien',-80,220,'gift1'],['삐걱','robot',120,260,'gift2'],['모모','cat',-320,80,'gift3'],['돌이','golem',380,-40,'gift4'],['꼬꼬','bird',40,-360,'gift5'],['삐삐','drone',-200,-300,'gift6']];
 const mkVillager=([name,kind,dx,dy,gift],i)=>({name,kind,x:CX+dx,y:CY+dy,hx:CX+dx,hy:CY+dy,h:0,gift:false,giftId:gift,t:1+i,tx:null,ty:null,carry:[],job:null,st:0});
-const JOBS={'삐걱':{id:'mine',n:'돌 캐서 분쇄기에 넣기',cost:300},'모모':{id:'ice',n:'얼음 캐서 제빙기에 넣기',cost:400},'꼬꼬':{id:'water',n:'목마른 식물에 물 주기',cost:400},'돌이':{id:'haul',n:'광물가루를 집으로 날라 비옥토 만들기',cost:500},'뽀삐':{id:'plant',n:'주머니의 씨앗을 빈 밭에 심기',cost:300},'삐삐':{id:'harvest',n:'사과 따서 상점에 팔기',cost:500}};
+const JOBS={'삐걱':{id:'cashier',n:'카운터에서 손님 응대'},'모모':{id:'ice',n:'얼음 캐서 제빙기에 넣기'},'꼬꼬':{id:'water',n:'목마른 식물에 물 주기'},'돌이':{id:'rock',n:'돌 주워 선반에 올리기'},'뽀삐':{id:'plant',n:'주머니의 씨앗을 빈 밭에 심기'},'삐삐':{id:'harvest',n:'꽃·사과 수확해 선반에'}};
 const ZONE_R=560,ZONE_COST=[400,700,1100,1600,2200,3000],ZONE_NAMES=['동쪽 평원','남동 분지','남서 고원','서쪽 모래밭','북서 협곡','북쪽 얼음땅'];
 const zoneOf=(x,y)=>{if(Math.hypot(x-CX,y-CY)<ZONE_R)return -1;let a=Math.atan2(y-CY,x-CX);if(a<0)a+=Math.PI*2;return Math.floor(a/(Math.PI*2)*6)%6};
 const zoneOpen=(x,y)=>{const z=zoneOf(x,y);return z<0||S.zones[z]};
-const CHAL=[{day:4,t:'4일째까지 꽃 3송이',c:()=>cnt('flower')>=3,r:300},{day:8,t:'8일째까지 산소 20%',c:()=>S.o2>=20,r:600},{day:12,t:'12일째까지 구역 2개 열기',c:()=>S.zones.filter(Boolean).length>=2,r:800},{day:20,t:'20일째까지 녹지 25%',c:()=>greenPct>=25,r:1500}];
+const CHAL=[{day:3,t:'3일째까지 손님 20명',c:()=>S.stat2.served>=20,r:200},{day:6,t:'6일째까지 꽃 3송이 팔기',c:()=>S.stat2.flowerSold>=3,r:300},{day:10,t:'10일째까지 산소 20%',c:()=>S.o2>=20,r:600},{day:12,t:'12일째까지 구역 2개 열기',c:()=>S.zones.filter(Boolean).length>=2,r:800},{day:20,t:'20일째까지 녹지 25%',c:()=>greenPct>=25,r:1500}];
 const VEH={rover:{name:'로버',icon:'🚙',sp:330,r:30,cap:5},truck:{name:'트럭',icon:'🚚',sp:360,r:34,cap:15},dozer:{name:'불도저',icon:'🚜',sp:240,r:36,cap:5},tank:{name:'탱크',icon:'🛡️',sp:420,r:36,cap:5}};
-const CARRY=new Set(['ore','ice','apple','dust']);
+const CARRY=new Set(['ore','ice','apple','bottle','flower']);
 const MT_NAMES=['붉은 송곳 능선','먼지바람 언덕','올림푸스 자락','고요한 바위산','노을 절벽','세 봉우리','철가루 산맥','잠든 거인','마른 강 고개'];
 const QUESTS=[
- {t:'돌 3개 캐기',d:'바위를 클릭하거나 앞에서 Space',c:()=>S.stat.mined>=3,p:()=>`${Math.min(3,S.stat.mined)}/3`,r:30},
- {t:'상점에 팔아 벨 300 모으기',d:'들고 상점 앞 노란 발판에 서면 자동으로 팔려요',c:()=>S.bells>=300,p:()=>`${Math.min(300,S.bells)}/300`,r:0},
- {t:'태양광 패널 설치',d:'상점 구매 → 주머니에서 선택 → 땅 클릭',c:()=>cntB('solar')>=1,r:40},
- {t:'분쇄기 설치하고 돌 넣기',d:'돌을 들고 분쇄기 옆에 서면 자동으로 들어가요',c:()=>S.stat.dust>=2,p:()=>`가루 ${Math.min(2,S.stat.dust)}/2`,r:40},
- {t:'제빙기 설치하고 얼음 넣기',d:'얼음을 들고 제빙기 옆에 서면 녹기 시작해요',c:()=>S.stat.water>=20,p:()=>`물 ${Math.min(20,Math.floor(S.stat.water))}/20`,r:40},
- {t:'우리 집에서 비옥토 만들기',d:'분쇄기 옆에서 가루를 집고 → 집 클릭 → 작업대',c:()=>S.stat.soil>=1,r:40},
- {t:'밭 만들고 꽃씨 심기',d:'비옥토를 땅에 놓으면 밭, 밭 안에 꽃씨',c:()=>cnt('sprout')+cnt('flower')>=1,r:40},
- {t:'꽃 3송이 피우기',d:'새싹에 물 주기 (클릭 = 물 10). 마르면 시들어요',c:()=>cnt('flower')>=3,p:()=>`${Math.min(3,cnt('flower'))}/3`,r:80},
- {t:'스프링클러 설치',d:'밭 옆에 두면 자동으로 물을 줘요',c:()=>cntB('sprinkler')>=1,r:60},
- {t:'첫 구역 열기',d:'행성 바깥 구역의 🔒 표지에 가서 클릭',c:()=>S.zones.some(Boolean),r:100},
- {t:'주민 한 명 고용하기',d:'주민을 클릭 → 고용. 내 일을 대신해요',c:()=>Object.keys(S.hires).length>=1,r:100},
- {t:'물탱크 설치',d:'저장 용량이 늘어 물이 안 넘쳐요',c:()=>cntB('tank')>=1,r:60},
- {t:'산소 발생기 설치',d:'산소가 20%를 넘으면 나무를 심을 수 있어요',c:()=>cntB('oxygen')>=1,r:80},
- {t:'산소 20% 만들기',d:'발생기엔 전력 2가 필요해요. 패널을 더 두세요',c:()=>S.o2>=20,p:()=>`${Math.min(20,Math.floor(S.o2))}/20`,r:100},
- {t:'사과나무 3그루 키우기',d:'묘목도 밭과 물이 필요해요',c:()=>cnt('tree')>=3,p:()=>`${Math.min(3,cnt('tree'))}/3`,r:150},
- {t:'녹지 10% 만들기',d:'나무 주변이 넓게 초록으로 변해요',c:()=>greenPct>=10,p:()=>`${Math.min(10,greenPct)}/10`,r:200},
- {t:'주민 모두와 친해지기',d:'🍎 사과를 세 번씩',c:()=>S.v.filter(v=>VSTAGE[v.name]<=S.stage).every(v=>v.h>=3),r:200},
- {t:'녹지 25% · 산소 40%',d:'스프링클러와 발생기를 늘리세요',c:()=>greenPct>=25&&S.o2>=40,p:()=>`녹지 ${Math.min(25,greenPct)}/25 · 산소 ${Math.min(40,Math.floor(S.o2))}/40`,r:300},
- {t:'녹지 50% · 산소 60%',d:'푸른 행성까지',c:()=>greenPct>=50&&S.o2>=60,p:()=>`녹지 ${Math.min(50,greenPct)}/50 · 산소 ${Math.min(60,Math.floor(S.o2))}/60`,r:500}];
+ {t:'얼음 3개 캐서 제빙기에 넣기',d:'광장 둘레의 🧊 얼음을 클릭 → 들고 제빙기 옆에 서면 자동으로 들어가요',c:()=>S.stat.water>=50,p:()=>`물 ${Math.min(50,Math.floor(S.stat.water))}/50`,r:20},
+ {t:'병입기에서 물병 받아 카운터에 올리기',d:'병입기 옆에 쌓인 🧴를 집어 카운터 옆에 서면 선반에 올라가요',c:()=>S.stat2.stocked>=1,r:20},
+ {t:'손님 3명에게 팔기',d:'손님이 카운터 앞에 서면 선반 물건이 팔려요. 카운터 가까이 있어야 해요',c:()=>S.stat2.served>=3,p:()=>`${Math.min(3,S.stat2.served)}/3`,r:40},
+ {t:'발판으로 제빙기 업그레이드',d:'노란 발판 위에 서 있으면 벨이 들어가요',c:()=>padLv('melter')>=1,r:40},
+ {t:'화성 돌 기념품 팔기',d:'🪨 돌도 선반에 올리면 여행자가 사 가요',c:()=>S.stat2.oreSold>=1,r:30},
+ {t:'꽃씨 심고 꽃 피우기',d:'상점에서 꽃씨 → 밭 클릭 → 식물 클릭으로 물 주기 (물 10)',c:()=>cnt('flower')>=1,r:60},
+ {t:'꽃 3송이 팔기',d:'핀 꽃을 클릭하면 따져요. 60벨!',c:()=>S.stat2.flowerSold>=3,p:()=>`${Math.min(3,S.stat2.flowerSold)}/3`,r:80},
+ {t:'삐걱 고용 (카운터)',d:'카운터 뒤 발판. 내가 없어도 팔아 줘요',c:()=>!!S.hires['삐걱'],r:60},
+ {t:'선반 늘리고 광고 간판 세우기',d:'손님이 더 자주 와요',c:()=>padLv('shelf')>=1&&padLv('ad')>=1,r:80},
+ {t:'모모 고용 (얼음 캐기)',d:'1단계부터 열려요. 얼음이 저절로 들어와요',c:()=>!!S.hires['모모'],r:100},
+ {t:'산소 발생기 설치하고 산소 20%',d:'발생기는 전력 2. 태양광 발판으로 전력을 늘리세요',c:()=>S.o2>=20,p:()=>`${Math.min(20,Math.floor(S.o2))}/20`,r:150},
+ {t:'사과나무 3그루',d:'묘목은 상점. 사과는 120벨이에요',c:()=>cnt('tree')>=3,p:()=>`${Math.min(3,cnt('tree'))}/3`,r:200},
+ {t:'첫 구역 열기',d:'바깥 🔒 표지 발판에 서면 벨이 들어가요. 새 자원이 있어요',c:()=>S.zones.some(Boolean),r:150},
+ {t:'녹지 10%',d:'나무 주변이 넓게 초록으로',c:()=>greenPct>=10,p:()=>`${Math.min(10,greenPct)}/10`,r:200},
+ {t:'손님 100명 응대',d:'',c:()=>S.stat2.served>=100,p:()=>`${Math.min(100,S.stat2.served)}/100`,r:300},
+ {t:'녹지 25% · 산소 40%',d:'스프링클러·발생기 발판을 더',c:()=>greenPct>=25&&S.o2>=40,p:()=>`녹지 ${Math.min(25,greenPct)}/25 · 산소 ${Math.min(40,Math.floor(S.o2))}/40`,r:500},
+ {t:'녹지 50% · 산소 60%',d:'푸른 행성까지',c:()=>greenPct>=50&&S.o2>=60,p:()=>`녹지 ${Math.min(50,greenPct)}/50 · 산소 ${Math.min(60,Math.floor(S.o2))}/60`,r:1000}];
 const cnt=k=>S.objs.filter(o=>o.k===k).length,cntB=e=>S.objs.filter(o=>o.k==='bld'&&o.e===e).length;
+const bld=e=>S.objs.find(o=>o.k==='bld'&&o.e===e);
+// 발판: 밟고 서 있으면 벨이 빨려 들어가고, 다 차면 효과. lv는 반복 구매 횟수
+const PADS=[
+ {id:'melter',n:'제빙기 속도',dx:300,dy:-20,cost:l=>Math.round(120*Math.pow(1.6,l)),max:6,req:()=>true,fx:()=>{bld('melter').lv=(bld('melter').lv||1)+1}},
+ {id:'bottler',n:'병입기 속도',dx:170,dy:-240,cost:l=>Math.round(150*Math.pow(1.6,l)),max:6,req:()=>true,fx:()=>{bld('bottler').lv=(bld('bottler').lv||1)+1}},
+ {id:'shelf',n:'선반 칸 +4',dx:-120,dy:-260,cost:l=>Math.round(100*Math.pow(1.7,l)),max:5,req:()=>true,fx:()=>{S.shelfCap+=4}},
+ {id:'hand',n:'손 크기 +3',dx:-250,dy:-150,cost:l=>Math.round(120*Math.pow(1.8,l)),max:6,req:()=>true,fx:()=>{S.handLv++}},
+ {id:'ad',n:'광고 간판 (손님 ↑)',dx:120,dy:320,cost:l=>Math.round(200*Math.pow(1.7,l)),max:5,req:()=>true,fx:()=>{S.adLv=(S.adLv||0)+1}},
+ {id:'cashier',n:'삐걱 고용 (카운터)',dx:-60,dy:-320,cost:l=>400,max:1,req:()=>S.bells>=0,fx:()=>{S.hires['삐걱']='cashier';S.v.find(v=>v.name==='삐걱').job='cashier'}},
+ {id:'solar',n:'태양광 패널 추가',dx:-320,dy:40,cost:l=>Math.round(90*Math.pow(1.5,l)),max:8,req:()=>true,fx:()=>{const o=bld('solar');o.lv=(o.lv||1)+1}},
+ {id:'field',n:'밭 추가',dx:-40,dy:230,cost:l=>Math.round(150*Math.pow(1.6,l)),max:4,req:()=>true,fx:()=>{const spots=[[-170,120],[-40,170],[90,170],[200,110],[-230,200]];const f=spots[Math.min(spots.length-1,cnt('field'))];S.objs.push({id:uid++,k:'field',x:CX+f[0],y:CY+f[1],r:45,n:0,v:Math.random()})}},
+ {id:'iceWorker',n:'모모 고용 (얼음 캐기)',dx:330,dy:120,cost:l=>500,max:1,req:()=>S.stage>=1,fx:()=>{S.hires['모모']='ice';S.v.find(v=>v.name==='모모').job='ice'}},
+ {id:'sprinkler',n:'스프링클러',dx:-280,dy:260,cost:l=>Math.round(250*Math.pow(1.6,l)),max:3,req:()=>cnt('field')>=1,fx:()=>{const o=bld('sprinkler');if(o)o.lv=(o.lv||1)+1;else S.objs.push({id:uid++,k:'bld',e:'sprinkler',x:CX-80,y:CY+150,r:10,q:0,lv:1,v:0})}},
+ {id:'waterWorker',n:'꼬꼬 고용 (물 주기)',dx:250,dy:260,cost:l=>450,max:1,req:()=>S.stage>=2,fx:()=>{S.hires['꼬꼬']='water';S.v.find(v=>v.name==='꼬꼬').job='water'}},
+ {id:'oxygen',n:'산소 발생기',dx:380,dy:-150,cost:l=>Math.round(400*Math.pow(1.6,l)),max:6,req:()=>cnt('flower')>=3||S.stage>=1,fx:()=>{const o=bld('oxygen');if(o)o.lv=(o.lv||1)+1;else S.objs.push({id:uid++,k:'bld',e:'oxygen',x:CX+330,y:CY-110,r:22,q:0,lv:1,v:0})}},
+ {id:'rockWorker',n:'돌이 고용 (돌 줍기)',dx:-380,dy:-60,cost:l=>400,max:1,req:()=>S.stage>=2,fx:()=>{S.hires['돌이']='rock';S.v.find(v=>v.name==='돌이').job='rock'}},
+ {id:'harvester',n:'삐삐 고용 (수확)',dx:400,dy:60,cost:l=>600,max:1,req:()=>S.stage>=3,fx:()=>{S.hires['삐삐']='harvest';S.v.find(v=>v.name==='삐삐').job='harvest'}},
+ {id:'seedWorker',n:'뽀삐 고용 (씨앗 심기)',dx:-160,dy:330,cost:l=>350,max:1,req:()=>cnt('field')>=2,fx:()=>{S.hires['뽀삐']='plant';S.v.find(v=>v.name==='뽀삐').job='plant'}}];
+const padLv=id=>S.pads[id]||0;
 const PROP_SAY={sign:'표지판: 상점 ← · 집 → · 올림푸스 1,200km',barrel:'빈 연료통. 두드리면 통통 소리가 난다',container:'낡은 컨테이너. 지구에서 온 보급품이 들어 있었대',pole:'전신주. 전선은 모래폭풍에 날아갔다',tires:'버려진 타이어 더미',car:'버려진 탐사차. 바퀴 하나가 없다',cone:'라바콘. 누가 여기에 두고 갔을까',crate:'나무 상자. 안은 비었다'};
 const COL={ink:0x1f120d,coral:0xe9775c,coralD:0xc2553c,coralL:0xf4a58f,pale:0xfde3d8,white:0xffffff,sand:0xf0894c,road:0xb84c2c,green:0x9fc77a,greenD:0x6f9a52,wood:0x7a4a34,dark:0x2a1a14,ice:0xd8f0ff,leaf:0xa7d48c};
 
@@ -176,24 +194,29 @@ function fresh(){
     const keep=peaks.filter(p=>{const dx=p.x-gx,dy=p.y-gy;const along=dx*Math.cos(ang)+dy*Math.sin(ang);return Math.abs(along)>70});
     mts.push({x:mx,y:my,ang,len,peaks:keep,name:MT_NAMES[i],valley:{x:gx,y:gy,nx,ny}});break}}
   const blocks=[];mts.forEach(m=>m.peaks.forEach(p=>blocks.push({x:p.x,y:p.y,r:p.w*.8})));
-  const free=(x,y,rad)=>inPlanet(x,y,rad+40)&&!objs.some(o=>Math.hypot(o.x-x,o.y-y)<o.r+rad+30)&&Math.hypot(x-CX,y-CY)>160&&!blocks.some(b=>Math.hypot(b.x-x,b.y-y)<b.r+rad+70);
+  const free=(x,y,rad)=>inPlanet(x,y,rad+40)&&!objs.some(o=>Math.hypot(o.x-x,o.y-y)<o.r+rad+30)&&Math.hypot(x-CX,y-CY)>520&&!blocks.some(b=>Math.hypot(b.x-x,b.y-y)<b.r+rad+70);
   const spawn=(k,n,rad,extra={})=>{for(let i=0;i<n;i++){for(let t=0;t<60;t++){const a=r()*Math.PI*2,d=Math.sqrt(r())*(R-120);const x=CX+Math.cos(a)*d,y=CY+Math.sin(a)*d;if(free(x,y,rad)){objs.push({id:uid++,k,x,y,r:rad,v:r(),...extra});break}}}};
   const roads=[];for(let i=-2;i<=2;i++){roads.push({axis:'x',c:CY+i*520+(r()-.5)*120});roads.push({axis:'y',c:CX+i*520+(r()-.5)*120})}
-  objs.push({id:uid++,k:'shop',x:CX-260,y:CY-200,r:90});objs.push({id:uid++,k:'house',x:CX+240,y:CY-170,r:55});
-  spawn('rock',26,26,{cd:0});spawn('ice',16,22,{cd:0});
+  // 허브: 광장 안에 가게·기계 기본 배치
+  objs.push({id:uid++,k:'shop',x:CX-40,y:CY-430,r:90});objs.push({id:uid++,k:'house',x:CX-330,y:CY-280,r:55});
+  objs.push({id:uid++,k:'bld',e:'counter',x:CX+40,y:CY-200,r:40,q:0,lv:1,v:0});objs.push({id:uid++,k:'bld',e:'bottler',x:CX+200,y:CY-160,r:22,q:0,lv:1,v:0});objs.push({id:uid++,k:'bld',e:'melter',x:CX+300,y:CY-70,r:22,q:0,lv:1,v:0});objs.push({id:uid++,k:'bld',e:'tank',x:CX+330,y:CY+30,r:26,q:0,lv:1,v:0});objs.push({id:uid++,k:'bld',e:'solar',x:CX-300,y:CY-40,r:22,q:0,lv:1,v:0});objs.push({id:uid++,k:'bld',e:'pad',x:CX+40,y:CY+360,r:50,q:0,lv:1,v:0});
+  objs.push({id:uid++,k:'field',x:CX-170,y:CY+120,r:45,n:0,v:r()});
+  // 허브 근처 얼음·돌 (무한 재생)
+  for(let i=0;i<7;i++){const a=i/7*Math.PI*2+.3,d=380+r()*60;objs.push({id:uid++,k:'ice',x:CX+Math.cos(a)*d,y:CY+Math.sin(a)*d,r:22,cd:0,v:r()})}for(let i=0;i<5;i++){const a=i/5*Math.PI*2+1.1,d=330+r()*60;objs.push({id:uid++,k:'rock',x:CX+Math.cos(a)*d,y:CY+Math.sin(a)*d,r:24,cd:0,v:r()})}
+  spawn('rock',26,26,{cd:0});spawn('ice',12,22,{cd:0});
   
   const PROPS=[['sign',6,14],['barrel',14,12],['container',5,40],['pole',12,8],['tires',8,16],['car',5,34],['cone',16,8],['crate',8,14]];
   for(const [e,n,rad] of PROPS)for(let i=0;i<n;i++){for(let t=0;t<80;t++){let x,y;
     if(r()<.75){const rd=roads[(r()*roads.length)|0],along=CX-R+r()*R*2,off=(r()<.5?-1:1)*(28+r()*40);if(rd.axis==='x'){x=along;y=rd.c+off}else{x=rd.c+off;y=along}}
     else{const a=r()*Math.PI*2,d=Math.sqrt(r())*(R-120);x=CX+Math.cos(a)*d;y=CY+Math.sin(a)*d}
     if(free(x,y,rad)){objs.push({id:uid++,k:'prop',e,x,y,r:rad,v:r(),ax:r()<.5});break}}}
-  return{seed,objs,mts,blocks,roads,vehicles:[{id:1,type:'rover',x:CX+150,y:CY+60,dir:[1,0]}],riding:null,bells:200,inv:{seed:2},carry:[],carryMax:5,handLv:0,held:null,zones:[false,false,false,false,false,false],hires:{},chal:{},done5:false,water:0,waterCap:100,o2:3,battery:0,stage:0,qi:0,stat:{mined:0,dust:0,water:0,soil:0},
-    p:{x:CX,y:CY+40,dir:[1,1]},
+  return{seed,objs,mts,blocks,roads,vehicles:[{id:1,type:'rover',x:CX-420,y:CY+60,dir:[1,0]}],riding:null,bells:60,inv:{seed:3},carry:[],carryMax:4,handLv:0,held:null,zones:[false,false,false,false,false,false],hires:{},chal:{},pads:{},padProg:{},shelf:{},shelfCap:6,adLv:0,cust:[],custT:4,stat2:{served:0,lost:0},done5:false,water:30,waterCap:150,o2:3,battery:0,stage:0,qi:0,stat:{mined:0,dust:0,water:0,soil:0},
+    p:{x:CX+60,y:CY-60,dir:[0,-1]},
     clock:60,
     v:VILLAGERS.map(mkVillager)};
 }
-function load(){try{const s=JSON.parse(localStorage.getItem('mars-forest-v10'));if(s&&s.objs&&s.mts&&s.roads&&s.vehicles&&s.stat&&s.carry&&s.zones){uid=Math.max(...s.objs.map(o=>o.id))+1;VILLAGERS.forEach((d,i)=>{let v=s.v.find(v=>v.name===d[0]);if(!v){s.v.push(mkVillager(d,i))}else{v.hx=CX+d[2];v.hy=CY+d[3];v.giftId=d[4]}});return s}}catch(e){}return null}
-function save(){try{localStorage.setItem('mars-forest-v10',JSON.stringify(S))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem('mars-forest-v11'));if(s&&s.objs&&s.mts&&s.roads&&s.vehicles&&s.stat&&s.carry&&s.zones&&s.pads){uid=Math.max(...s.objs.map(o=>o.id))+1;VILLAGERS.forEach((d,i)=>{let v=s.v.find(v=>v.name===d[0]);if(!v){s.v.push(mkVillager(d,i))}else{v.hx=CX+d[2];v.hy=CY+d[3];v.giftId=d[4]}});return s}}catch(e){}return null}
+function save(){try{localStorage.setItem('mars-forest-v11',JSON.stringify(S))}catch(e){}}
 S=load()||fresh();
 
 /* ---------- Three 셋업 ---------- */
@@ -261,7 +284,9 @@ function applyDayNight(t){const ph=(S.clock||0)/DAY;  // 0 새벽 → .25 정오
   $('#clock').textContent=`${S.day||1}일째 `+(ph<.1||ph>.9?'🌅':ph<.4?'☀️':ph<.6?'🌇':'🌙')+' '+String(Math.floor(((ph+.25)%1)*24)).padStart(2,'0')+':'+String(Math.floor((((ph+.25)%1)*24%1)*60)).padStart(2,'0')}
 const hoverRing=new THREE.Mesh(new THREE.RingGeometry(30,34,32),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,transparent:true,opacity:.9}));hoverRing.rotation.x=-Math.PI/2;hoverRing.visible=false;
 const faceDot=new THREE.Mesh(new THREE.CircleGeometry(5,16),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.7}));faceDot.rotation.x=-Math.PI/2;
-const objMesh=new Map();const zoneG=new THREE.Group();let peakMeshes=[];
+const objMesh=new Map();const zoneG=new THREE.Group();let peakMeshes=[];const padG=new THREE.Group(),custMesh=new Map();
+function rebuildPads(){while(padG.children.length)padG.remove(padG.children[0]);for(const pd of PADS){const g=new THREE.Group();g.position.set(pd.dx,0,pd.dy);const ring=new THREE.Mesh(new THREE.RingGeometry(30,38,28),new THREE.MeshBasicMaterial({color:0xffd34d,transparent:true,opacity:.9,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=1;g.add(ring);const disc=new THREE.Mesh(new THREE.CircleGeometry(30,28),new THREE.MeshBasicMaterial({color:0xfff2b0,transparent:true,opacity:.55}));disc.rotation.x=-Math.PI/2;disc.position.y=.9;g.add(disc);const fill=new THREE.Mesh(new THREE.CircleGeometry(30,28),new THREE.MeshBasicMaterial({color:0xe9775c,transparent:true,opacity:.8}));fill.rotation.x=-Math.PI/2;fill.position.y=1.1;fill.scale.setScalar(.001);g.add(fill);g.userData={pd,fill,ring,disc};padG.add(g)}}
+function bTraveler(col){const g=new THREE.Group();g.add(mesh(G.box(5,9,5),COL.dark,-4,4.5,0));g.add(mesh(G.box(5,9,5),COL.dark,4,4.5,0));const b=mesh(G.sph(9,10),col,0,19,0);b.scale.set(1,1.1,.85);g.add(b);g.add(mesh(G.box(16,3,13),COL.dark,0,14,0));g.add(mesh(G.sph(11,12),COL.white,0,38,0,{roughness:.3}));const v=mesh(G.sph(7.5,10),0x22304a,0,39,5,{roughness:.1});v.scale.set(1,.85,.7);g.add(v);g.add(mesh(G.box(9,10,5),col,0,22,-9));return g}
 function rebuildZones(){while(zoneG.children.length)zoneG.remove(zoneG.children[0]);for(let z=0;z<6;z++){if(S.zones[z])continue;const a0=z/6*Math.PI*2,a1=(z+1)/6*Math.PI*2;const geo=new THREE.RingGeometry(ZONE_R,R+10,24,1,a0,a1-a0);const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:0x2a0f10,transparent:true,opacity:.42,side:THREE.DoubleSide,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.y=1.2;zoneG.add(m);
   for(let k=0;k<=8;k++){const a=a0+(a1-a0)*k/8;const post=mesh(G.box(6,30,6),COL.dark,Math.cos(a)*ZONE_R,15,Math.sin(a)*ZONE_R);zoneG.add(post);if(k<8){const a2=a0+(a1-a0)*(k+.5)/8;const rail=mesh(G.box(ZONE_R*(a1-a0)/8,3,3),COL.coral,Math.cos(a2)*ZONE_R,22,Math.sin(a2)*ZONE_R);rail.rotation.y=-a2-Math.PI/2;zoneG.add(rail)}}
   const g=zoneGate(z);const sign=mesh(G.box(40,26,3),COL.white,g.x-CX,40,g.y-CY);sign.rotation.y=-((z+.5)/6*Math.PI*2)+Math.PI/2;zoneG.add(sign);zoneG.add(mesh(G.cyl(2,2,30,6),COL.dark,g.x-CX,15,g.y-CY))}}
@@ -276,7 +301,7 @@ function buildWorld(){
   const ring=new THREE.Mesh(new THREE.RingGeometry(R+36,R+42,128),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.3;world.add(ring);
   for(const m of S.mts)for(const p of m.peaks){const geo=jitter(G.cone(p.w*1.1,p.h,7),p.w*.5,(p.x*31+p.y)|0);const mm=mesh(geo,p.s<.5?COL.coral:COL.coralL,p.x-CX,p.h/2-2,p.y-CY);mm.rotation.y=p.s*6;mm.material=mm.material.clone();mm.material.transparent=true;mm.userData.peak=p;peakMeshes.push(mm);world.add(mm);
     const base=mesh(jitter(G.sph(p.w*1.3,8),p.w*.3,(p.x*7+p.y)|0),COL.sand,p.x-CX,-p.w*.9,p.y-CY);base.scale.y=.55;world.add(base)}
-  world.add(hoverRing);world.add(faceDot);world.add(zoneG);rebuildZones();
+  world.add(hoverRing);world.add(faceDot);world.add(zoneG);rebuildZones();world.add(padG);rebuildPads();custMesh.clear();
 }
 
 /* ---------- 오브젝트 빌더 ---------- */
@@ -298,6 +323,9 @@ function bBld(o){const g=new THREE.Group();const e=o.e;
   else if(e==='sprinkler'){g.add(mesh(G.cyl(2,2.5,30,6),COL.dark,0,15,0));const hd=mesh(G.cyl(5,5,6,8),0x6cc3f0,0,33,0);hd.userData.spin=true;hd.userData.spinY=true;g.add(hd);g.add(mesh(G.box(16,2,2),COL.white,0,36,0));const ring=new THREE.Mesh(new THREE.RingGeometry(140,150,48),new THREE.MeshBasicMaterial({color:0x6cc3f0,transparent:true,opacity:.25,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.9;g.add(ring)}
   else if(e==='grinder'){g.add(mesh(G.box(34,22,28),COL.coral,0,11,0));g.add(mesh(G.cyl(16,6,16,8),COL.dark,0,30,0));g.add(mesh(G.cyl(13,13,4,10),COL.white,0,38,0));const gear=mesh(G.cyl(9,9,4,8),COL.dark,20,16,0);gear.rotation.z=Math.PI/2;gear.userData.spin=true;g.add(gear);g.add(mesh(G.box(10,6,12),COL.dark,-18,4,8));for(let i=0;i<Math.min(6,o.out||0);i++)g.add(mesh(G.box(9,7,9),0xe2b98a,-28+(i%3)*10,4+Math.floor(i/3)*8,22+(i%2)*4))}
   if((o.lv||1)>1){for(let i=0;i<Math.min(4,o.lv-1);i++)g.add(mesh(G.sph(2.2,6),0xffd34d,-16+i*10,4,-20,{emissive:0xffd34d,emissiveIntensity:.8}))}
+  else if(e==='counter'){g.add(mesh(G.box(130,30,36),COL.white,0,15,0));g.add(mesh(G.box(132,4,38),COL.coral,0,30,0));g.add(mesh(G.box(130,3,36),COL.coralD,0,8,0));[-45,-15,15,45].forEach((x,i)=>{if(i%2)g.add(mesh(G.box(4,30,4),COL.dark,x,15,19))});for(let i=0;i<3;i++)g.add(mesh(G.box(120,2,10),COL.pale,0,36+i*0,-8));g.add(mesh(G.box(40,50,3),COL.white,-70,60,-10));g.add(mesh(G.box(42,4,5),COL.coral,-70,86,-10));const pad=new THREE.Mesh(new THREE.CircleGeometry(70,24),new THREE.MeshBasicMaterial({color:0xffe08a,transparent:true,opacity:.35}));pad.rotation.x=-Math.PI/2;pad.position.set(0,.8,70);g.add(pad);for(let i=0;i<Math.min(12,o.shelfN||0);i++){const k=o.shelfK[i];const m=k==='bottle'?mesh(G.cyl(3,3,9,8),0x9fd4f0,-50+i*9,37,-8):k==='flower'?mesh(G.sph(4,8),0xf7b6a3,-50+i*9,37,-8):k==='apple'?mesh(G.sph(4,8),0xe8463a,-50+i*9,37,-8):mesh(jitter(G.sph(4,6),1.5,i),COL.coralD,-50+i*9,37,-8);g.add(m)}}
+  else if(e==='bottler'){g.add(mesh(G.box(30,24,26),COL.white,0,12,0));g.add(mesh(G.box(31,5,27),0x6cc3f0,0,20,0));g.add(mesh(G.cyl(4,4,22,8),COL.dark,-8,30,0));g.add(mesh(G.box(20,4,22),COL.coralD,8,26,0));const noz=mesh(G.cyl(2,2,10,6),COL.dark,14,14,12);noz.rotation.x=Math.PI/2;g.add(noz);for(let i=0;i<Math.min(8,o.out||0);i++)g.add(mesh(G.cyl(3,3,9,8),0x9fd4f0,-24+(i%4)*8,4.5+Math.floor(i/4)*9,22))}
+  else if(e==='pad'){g.add(mesh(G.cyl(50,52,3,24),COL.dark,0,1.5,0));g.add(mesh(G.cyl(40,40,1.5,24),COL.coral,0,3.5,0));g.add(mesh(G.cyl(18,18,1.5,24),COL.white,0,4.5,0));[0,1,2,3].forEach(i=>{const a=i*Math.PI/2;g.add(mesh(G.sph(3,6),0xffd34d,Math.cos(a)*46,6,Math.sin(a)*46,{emissive:0xffd34d,emissiveIntensity:1}))})}
   else if(e==='oxygen'){g.add(mesh(G.cyl(16,18,40,10),COL.white,0,20,0));g.add(mesh(G.cyl(16.5,16.5,5,10),0xbfe8ff,0,34,0));const fan=new THREE.Group();fan.position.set(0,46,0);fan.add(mesh(G.cyl(3,3,4,8),COL.dark,0,0,0));for(let i=0;i<4;i++){const bl=mesh(G.box(14,1,4),COL.coral,0,0,0);bl.rotation.y=i*Math.PI/2;bl.position.set(Math.cos(i*Math.PI/2)*8,0,Math.sin(i*Math.PI/2)*8);fan.add(bl)}fan.userData.spin=true;fan.userData.spinY=true;g.add(fan);g.add(mesh(G.tor(14,1.5),COL.dark,0,46,0).rotateX(Math.PI/2))}
   return g}
 function bShop(){const g=new THREE.Group();const sg=g;g.add(mesh(G.box(150,66,110),COL.pale,0,33,0));for(let i=0;i<6;i++)g.add(mesh(G.box(6,66,4),COL.coral,-66+i*26,33,56));for(let i=0;i<4;i++)g.add(mesh(G.box(4,66,6),COL.coral,76,33,-42+i*28));
@@ -374,7 +402,7 @@ function bProp(o){const g=new THREE.Group();const e=o.e;
   return g}
 function signTex(txt){const c=document.createElement('canvas');c.width=360;c.height=80;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,360,80);x.fillStyle='#1f120d';x.font='900 44px -apple-system,"Apple SD Gothic Neo",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(txt,180,42);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
 const BUILD={rock:bRock,ice:bIce,tree:bTree,flower:bFlower,sprout:bSprout,sapling:bSapling,wilt:bWilt,field:bField,bld:bBld,shop:bShop,house:bHouse,deco:bDeco,prop:bProp};
-function objKey(o){return o.k+'|'+(o.out?Math.min(6,o.out):0)+'|'+(o.lv||1)+'|'+(o.hyd!==undefined?(o.hyd>.3?1:0):0)+(o.fruit?1:0)+(o.cd>0?1:0)+(o.e??'')}
+function objKey(o){if(o.k==='bld'&&o.e==='counter'){o.shelfK=[];for(const k of ['bottle','flower','apple','ore'])for(let i=0;i<(S.shelf[k]||0);i++)o.shelfK.push(k);o.shelfN=o.shelfK.length;return 'counter|'+o.shelfK.join('')}return o.k+'|'+(o.out?Math.min(8,o.out):0)+'|'+(o.lv||1)+'|'+(o.hyd!==undefined?(o.hyd>.3?1:0):0)+(o.fruit?1:0)+(o.cd>0?1:0)+(o.e??'')}
 function syncObjects(){const seen=new Set();
   for(const o of S.objs){seen.add(o.id);const key=objKey(o);let rec=objMesh.get(o.id);
     if(!rec||rec.key!==key){if(rec)world.remove(rec.g);const g=BUILD[o.k](o);g.position.copy(W2T(o.x,o.y));if(o.k==='rock'||o.k==='flower'||o.k==='tree')g.rotation.y=o.v*6;if(o.cd>0)g.scale.setScalar(.55);world.add(g);rec={g,key};objMesh.set(o.id,rec)}}
@@ -410,50 +438,53 @@ function spawnVehicle(type){const sh=S.objs.find(o=>o.k==='shop');for(let k=0;k<
 function fireTank(){const v=myVeh();let best=null,bd=180;for(const o of S.objs){if(o.k!=='rock'||o.cd>0)continue;const d=Math.hypot(o.x-v.x,o.y-v.y);if(d<bd){bd=d;best=o}}if(!best){toast('사거리 안에 깰 돌이 없어요');return}v.dir=[(best.x-v.x)/bd,(best.y-v.y)/bd];best.cd=20;add('ore',2);fx.push({x:best.x,y:best.y,t:0});toast('💥 포격! 철광석 +2');save();renderUI()}
 function interactTarget(tg){if(tg.veh!==undefined){board(tg.veh);return}if(tg.v){talk(tg.v);return}const o=tg.o;
   if(o.k==='rock'||o.k==='ice'){if(o.cd>0){toast('아직 다시 생기는 중이에요');return}const k=o.k==='rock'?'ore':'ice';if(S.carry.length>=carryMax()){toast(`손이 가득해요 (${S.carry.length}/${carryMax()}) · 기계나 상점에 가져가세요`);return}add(k);if(k==='ore')S.stat.mined++;o.cd=o.k==='rock'?20:25;floatTxt(o.x,o.y,`+${ICON[k]}`);fx.push({x:o.x,y:o.y,t:.3});sfx('mine')}
-  else if(o.k==='shop')openShop();else if(o.k==='house')openCraft();
-  else if(o.k==='bld'){const e=o.e;if(e==='melter'||e==='grinder'){if(!feed(o)){if(e==='grinder'&&(o.out||0)>0)grab(o);else upgrade(o)}}
+  else if(o.k==='shop')openShop();else if(o.k==='house')say('me','우리 집. 오늘도 포근하다');
+  else if(o.k==='bld'){const e=o.e;if(e==='melter'){if(!feed(o))toast(`제빙기 Lv.${o.lv||1}: 대기 ${o.q||0}개 · 얼음을 가져오세요`)}else if(e==='bottler'){if((o.out||0)>0)grab(o);else toast(`병입기 Lv.${o.lv||1}: 물 10 → 물병 1 (탱크 ${Math.floor(S.water)})`)}else if(e==='counter'){stock(o);toast(`선반 ${shelfCount()}/${S.shelfCap}: ${Object.entries(S.shelf).filter(([k,n])=>n).map(([k,n])=>GOODS[k].icon+n).join(' ')||'비어 있음'}`)}else if(e==='pad')toast('착륙장: 손님이 여기로 내려요');
     else if(e==='solar')toast(`태양광: 지금 +${(3*dayFactor()).toFixed(1)} 전력`);else if(e==='tank')toast(`물탱크: ${Math.floor(S.water)}/${S.waterCap}`);else if(e==='oxygen')toast(`산소 발생기: ${power.ratio<1?'전력 부족 '+Math.round(power.ratio*100)+'%':'정상 가동'}`);else if(e==='battery')toast(`배터리: ${Math.floor(S.battery)}/${cntB('battery')*60}`);else if(e==='sprinkler')toast(S.water>0?'스프링클러: 반경 안 식물에 물 주는 중':'스프링클러: 물이 없어요');
-    if(e!=='melter'&&e!=='grinder'&&confirmPickup(o))return;if(e==='oxygen'||e==='sprinkler'||e==='solar')upgrade(o,true)}
-  else if(o.k==='field'){if(S.held==='seed'||S.held==='sapling')placeAt(o.x+(Math.random()-.5)*40,o.y+(Math.random()-.5)*40);else toast(`밭 (${o.n||0}/4) · 씨앗이나 묘목을 들고 클릭`)}
+    }
+  else if(o.k==='field'){if(S.held==='seed'||S.held==='sapling')placeAt(o.x+(Math.random()-.5)*40,o.y+(Math.random()-.5)*40);else if(S.inv.seed){S.held='seed';placeAt(o.x+(Math.random()-.5)*40,o.y+(Math.random()-.5)*40)}else toast(`밭 (${o.n||0}/4) · 상점에서 꽃씨를 사 오세요`)}
   else if(o.k==='wilt'){S.objs.splice(S.objs.indexOf(o),1);add('compost');toast('🟤 시든 식물을 걷어 퇴비 +1');paintGreen()}
-  else if(o.k==='sprout'||o.k==='sapling'||o.k==='flower'){if(o.hyd>=.9)toast(o.k==='flower'?'예쁘게 피었어요':'쑥쑥 자라는 중… (수분 충분)');else if(S.water>=10){S.water-=10;o.hyd=1;sfx('water');toast('💧 물을 줬어요 (물 −10)')}else toast('물이 없어요. 제빙기로 얼음을 녹이세요')}
-  else if(o.k==='tree'){if(o.fruit){o.fruit=false;o.ft=0;add('apple');toast('🍎 사과를 땄다!')}else toast('사과가 열리길 기다려요')}
+  else if(o.k==='flower'){if(S.carry.length>=carryMax()){toast('손이 가득해요');return}S.objs.splice(S.objs.indexOf(o),1);const f=S.objs.find(q=>q.id===o.fid);if(f)f.n=Math.max(0,(f.n||0)-1);S.carry.push('flower');sfx('pick');floatTxt(o.x,o.y,'+🌸');paintGreen()}
+  else if(o.k==='sprout'||o.k==='sapling'){if(o.hyd>=.9)toast('쑥쑥 자라는 중… (수분 충분)');else if(S.water>=10){S.water-=10;o.hyd=1;sfx('water');toast('💧 물을 줬어요 (물 −10)')}else toast('물이 없어요. 제빙기로 얼음을 녹이세요')}
+  else if(o.k==='tree'){if(o.fruit){if(S.carry.length>=carryMax()){toast('손이 가득해요');return}o.fruit=false;o.ft=0;add('apple');floatTxt(o.x,o.y,'+🍎');sfx('pick')}else toast('사과가 열리길 기다려요')}
   else if(o.k==='deco'){add(o.e);S.objs.splice(S.objs.indexOf(o),1);toast(`${ICON[o.e]} 다시 주머니에 넣었어요`)}
   else if(o.k==='prop')say('me',PROP_SAY[o.e]);
   renderUI();save()}
 function upCost(o){return Math.round(120*Math.pow(1.7,(o.lv||1)-1))}
-function feed(o){const k=o.e==='melter'?'ice':'ore';const n=takeCarry(k,99);if(!n)return false;o.q=(o.q||0)+n;floatTxt(o.x,o.y,`−${ICON[k]}×${n}`);toast(`${ICON[k]} ${n}개를 넣었어요`);renderUI();save();return true}
-function grab(o){const n=Math.min(o.out||0,carryMax()-S.carry.length);if(n<=0){toast('손이 가득해요');return}o.out-=n;sfx('pick');for(let i=0;i<n;i++)S.carry.push('dust');floatTxt(o.x,o.y,`+🫙×${n}`);renderUI();save()}
+function feed(o){if(o.e!=='melter')return false;const k='ice';const n=takeCarry(k,99);if(!n)return false;o.q=(o.q||0)+n;floatTxt(o.x,o.y,`−${ICON[k]}×${n}`);toast(`${ICON[k]} ${n}개를 넣었어요`);renderUI();save();return true}
+function grab(o){const n=Math.min(o.out||0,carryMax()-S.carry.length);if(n<=0){toast('손이 가득해요');return}o.out-=n;sfx('pick');for(let i=0;i<n;i++)S.carry.push('bottle');floatTxt(o.x,o.y,`+🧴×${n}`);renderUI();save()}
+function shelfCount(){return Object.values(S.shelf).reduce((a,b)=>a+b,0)}
+function stock(c){let put=0;for(const k of ['bottle','flower','apple','ore']){while(carried(k)&&shelfCount()<S.shelfCap){takeCarry(k,1);S.shelf[k]=(S.shelf[k]||0)+1;put++}}if(put){S.stat2.stocked=(S.stat2.stocked||0)+put;floatTxt(c.x,c.y,`선반 +${put}`);sfx('pick');renderUI();save()}else if(S.carry.length&&shelfCount()>=S.shelfCap&&!stockWarn){stockWarn=true;setTimeout(()=>stockWarn=false,3000);toast('선반이 가득해요 (발판으로 늘리기)')}}
+let stockWarn=false;
 function upgrade(o,soft){const c=upCost(o);if(S.bells<c){if(!soft)toast(`업그레이드 ${c}벨 필요 (지금 Lv.${o.lv||1})`);return}S.bells-=c;o.lv=(o.lv||1)+1;sfx('up');floatTxt(o.x,o.y,`▲ Lv.${o.lv}`);fx.push({x:o.x,y:o.y,t:0});toast(`${BLD[o.e].name} Lv.${o.lv}! ${o.e==='solar'?'전력 +':o.e==='oxygen'?'산소 생산 +':o.e==='sprinkler'?'반경 +':'속도 +'}`);renderUI();save()}
 function upgradeHand(){const c=Math.round(120*Math.pow(1.8,S.handLv));if(S.bells<c){toast(`손 업그레이드 ${c}벨 필요`);return}S.bells-=c;S.handLv++;sfx('up');floatTxt(S.p.x,S.p.y,`🎒 +3`);toast(`들 수 있는 개수 +3 (최대 ${carryMax()})`);renderUI();save()}
 function zoneGate(z){const a=(z+.5)/6*Math.PI*2;return{x:CX+Math.cos(a)*(ZONE_R+40),y:CY+Math.sin(a)*(ZONE_R+40)}}
-function tryUnlock(z){const c=ZONE_COST[S.zones.filter(Boolean).length];if(S.bells<c){toast(`구역 열기 ${c}벨 필요`);sfx('err');return}S.bells-=c;S.zones[z]=true;sfx('unlock');const g=zoneGate(z);floatTxt(g.x,g.y,`🔓 ${ZONE_NAMES[z]}`);say('뽀삐',`${ZONE_NAMES[z]}이 열렸어! 새 자원이 있을 거야`);rebuildZones();renderUI();save()}
+function tryUnlock(z){const c=ZONE_COST[S.zones.filter(Boolean).length];if(S.bells<c){toast(`구역 열기: 🔒 표지 옆에 서 있으면 벨이 들어가요 (${Math.floor(S.padProg['z'+z]||0)}/${c})`);return}S.bells-=c;S.zones[z]=true;sfx('unlock');const g=zoneGate(z);floatTxt(g.x,g.y,`🔓 ${ZONE_NAMES[z]}`);say('뽀삐',`${ZONE_NAMES[z]}이 열렸어! 새 자원이 있을 거야`);rebuildZones();renderUI();save()}
 function confirmPickup(o){if(S.held!=='pick')return false;add('b:'+o.e);S.objs.splice(S.objs.indexOf(o),1);S.held=null;toast(`${BLD[o.e].name}을(를) 주머니에 넣었어요`);renderUI();save();return true}
 function placeAt(x,y){if(!zoneOpen(x,y)){toast('잠긴 구역이에요. 🔒 표지에서 열 수 있어요');return}const h=S.held;if(!h||!S.inv[h]){toast('주머니에서 심거나 놓을 물건을 골라 주세요');return}if(!inPlanet(x,y,50)){toast('행성 가장자리엔 놓을 수 없어요');return}
   const nr=nearest(x,y,30);if((nr&&!(nr.o&&nr.o.k==='field'&&(S.held==='seed'||S.held==='sapling')))||Math.hypot(S.p.x-x,S.p.y-y)<24||S.blocks.some(b=>Math.hypot(b.x-x,b.y-y)<b.r+30)){toast('여긴 자리가 없어요');return}
   const base={id:uid++,x,y,v:Math.random()};
   if(h==='seed'||h==='sapling'){const f=S.objs.find(o=>o.k==='field'&&Math.hypot(o.x-x,o.y-y)<48);if(!f){toast('밭 안에만 심을 수 있어요 (비옥토를 땅에 놓으면 밭)');return}if((f.n||0)>=4){toast('이 밭은 가득 찼어요 (4칸)');return}if(h==='sapling'&&S.o2<20){toast('묘목은 산소 20% 이상이어야 살 수 있어요');return}
     S.inv[h]--;f.n=(f.n||0)+1;S.objs.push({...base,k:h==='seed'?'sprout':'sapling',r:10,hyd:.5,gr:0,fid:f.id});sfx('plant')}
-  else if(h==='soil'){if(S.objs.some(o=>o.k==='field'&&Math.hypot(o.x-x,o.y-y)<90)){toast('밭이 너무 가까워요');return}S.inv[h]--;S.objs.push({...base,k:'field',r:45,n:0})}
-  else if(h.startsWith('b:')){S.inv[h]--;S.objs.push({...base,k:'bld',e:h.slice(2),r:h==='b:tank'?26:h==='b:sprinkler'?10:22,q:0})}
+  else if(h.startsWith('b:')){S.inv[h]--;S.objs.push({...base,k:'bld',e:h.slice(2),r:22,q:0})}
   else{S.inv[h]--;S.objs.push({...base,k:'deco',e:h,r:h==='wheel'?40:h==='tent'?38:h==='bench'?28:14})}paintGreen();renderUI();save()}
 function talk(v){v.face=[S.p.x-v.x,S.p.y-v.y];v.t=3;openVill(v)}
 function giveApple(v){if(!carried('apple')){toast('🍎 사과가 없어요 (사과나무에서 따요)');return}takeCarry('apple',1);sfx('pick');{v.h++;if(v.h>=3&&!v.gift){v.gift=true;const e=v.giftId;add(e);say(v.name,`우리 이제 베프야! 이거 받아 ${ICON[e]}`)}else say(v.name,{'뽀삐':'사과다!! 고마워 💕','삐걱':'삐빅! 감사 회로 작동 💕','모모':'냐… 고마워 (꼬리 흔들)','돌이':'…고맙다. 오래 기억하겠다','꼬꼬':'꼬꼬꼬! 최고의 간식!','삐삐':'윙— 감사 신호 송신 💕'}[v.name])}
   renderUI();save();renderVill(v)}
 function openVill(v){keys={};say(v.name,LINES[v.name][(Math.random()*4)|0]);renderVill(v);$('#vill').style.display='flex'}
-function renderVill(v){const j=JOBS[v.name],hired=S.hires[v.name];$('#vbox').innerHTML=`<h2>${v.name}</h2><p>${{alien:'외계인',robot:'청소 로봇',cat:'우주 고양이',golem:'바위 골렘',bird:'헬멧 쓴 닭',drone:'정찰 드론'}[v.kind]} · 친밀도 ${'♥'.repeat(v.h)}${'♡'.repeat(Math.max(0,3-v.h))}</p><div class="row"><div class="e">🍎</div><div class="n">사과 선물<small>세 번 주면 선물을 줘요 (들고 있는 사과 ${carried('apple')})</small></div><button class="btn" id="vapple" ${carried('apple')?'':'disabled'}>주기</button></div><div class="row"><div class="e">💼</div><div class="n">${hired?'일하는 중':'고용'}<small>${j.n}</small></div>${hired?`<button class="btn" id="vfire">그만두게</button>`:`<button class="btn" id="vhire" ${S.bells>=j.cost?'':'disabled'}>🔔 ${j.cost}</button>`}</div><div class="btns"><button class="btn o" id="vclose">닫기</button></div>`;$('#vapple').onclick=()=>giveApple(v);$('#vclose').onclick=()=>$('#vill').style.display='none';const hb=$('#vhire');if(hb)hb.onclick=()=>{S.bells-=j.cost;S.hires[v.name]=j.id;v.job=j.id;v.st=0;v.tx=null;sfx('up');toast(`${v.name} 고용! ${j.n}`);renderUI();save();renderVill(v)};const fb=$('#vfire');if(fb)fb.onclick=()=>{delete S.hires[v.name];v.job=null;v.st=0;v.tx=null;renderVill(v);save()}}
+function renderVill(v){const j=JOBS[v.name],hired=S.hires[v.name];$('#vbox').innerHTML=`<h2>${v.name}</h2><p>${{alien:'외계인',robot:'청소 로봇',cat:'우주 고양이',golem:'바위 골렘',bird:'헬멧 쓴 닭',drone:'정찰 드론'}[v.kind]} · 친밀도 ${'♥'.repeat(v.h)}${'♡'.repeat(Math.max(0,3-v.h))}</p><div class="row"><div class="e">🍎</div><div class="n">사과 선물<small>세 번 주면 선물을 줘요 (들고 있는 사과 ${carried('apple')})</small></div><button class="btn" id="vapple" ${carried('apple')?'':'disabled'}>주기</button></div><div class="row"><div class="e">💼</div><div class="n">${hired?'일하는 중':'고용은 광장 발판에서'}<small>${j.n}</small></div>${hired?`<button class="btn" id="vfire">그만두게</button>`:''}</div><div class="btns"><button class="btn o" id="vclose">닫기</button></div>`;$('#vapple').onclick=()=>giveApple(v);$('#vclose').onclick=()=>$('#vill').style.display='none';const hb=$('#vhire');if(hb)hb.onclick=()=>{S.bells-=j.cost;S.hires[v.name]=j.id;v.job=j.id;v.st=0;v.tx=null;sfx('up');toast(`${v.name} 고용! ${j.n}`);renderUI();save();renderVill(v)};const fb=$('#vfire');if(fb)fb.onclick=()=>{delete S.hires[v.name];v.job=null;v.st=0;v.tx=null;const pd=PADS.find(p=>p.fx.toString().includes(`'${v.name}'`));if(pd)delete S.pads[pd.id];renderVill(v);save()}}
 /* ---------- 행성 시스템 ---------- */
 let power={gen:0,use:0,ratio:1};
 function dayFactor(){const ph=(S.clock||0)/DAY;return Math.max(0,Math.sin(ph*Math.PI*2))}
 function tickPlanet(dt){
   const blds=S.objs.filter(o=>o.k==='bld');
-  let gen=0,use=0;for(const b of blds){if(b.e==='solar')gen+=3*(b.lv||1)*dayFactor();if(BLD[b.e].use&&((b.e!=='melter'&&b.e!=='grinder')||b.q>0))use+=BLD[b.e].use}
+  let gen=0,use=0;for(const b of blds){if(b.e==='solar')gen+=3*(b.lv||1)*dayFactor();if(BLD[b.e].use&&((b.e!=='melter')||b.q>0))use+=BLD[b.e].use}
   const batCap=cntB('battery')*60;if(gen>use&&S.battery<batCap)S.battery=Math.min(batCap,S.battery+(gen-use)*dt*.5);
   let ratio=use?Math.min(1,gen/use):1;if(ratio<1&&S.battery>0){const need=(use-gen)*dt;const take=Math.min(S.battery,need);S.battery-=take;ratio=Math.min(1,(gen+take/dt)/use)}
   power={gen:Math.round(gen*10)/10,use,ratio};
   S.waterCap=100+cntB('tank')*200;
   for(const b of blds){const lv=b.lv||1;if(b.e==='melter'&&b.q>0){b.pr=(b.pr||0)+dt*ratio*lv;if(b.pr>=3){b.pr=0;b.q--;const w=Math.min(25,S.waterCap-S.water);S.water+=w;S.stat.water+=w;floatTxt(b.x,b.y,`+💧${w}`)}}
-    if(b.e==='grinder'&&b.q>0){b.pr=(b.pr||0)+dt*ratio*lv;if(b.pr>=3){b.pr=0;b.q--;b.out=(b.out||0)+2;S.stat.dust+=2}}
+    if(b.e==='bottler'){if(S.water>=10&&(b.out||0)<8){b.pr=(b.pr||0)+dt*ratio*lv;if(b.pr>=3){b.pr=0;S.water-=10;b.out=(b.out||0)+1}}}
     if(b.e==='sprinkler'){const rr=150+(lv-1)*50;for(const o of S.objs){if(!PLANT.has(o.k)||o.k==='wilt'||o.k==='tree')continue;if(Math.hypot(o.x-b.x,o.y-b.y)<rr&&o.hyd<.9&&S.water>0){const w=Math.min(S.water,dt*2);S.water-=w;o.hyd=Math.min(1,o.hyd+w*.05)}}}}
   // 산소: 발생기 + 식물, 자연 누출
   let o2=0;for(const b of blds)if(b.e==='oxygen')o2+=.035*ratio*(b.lv||1);o2+=cnt('tree')*.006+cnt('flower')*.0012;o2-=S.o2*.0004;S.o2=Math.max(0,Math.min(100,S.o2+o2*dt));
@@ -464,20 +495,32 @@ let wiltFlag=false,proxT=0;
 function goTo(v,x,y,dt,sp=95){const dx=x-v.x,dy=y-v.y,L=Math.hypot(dx,dy);if(L<40)return true;v.face=[dx,dy];const ok=tryMove(v,dx/L*Math.min(sp*dt,L),dy/L*Math.min(sp*dt,L),v);if(!ok){v.stuck=(v.stuck||0)+dt;if(v.stuck>1.2){v.stuck=0;v.tgt=null;const a=Math.random()*7;tryMove(v,Math.cos(a)*30,Math.sin(a)*30,v)}}else v.stuck=0;return false}
 function workAI(v,dt){v.carry=v.carry||[];v.wt=(v.wt||0)+dt;const near=(k,f)=>{let b=null,bd=1e9;for(const o of S.objs){if(o.k!==k||!zoneOpen(o.x,o.y)||(f&&!f(o)))continue;const d=Math.hypot(o.x-v.x,o.y-v.y);if(d<bd){bd=d;b=o}}return b};
   const j=v.job;
-  if(j==='mine'||j==='ice'){const rk=j==='mine'?'rock':'ice',it=j==='mine'?'ore':'ice',mk=j==='mine'?'grinder':'melter';
+  if(j==='cashier'){const c=bld('counter');if(Math.hypot(v.x-(c.x-70),v.y-(c.y+10))>30)goTo(v,c.x-70,c.y+10,dt);else v.face=[1,0];return}
+  if(j==='rock'||j==='ice'){const rk=j==='rock'?'rock':'ice',it=j==='rock'?'ore':'ice',mk=j==='rock'?'counter':'melter';
     if(v.carry.length<3){const o=near(rk,o=>o.cd<=0);if(!o)return;if(goTo(v,o.x,o.y,dt)){if(v.wt>1.2){v.wt=0;o.cd=rk==='rock'?20:25;v.carry.push(it);floatTxt(o.x,o.y,`+${ICON[it]}`)}}}
-    else{const m=near('bld',o=>o.e===mk);if(!m){const sh=S.objs.find(o=>o.k==='shop');if(goTo(v,sh.x,sh.y+100,dt)){const t=v.carry.length*SELL[it];S.bells+=t;floatTxt(sh.x,sh.y,`+🔔${t} (${v.name})`);v.carry=[]}return}if(goTo(v,m.x,m.y,dt)){m.q=(m.q||0)+v.carry.length;floatTxt(m.x,m.y,`−${ICON[it]}×${v.carry.length}`);v.carry=[]}}}
+    else{const m=near('bld',o=>o.e===mk);if(!m)return;if(goTo(v,m.x,m.y,dt)){if(mk==='counter'){while(v.carry.length&&shelfCount()<S.shelfCap){v.carry.pop();S.shelf.ore=(S.shelf.ore||0)+1}if(v.carry.length)v.wt=0;else floatTxt(m.x,m.y,'선반 +🪨')}else{m.q=(m.q||0)+v.carry.length;floatTxt(m.x,m.y,`−${ICON[it]}×${v.carry.length}`);v.carry=[]}}}}
   else if(j==='water'){const o=near('sprout',o=>o.hyd<.4)||near('sapling',o=>o.hyd<.4)||near('flower',o=>o.hyd<.3);if(!o||S.water<10){if(Math.hypot(v.x-v.hx,v.y-v.hy)>60)goTo(v,v.hx,v.hy,dt);return}if(goTo(v,o.x,o.y,dt)){S.water-=10;o.hyd=1;floatTxt(o.x,o.y,'💧')}}
-  else if(j==='haul'){if(v.carry.length<2){const g=near('bld',o=>o.e==='grinder'&&(o.out||0)>0);if(!g){if(Math.hypot(v.x-v.hx,v.y-v.hy)>60)goTo(v,v.hx,v.hy,dt);return}if(goTo(v,g.x,g.y,dt)){const n=Math.min(2,g.out);g.out-=n;for(let i=0;i<n;i++)v.carry.push('dust')}}
-    else{const h=S.objs.find(o=>o.k==='house');if(goTo(v,h.x,h.y+60,dt)){if(S.water>=10){S.water-=10;v.carry=[];add('soil',1);S.stat.soil++;floatTxt(h.x,h.y,'+🟫 비옥토');renderUI()}else if(v.wt>3){v.wt=0;floatTxt(h.x,h.y,'물 부족…')}}}}
   else if(j==='plant'){if(!S.inv.seed){if(Math.hypot(v.x-v.hx,v.y-v.hy)>60)goTo(v,v.hx,v.hy,dt);return}const f=near('field',o=>(o.n||0)<4);if(!f)return;if(goTo(v,f.x,f.y,dt)){S.inv.seed--;f.n=(f.n||0)+1;S.objs.push({id:uid++,x:f.x+(Math.random()-.5)*40,y:f.y+(Math.random()-.5)*40,v:Math.random(),k:'sprout',r:10,hyd:.5,gr:0,fid:f.id});floatTxt(f.x,f.y,'🌱');renderUI()}}
-  else if(j==='harvest'){if(v.carry.length<3){const t=near('tree',o=>o.fruit);if(!t){if(v.carry.length){const sh=S.objs.find(o=>o.k==='shop');if(goTo(v,sh.x,sh.y+100,dt,130)){const m=v.carry.length*SELL.apple;S.bells+=m;floatTxt(sh.x,sh.y,`+🔔${m} (${v.name})`);v.carry=[]}}else if(Math.hypot(v.x-v.hx,v.y-v.hy)>60)goTo(v,v.hx,v.hy,dt,130);return}if(goTo(v,t.x,t.y,dt,130)){t.fruit=false;t.ft=0;v.carry.push('apple');floatTxt(t.x,t.y,'+🍎')}}
-    else{const sh=S.objs.find(o=>o.k==='shop');if(goTo(v,sh.x,sh.y+100,dt,130)){const m=v.carry.length*SELL.apple;S.bells+=m;floatTxt(sh.x,sh.y,`+🔔${m} (${v.name})`);v.carry=[]}}}}
+  else if(j==='harvest'){const c=bld('counter');const drop=()=>{if(goTo(v,c.x+90,c.y,dt,130)){while(v.carry.length&&shelfCount()<S.shelfCap){const k=v.carry.pop();S.shelf[k]=(S.shelf[k]||0)+1}floatTxt(c.x,c.y,'선반 +🌸🍎')}};
+    if(v.carry.length<3){const t=near('tree',o=>o.fruit)||near('flower');if(!t){if(v.carry.length)drop();else if(Math.hypot(v.x-v.hx,v.y-v.hy)>60)goTo(v,v.hx,v.hy,dt,130);return}if(goTo(v,t.x,t.y,dt,130)){if(t.k==='tree'){t.fruit=false;t.ft=0;v.carry.push('apple')}else{S.objs.splice(S.objs.indexOf(t),1);const f=S.objs.find(q=>q.id===t.fid);if(f)f.n=Math.max(0,(f.n||0)-1);v.carry.push('flower');paintGreen()}floatTxt(t.x,t.y,'+'+(t.k==='tree'?'🍎':'🌸'))}}else drop()}}
 function proximity(dt){proxT+=dt;if(proxT<.35)return;proxT=0;const p=S.p;
-  for(const b of S.objs){if(b.k!=='bld')continue;const d=Math.hypot(b.x-p.x,b.y-p.y);if(d>75)continue;
-    if(b.e==='melter'&&carried('ice'))feed(b);else if(b.e==='grinder'){if(carried('ore'))feed(b);if((b.out||0)>0&&S.carry.length<carryMax())grab(b)}}
-  const sh=S.objs.find(o=>o.k==='shop');if(Math.hypot(sh.x-p.x,sh.y-p.y)<150)sellCarry(sh)}
-function sellCarry(sh){let t=0,n=0;for(const k in SELL){const c=carried(k);if(c){t+=c*SELL[k];n+=c;takeCarry(k,c)}}if(t){S.bells+=t;S.stat.sold=(S.stat.sold||0)+t;floatTxt(sh.x,sh.y,`+🔔${t}`);sfx('sell');fx.push({x:sh.x,y:sh.y,t:.2});renderUI();save()}}
+  for(const b of S.objs){if(b.k!=='bld')continue;const d=Math.hypot(b.x-p.x,b.y-p.y);if(d>(b.e==='counter'?120:75))continue;
+    if(b.e==='melter'&&carried('ice'))feed(b);else if(b.e==='bottler'){if((b.out||0)>0&&S.carry.length<carryMax())grab(b)}else if(b.e==='counter')stock(b)}}
+function sellCarry(){}
+function custWants(){const w=['bottle'];if(S.stat2.oreSold||carried('ore')||S.shelf.ore)w.push('ore');if(cnt('flower')||S.shelf.flower||S.stat2.flowerSold)w.push('flower');if(cnt('tree'))w.push('apple');return w[(Math.random()*w.length)|0]}
+function tickCustomers(dt){const counter=bld('counter'),pad=bld('pad');if(!counter)return;const cashier=S.hires['삐걱']==='cashier';const pNear=Math.hypot(S.p.x-counter.x,S.p.y-counter.y)<130;
+  S.custT-=dt;const maxC=4+Math.min(4,S.adLv);if(S.custT<=0&&S.cust.length<maxC){S.custT=Math.max(2.5,9-S.adLv*1.3)*(0.7+Math.random()*.6);S.cust.push({id:uid++,x:pad.x+(Math.random()-.5)*60,y:pad.y+20,want:custWants(),st:'walk',wait:0,col:[0xf7b6a3,0x9fd4f0,0xffe08a,0xbdf0a0,0xd9c7ff][(Math.random()*5)|0]})}
+  const QX=counter.x+30,QY=counter.y+70;S.cust.forEach((c,i)=>{const qi=S.cust.filter(o=>o.st==='queue'||o.st==='walk').indexOf(c);const tx=QX+qi*4,ty=QY+qi*44;
+    if(c.st==='walk'||c.st==='queue'){const dx=tx-c.x,dy=ty-c.y,L=Math.hypot(dx,dy);if(L>6){c.x+=dx/L*Math.min(110*dt,L);c.y+=dy/L*Math.min(110*dt,L);c.face=[dx,dy];c.st='walk'}else{c.st='queue';c.face=[0,-1]}
+      if(qi===0&&c.st==='queue'){if((S.shelf[c.want]||0)>0&&(pNear||cashier)){c.sv=(c.sv||0)+dt;if(c.sv>=.8){S.shelf[c.want]--;const pr=GOODS[c.want].price;S.bells+=pr;S.stat2.served++;if(c.want==='ore')S.stat2.oreSold=(S.stat2.oreSold||0)+1;if(c.want==='flower')S.stat2.flowerSold=(S.stat2.flowerSold||0)+1;floatTxt(counter.x,counter.y,`+🔔${pr}`);sfx('sell');c.st='leave';c.happy=true}}
+        else{c.wait+=dt;if(c.wait>28){c.st='leave';c.happy=false;S.stat2.lost++;floatTxt(c.x,c.y,'💢')}}}
+      else if(c.st==='queue'){c.wait+=dt;if(c.wait>40){c.st='leave';c.happy=false;S.stat2.lost++;floatTxt(c.x,c.y,'💢')}}}
+    else if(c.st==='leave'){const dx=pad.x-c.x,dy=pad.y+30-c.y,L=Math.hypot(dx,dy);c.x+=dx/L*Math.min(140*dt,L);c.y+=dy/L*Math.min(140*dt,L);c.face=[dx,dy];if(L<20)c.st='gone'}});
+  S.cust=S.cust.filter(c=>c.st!=='gone')}
+function tickPads(dt){const p=S.p;if(S.riding!==null)return;for(const pd of PADS){if(!pd.req())continue;const lv=padLv(pd.id);if(lv>=pd.max)continue;const x=CX+pd.dx,y=CY+pd.dy;if(Math.hypot(p.x-x,p.y-y)>42)continue;const cost=pd.cost(lv);let pr=S.padProg[pd.id]||0;if(pr>=cost)continue;if(S.bells<=0)continue;const take=Math.min(S.bells,Math.min(cost-pr,Math.max(20,cost*.5)*dt));S.bells-=take;pr+=take;S.padProg[pd.id]=pr;if(!padTick){padTick=true;setTimeout(()=>padTick=false,120);sfx('pick')}
+    if(pr>=cost){S.padProg[pd.id]=0;S.pads[pd.id]=lv+1;pd.fx();sfx('up');floatTxt(x,y,`▲ ${pd.n}`);toast(`${pd.n} 완료!`);renderUI();save()}}
+  for(let z=0;z<6;z++){if(S.zones[z])continue;const g=zoneGate(z);if(Math.hypot(p.x-g.x,p.y-g.y)>60)continue;const cost=ZONE_COST[S.zones.filter(Boolean).length];let pr=S.padProg['z'+z]||0;if(S.bells<=0)continue;const take=Math.min(S.bells,Math.min(cost-pr,cost*.5*dt));S.bells-=take;pr+=take;S.padProg['z'+z]=pr;if(pr>=cost){S.padProg['z'+z]=0;S.bells+=cost;tryUnlock(z)}}}
+let padTick=false;
 function tickQuests(){let changed=false;const day=S.day||1;CHAL.forEach((c,i)=>{if(S.chal[i])return;if(c.c()){S.chal[i]='ok';S.bells+=c.r;toast(`⏱️ 도전 성공! ${c.t} (+${c.r}벨)`);sfx('quest');changed=true}else if(day>c.day){S.chal[i]='miss';toast(`⏱️ 기한 지남: ${c.t}`);changed=true}});while(S.qi<QUESTS.length&&QUESTS[S.qi].c()){const q=QUESTS[S.qi];S.qi++;if(q.r){S.bells+=q.r}toast(`✅ ${q.t}${q.r?` (+${q.r}벨)`:''}`);sfx('quest');changed=true}
   let st=0;for(let i=1;i<STAGES.length;i++)if(STAGES[i].cond())st=i;if(st>S.stage){S.stage=st;const names=S.v.filter(v=>VSTAGE[v.name]===st).map(v=>v.name);say('뽀삐',`행성이 '${STAGES[st].n}' 단계가 됐어!${names.length?' '+names.join('·')+'(이)가 이사 왔어!':''}`);changed=true}
   if(changed){renderUI();save()}}
@@ -486,7 +529,7 @@ function renderQuests(){$('#stage').textContent=`${S.stage}단계 · ${STAGES[S.
 const RECIPES=[{out:'soil',n:1,need:{dust:2},water:10,desc:'광물가루 2 + 물 10'},{out:'seed',n:2,need:{compost:1},water:5,desc:'퇴비 1 + 물 5 (시든 식물에서 퇴비)'}];
 function openCraft(){keys={};renderCraft();$('#craft').style.display='flex'}
 function renderCraft(){$('#recipes').innerHTML=RECIPES.map((r,i)=>{const have=k=>CARRY.has(k)?carried(k):(S.inv[k]||0);const ok=Object.entries(r.need).every(([k,n])=>have(k)>=n)&&S.water>=r.water;return `<div class="row"><div class="e">${ICON[r.out]}</div><div class="n">${NAMES[r.out]} ×${r.n}<small>${r.desc}</small></div><button class="btn" data-i="${i}" ${ok?'':'disabled'}>만들기</button></div>`}).join('')+`<p style="margin-top:8px">보유: ${['dust','compost','seed','soil'].map(k=>`${ICON[k]} ${CARRY.has(k)?carried(k):(S.inv[k]||0)}`).join(' · ')} · 💧 ${Math.floor(S.water)}</p><div class="row"><div class="e">🎒</div><div class="n">손 크기 업그레이드<small>들 수 있는 개수 +3 (지금 ${carryMax()})</small></div><button class="btn" id="handUp">🔔 ${Math.round(120*Math.pow(1.8,S.handLv))}</button></div>`;$('#handUp').onclick=()=>{upgradeHand();renderCraft()}}
-$('#recipes').onclick=e=>{const b=e.target.closest('button');if(!b)return;const r=RECIPES[+b.dataset.i];for(const [k,n] of Object.entries(r.need)){if(CARRY.has(k))takeCarry(k,n);else S.inv[k]-=n}S.water-=r.water;add(r.out,r.n);if(r.out==='soil')S.stat.soil+=r.n;toast(`${ICON[r.out]} ${NAMES[r.out]} ×${r.n} 완성!`);renderCraft();renderUI();save()};
+$('#recipes').onclick=null;const _unused_=e=>{const b=e.target.closest('button');if(!b)return;const r=RECIPES[+b.dataset.i];for(const [k,n] of Object.entries(r.need)){if(CARRY.has(k))takeCarry(k,n);else S.inv[k]-=n}S.water-=r.water;add(r.out,r.n);if(r.out==='soil')S.stat.soil+=r.n;toast(`${ICON[r.out]} ${NAMES[r.out]} ×${r.n} 완성!`);renderCraft();renderUI();save()};
 $('#craftClose').onclick=()=>$('#craft').style.display='none';
 function actFacing(){const mv=myVeh();if(mv){if(mv.type==='tank')fireTank();else dismount();return}const p=S.p;const tg=nearest(p.x+p.dir[0]*34,p.y+p.dir[1]*34,30);if(tg)interactTarget(tg);else placeAt(p.x+p.dir[0]*44,p.y+p.dir[1]*44)}
 
@@ -495,12 +538,12 @@ const shopEl=$('#shop');
 function openShop(){keys={};renderShop();shopEl.style.display='flex'}
 function renderShop(){const sec=id=>id.startsWith('veh:')?'🚙 탈것':id.startsWith('b:')?'🏗️ 건물':['seed','sapling'].includes(id)?'🌱 씨앗':'🪑 꾸미기';let cur='';$('#items').innerHTML=SHOP.map(([id,n,d,p],i)=>{const h=sec(id)!==cur?`<div class="sec">${cur=sec(id)}</div>`:'';return h+`<div class="row"><div class="e">${id.startsWith('veh:')?VEH[id.slice(4)].icon:ICON[id]}</div><div class="n">${n}<small>${d}</small></div><button class="btn" data-i="${i}" ${S.bells<p?'disabled':''}>🔔 ${p}</button></div>`}).join('');const total=Object.keys(SELL).reduce((s,k)=>s+carried(k)*SELL[k],0);$('#sell').textContent=total?`모두 팔기 (+${total}벨)`:'팔 물건이 없어요'}
 $('#items').onclick=e=>{const b=e.target.closest('button');if(!b)return;const [id,n,,p]=SHOP[+b.dataset.i];if(S.bells<p)return;if(id.startsWith('veh:')){const type=id.slice(4);if(S.vehicles.some(v=>v.type===type)){toast('이미 가지고 있어요');return}if(!spawnVehicle(type)){toast('상점 앞에 세울 자리가 없어요');return}S.bells-=p;toast(`${VEH[type].icon} ${VEH[type].name} 구입! 상점 앞에 세워 뒀어요`);renderShop();renderUI();save();return}S.bells-=p;add(id);S.held=id;toast(`${ICON[id]} ${n} 구입!`);renderShop();renderUI();save()};
-$('#sell').onclick=()=>{const sh=S.objs.find(o=>o.k==='shop');sellCarry(sh);renderShop()};
+$('#sell').style.display='none';
 $('#close').onclick=()=>shopEl.style.display='none';
 $('#reset').onclick=()=>{if(confirm('행성을 처음부터 다시 시작할까요?')){S=fresh();buildWorld();initActors();cam.x=S.p.x;cam.y=S.p.y;save();renderUI()}};
 $('#mute').textContent=muted?'🔇 소리':'🔊 소리';$('#mute').onclick=()=>{muted=!muted;try{localStorage.setItem('mf-mute',muted?'1':'0')}catch(e){}$('#mute').textContent=muted?'🔇 소리':'🔊 소리'};
 $('#go').onclick=()=>{$('#intro').style.display='none';setTimeout(()=>say('뽀삐','어서 와! 붉은 행성에 온 걸 환영해'),400)};
-function renderHud(){$('#carry').textContent=`🎒 ${S.carry.length}/${carryMax()}`;$('#carry').style.background=S.carry.length>=carryMax()?'#ffe3dc':'#fff';$('#green').textContent=`🌿 녹지 ${greenPct}%`;$('#o2').textContent=`🌬️ 산소 ${Math.floor(S.o2)}%`;$('#water').textContent=`💧 물 ${Math.floor(S.water)}/${S.waterCap}`;$('#power').textContent=`⚡ ${power.gen}/${power.use}${power.ratio<1?' ⚠️':''}`;$('#power').style.background=power.ratio<1?'#ffe3dc':'#fff'}
+function renderHud(){$('#carry').textContent=`🎒 ${S.carry.length}/${carryMax()}`;$('#cust').textContent=`🧑‍🚀 손님 ${S.stat2.served}${S.stat2.lost?' · 놓침 '+S.stat2.lost:''}`;$('#carry').style.background=S.carry.length>=carryMax()?'#ffe3dc':'#fff';$('#green').textContent=`🌿 녹지 ${greenPct}%`;$('#o2').textContent=`🌬️ 산소 ${Math.floor(S.o2)}%`;$('#water').textContent=`💧 물 ${Math.floor(S.water)}/${S.waterCap}`;$('#power').textContent=`⚡ ${power.gen}/${power.use}${power.ratio<1?' ⚠️':''}`;$('#power').style.background=power.ratio<1?'#ffe3dc':'#fff'}
 function renderUI(){renderHud();renderQuests();const decos=S.objs.filter(o=>o.k==='deco').length,score=greenPct+decos*4,st=[6,16,30,48,70].filter(t=>score>=t).length;
   $('#stars').textContent='★'.repeat(st)+'☆'.repeat(5-st);
   if(st===5&&!S.done5){S.done5=true;say('뽀삐','행성이 별 다섯 개야!! 우주에서 제일 예쁜 행성');setTimeout(()=>say('삐걱','삐빅. 행복 수치 최대.'),600)}
@@ -556,7 +599,7 @@ function update(dt,t){const mv=myVeh();const p=S.p,sp=(mv?VEH[mv.type].sp:170)*d
   let changed=false;for(const o of S.objs){if(o.cd>0)o.cd=Math.max(0,o.cd-dt);
     if((o.k==='sprout'||o.k==='sapling')&&o.hyd>.15){o.gr+=dt;if(o.k==='sprout'&&o.gr>=25){o.k='flower';o.r=12;o.e=(Math.random()*5)|0;changed=true}if(o.k==='sapling'&&o.gr>=45){o.k='tree';o.r=18;o.ft=0;o.fruit=false;changed=true}}
     if(o.k==='tree'&&!o.fruit){o.ft+=dt;if(o.ft>=30)o.fruit=true}}
-  tickPlanet(dt);proximity(dt);if(wiltFlag){wiltFlag=false;changed=true;toast('🥀 물이 말라 식물이 시들었어요')}else if(changed)toast('🌸 무언가 자랐어요!');if(changed){paintGreen();renderUI()}
+  tickPlanet(dt);proximity(dt);tickCustomers(dt);tickPads(dt);if(wiltFlag){wiltFlag=false;changed=true;toast('🥀 물이 말라 식물이 시들었어요')}else if(changed)toast('🌸 무언가 자랐어요!');if(changed){paintGreen();renderUI()}
   qT+=dt;if(qT>.5){qT=0;tickQuests();renderQuests();renderHud()}
   bubbles.forEach(b=>b.t-=dt);bubbles=bubbles.filter(b=>b.t>0);
   if(cam.follow){cam.x+=(p.x-cam.x)*Math.min(1,dt*5);cam.y+=(p.y-cam.y)*Math.min(1,dt*5)}cam.z+=(cam.tz-cam.z)*Math.min(1,dt*8);const lim=R+400;cam.x=Math.max(CX-lim,Math.min(CX+lim,cam.x));cam.y=Math.max(CY-lim,Math.min(CY+lim,cam.y));
@@ -568,6 +611,10 @@ const yaw=d=>Math.atan2(-d[1],d[0]);
 function render(t){
   syncObjects();
   syncVehicles();
+  // 발판 상태
+  for(const g of padG.children){const {pd,fill,ring,disc}=g.userData;const lv=padLv(pd.id),vis=pd.req()&&lv<pd.max;g.visible=vis;if(!vis)continue;const pr=(S.padProg[pd.id]||0)/pd.cost(lv);fill.scale.setScalar(Math.max(.001,Math.sqrt(pr)));ring.material.opacity=.6+.4*Math.sin(t/300)}
+  // 손님
+  {const seen=new Set();for(const c of S.cust){seen.add(c.id);let g=custMesh.get(c.id);if(!g){g=bTraveler(c.col);world.add(g);custMesh.set(c.id,g)}g.position.copy(W2T(c.x,c.y,c.st==='walk'||c.st==='leave'?Math.abs(Math.sin(t/110+c.id))*2:0));if(c.face)g.rotation.y=yaw(c.face)-Math.PI/2}for(const [id,g] of custMesh)if(!seen.has(id)){world.remove(g);custMesh.delete(id)}}
   syncCarry();const mvv=myVeh();if(mvv){carryG.position.copy(W2T(mvv.x,mvv.y,50))}else carryG.position.copy(W2T(S.p.x,S.p.y,62+(walking?Math.abs(Math.sin(t/110))*3:0)));
   personG.visible=S.riding===null;if(S.riding===null){personG.position.copy(W2T(S.p.x,S.p.y,walking?Math.abs(Math.sin(t/110))*2.5:0));personG.rotation.y=yaw(S.p.dir)-Math.PI/2;const an=personG.userData.anim;if(an){const sw=walking?Math.sin(t/110)*.9:0;an.lL.rotation.x=sw;an.lR.rotation.x=-sw;an.aL.rotation.x=-sw*.8;an.aR.rotation.x=sw*.8;an.body.position.y=24+(walking?0:Math.sin(t/700)*.6)}}
   for(const v of S.v){const g=villMesh.get(v.name);if(!g)continue;g.visible=VSTAGE[v.name]<=S.stage;if(!g.visible)continue;const mv=v.tx!==null;g.position.copy(W2T(v.x,v.y,g.userData.fly?Math.sin(t/400)*4:mv?Math.abs(Math.sin(t/120))*2:0));if(v.face)g.rotation.y=yaw(v.face)-Math.PI/2}
@@ -581,15 +628,17 @@ function render(t){
   labelHtml='';const sh=S.objs.find(o=>o.k==='shop'),ho=S.objs.find(o=>o.k==='house');
   tagAt('보보의 상점',sh.x,sh.y,130,'',14);tagAt('우리 집',ho.x,ho.y,95,'',14);S.vehicles.forEach((v,i)=>{if(i!==S.riding)tagAt(`${VEH[v.type].name} (E)`,v.x,v.y,62,'',10)});
   if(cam.z<1.1)for(const m of S.mts)if(zoneOpen(m.x,m.y))tagAt(m.name,m.x,m.y,0,'mt');
-  for(let z=0;z<6;z++){if(S.zones[z])continue;const g=zoneGate(z);tagAt(`🔒 ${ZONE_NAMES[z]} · ${ZONE_COST[S.zones.filter(Boolean).length]}벨`,g.x,g.y,60,'up',6)}
+  for(let z=0;z<6;z++){if(S.zones[z])continue;const g=zoneGate(z);const pr=Math.floor(S.padProg['z'+z]||0);tagAt(`🔒 ${ZONE_NAMES[z]} · ${pr?pr+'/':''}${ZONE_COST[S.zones.filter(Boolean).length]}벨`,g.x,g.y,60,'up',6)}
   for(const v of S.v)if(VSTAGE[v.name]<=S.stage)tagAt((v.job?'💼 ':'')+v.name+(v.h?' '+'♥'.repeat(Math.min(v.h,5)):'')+(v.carry&&v.carry.length?' '+v.carry.map(c=>ICON[c]).join(''):''),v.x,v.y,-6,'');
   for(const f of floats){const s=toScreen(f.x,f.y,40+f.t*70);labelHtml+=`<div class="flt" style="left:${s.x}px;top:${s.y}px;opacity:${1-f.t/1.2}">${f.txt}</div>`}
-  if(S.riding===null){const p=S.p;for(const b of S.objs){if(b.k!=='bld')continue;if(Math.hypot(b.x-p.x,b.y-p.y)<110&&['melter','grinder','oxygen','sprinkler','solar'].includes(b.e)){tagAt(`Lv.${b.lv||1} ${b.e==='grinder'&&b.out?`· 🫙${b.out} `:''}▲ ${upCost(b)}벨`,b.x,b.y,70,'up',8)}}}
+  for(const pd of PADS){const lv=padLv(pd.id);if(!pd.req()||lv>=pd.max)continue;const x=CX+pd.dx,y=CY+pd.dy;if(cam.z<.55&&Math.hypot(S.p.x-x,S.p.y-y)>200)continue;const pr=Math.floor(S.padProg[pd.id]||0),cost=pd.cost(lv);tagAt(`${pd.n}${pd.max>1?` Lv.${lv+1}`:''} · ${pr?pr+'/':''}${cost}벨`,x,y,0,'up',4)}
+  for(const c of S.cust){if(c.st==='queue'||c.st==='walk')tagAt(`${GOODS[c.want].icon}${c.wait>18?' ⏳':''}`,c.x,c.y,58,'',4)}
+  {const ct=bld('counter');if(ct)tagAt(`선반 ${shelfCount()}/${S.shelfCap}${S.hires['삐걱']?' · 💼삐걱':''}`,ct.x,ct.y,60,'',10)}
   {const placed=[];for(const b of bubbles){const e=b.who==='me'?S.p:S.v.find(v=>v.name===b.who);if(!e)continue;const s=toScreen(e.x,e.y,70);let x=Math.max(120,Math.min(VW-120,s.x)),y=s.y;for(const q of placed){if(Math.abs(q.x-x)<220&&Math.abs(q.y-y)<40)y=q.y-40}placed.push({x,y});labelHtml+=`<div class="bub" style="left:${x}px;top:${y}px">${b.who==='me'?b.text:b.who+': '+b.text}</div>`}}
   labelsEl.innerHTML=labelHtml}
 function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;update(dt,t);render(t);requestAnimationFrame(loop)}
 buildWorld();initActors();renderUI();updateCamera();$('#loading').remove();requestAnimationFrame(loop);
-Object.assign(window,{get S(){return S},tryUnlock,workAI,get power(){return power},tickQuests,interactTarget,placeAt,cam,fresh,buildWorld,initActors,board,dismount,spawnVehicle,fireTank,renderUI,toWorld,setKeys:k=>{keys=k},resetGame:()=>{localStorage.removeItem('mars-forest-v10');S=fresh();buildWorld();initActors();renderUI()}});
+Object.assign(window,{get S(){return S},tryUnlock,workAI,get power(){return power},tickQuests,interactTarget,placeAt,cam,fresh,buildWorld,initActors,board,dismount,spawnVehicle,fireTank,renderUI,toWorld,setKeys:k=>{keys=k},resetGame:()=>{localStorage.removeItem('mars-forest-v11');S=fresh();buildWorld();initActors();renderUI()}});
 </script>
 </body>
 </html>
