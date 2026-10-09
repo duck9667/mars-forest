@@ -79,7 +79,7 @@ canvas#c.grabbing{cursor:grabbing}
 <div id="intro"><div class="box">
   <h1>화성의 숲</h1>
   <p>작은 붉은 행성에 혼자 내렸어요. 돌과 얼음을 캐서 상점에 팔고, 씨앗을 심어 행성을 초록으로 물들여 보세요.</p>
-  <p>집 옆 🚙 로버를 클릭하거나 E로 타면 두 배 빠르게 달려요. 상점에서 트럭·불도저·탱크도 살 수 있어요. 새싹에는 🧊 얼음으로 물을 줘야 자라요. 주민 뽀삐와 삐걱에게 🍎 사과를 주면 친해져요. 지는 조건은 없어요.</p>
+  <p>집 옆 🚙 로버를 클릭하거나 E로 타면 두 배 빠르게 달려요. 상점에서 트럭·불도저·탱크도 살 수 있어요. 새싹에는 🧊 얼음으로 물을 줘야 자라요.</p><p>주민 여섯(뽀삐·삐걱·모모·돌이·꼬꼬·삐삐)이 행성 곳곳에 살아요. 🍎 사과를 세 번 주면 각자 선물을 줘요. 지는 조건은 없어요.</p>
   <button class="btn" id="go">행성에 내리기</button>
 </div></div>
 
@@ -90,12 +90,14 @@ import * as THREE from 'three';
 /* ---------- 상수 ---------- */
 const R=1500, WORLD=R*2+200, CX=WORLD/2, CY=WORLD/2;
 const SELL={ore:30,ice:15,apple:100};
-const NAMES={ore:'철광석',ice:'얼음',apple:'사과',seed:'꽃씨',sapling:'묘목',bench:'벤치',lamp:'가로등',tent:'텐트',wheel:'관람차',pot:'화분',gift1:'풍경',gift2:'모아이'};
-const ICON={ore:'🪨',ice:'🧊',apple:'🍎',seed:'🌱',sapling:'🌿',bench:'🪑',lamp:'🏮',tent:'⛺',wheel:'🎡',pot:'🪴',gift1:'🎐',gift2:'🗿'};
+const NAMES={ore:'철광석',ice:'얼음',apple:'사과',seed:'꽃씨',sapling:'묘목',bench:'벤치',lamp:'가로등',tent:'텐트',wheel:'관람차',pot:'화분',gift1:'풍경',gift2:'모아이',gift3:'털실 뭉치',gift4:'수정 구슬',gift5:'연',gift6:'안테나'};
+const ICON={ore:'🪨',ice:'🧊',apple:'🍎',seed:'🌱',sapling:'🌿',bench:'🪑',lamp:'🏮',tent:'⛺',wheel:'🎡',pot:'🪴',gift1:'🎐',gift2:'🗿',gift3:'🧶',gift4:'🔮',gift5:'🪁',gift6:'📡'};
 const SHOP=[['seed','꽃씨','심고 물을 주면 꽃이 피어요',40],['sapling','사과나무 묘목','자라면 🍎가 열려요',120],['pot','화분','꾸미기',150],['bench','벤치','꾸미기',200],['lamp','가로등','밤길을 밝혀요',250],['tent','텐트','꾸미기',400],['wheel','관람차','행성의 명물!',900],['veh:truck','트럭 🚚','탄 채로 돌·얼음 캐기 · 속도 ★★☆',500],['veh:dozer','불도저 🚜','돌을 밀어 치움 · 속도 ★☆☆',800],['veh:tank','탱크 🛡️','Space 포격으로 돌 파괴 · 속도 ★★★',1500]];
 const GREEN_R={sprout:45,sapling:75,flower:95,tree:170};
-const LINES={'뽀삐':['화성 먼지는 은근 포근해~','나 오늘 운석 구경했다!','꽃이 피면 냄새가 날까?','너 지구에서 왔다며? 바다 진짜 있어?'],'삐걱':['삐빅. 오늘의 산소 농도: 쾌적.','삐... 녹색은 좋은 색이다.','나는 원래 청소 로봇이었다.','사과... 기름칠보다 맛있다고 들었다.']};
+const LINES={'뽀삐':['화성 먼지는 은근 포근해~','나 오늘 운석 구경했다!','꽃이 피면 냄새가 날까?','너 지구에서 왔다며? 바다 진짜 있어?'],'삐걱':['삐빅. 오늘의 산소 농도: 쾌적.','삐... 녹색은 좋은 색이다.','나는 원래 청소 로봇이었다.','사과... 기름칠보다 맛있다고 들었다.'],'모모':['냐암… 낮잠 자기 딱 좋은 모래야','헬멧 안에서 그루밍은 어떻게 하지','나무가 생기면 거기서 잘 거야','사과? 냄새만 맡을래… 아니 줘'],'돌이':['…나는 원래 저 산의 일부였다','천천히… 천천히 걷자','비가 오면 이끼가 자란다던데','네 발자국 소리, 듣기 좋다'],'꼬꼬':['꼬끼오! 여긴 해가 두 번 뜨지 않아 다행이야','알을 낳을 둥지가 필요해!','풀이 자라면 벌레도 올까?','꼭꼭 숨어라, 모래폭풍 온다'],'삐삐':['윙— 상공 10m, 이상 무','난 땅을 밟아본 적이 없어','너 머리 위에서 보면 되게 작아','배터리 23%… 괜찮아, 태양이 있으니까']};
 const SOLID=new Set(['rock','ice','shop','house','tree','deco','prop']);
+const VILLAGERS=[['뽀삐','alien',-80,220,'gift1'],['삐걱','robot',120,260,'gift2'],['모모','cat',-320,80,'gift3'],['돌이','golem',380,-40,'gift4'],['꼬꼬','bird',40,-360,'gift5'],['삐삐','drone',-200,-300,'gift6']];
+const mkVillager=([name,kind,dx,dy,gift],i)=>({name,kind,x:CX+dx,y:CY+dy,hx:CX+dx,hy:CY+dy,h:0,gift:false,giftId:gift,t:1+i,tx:null,ty:null});
 const VEH={rover:{name:'로버',icon:'🚙',sp:330,r:30},truck:{name:'트럭',icon:'🚚',sp:360,r:34},dozer:{name:'불도저',icon:'🚜',sp:240,r:36},tank:{name:'탱크',icon:'🛡️',sp:420,r:36}};
 const MT_NAMES=['붉은 송곳 능선','먼지바람 언덕','올림푸스 자락','고요한 바위산','노을 절벽','세 봉우리','철가루 산맥','잠든 거인','마른 강 고개'];
 const PROP_SAY={sign:'표지판: 상점 ← · 집 → · 올림푸스 1,200km',barrel:'빈 연료통. 두드리면 통통 소리가 난다',container:'낡은 컨테이너. 지구에서 온 보급품이 들어 있었대',pole:'전신주. 전선은 모래폭풍에 날아갔다',tires:'버려진 타이어 더미',car:'버려진 탐사차. 바퀴 하나가 없다',cone:'라바콘. 누가 여기에 두고 갔을까',crate:'나무 상자. 안은 비었다'};
@@ -135,9 +137,9 @@ function fresh(){
   return{seed,objs,mts,blocks,roads,vehicles:[{id:1,type:'rover',x:CX+150,y:CY+60,dir:[1,0]}],riding:null,bells:150,inv:{ore:0,ice:1,apple:0,seed:3},held:'seed',done5:false,
     p:{x:CX,y:CY+40,dir:[1,1]},
     clock:60,
-    v:[{name:'뽀삐',kind:'alien',x:CX-80,y:CY+220,h:0,gift:false,t:1,tx:null,ty:null},{name:'삐걱',kind:'robot',x:CX+120,y:CY+260,h:0,gift:false,t:2,tx:null,ty:null}]};
+    v:VILLAGERS.map(mkVillager)};
 }
-function load(){try{const s=JSON.parse(localStorage.getItem('mars-forest-v7'));if(s&&s.objs&&s.mts&&s.roads&&s.vehicles){uid=Math.max(...s.objs.map(o=>o.id))+1;return s}}catch(e){}return null}
+function load(){try{const s=JSON.parse(localStorage.getItem('mars-forest-v7'));if(s&&s.objs&&s.mts&&s.roads&&s.vehicles){uid=Math.max(...s.objs.map(o=>o.id))+1;VILLAGERS.forEach((d,i)=>{let v=s.v.find(v=>v.name===d[0]);if(!v){s.v.push(mkVillager(d,i))}else{v.hx=CX+d[2];v.hy=CY+d[3];v.giftId=d[4]}});return s}}catch(e){}return null}
 function save(){try{localStorage.setItem('mars-forest-v7',JSON.stringify(S))}catch(e){}}
 S=load()||fresh();
 
@@ -255,6 +257,17 @@ function bPerson(){const g=new THREE.Group();g.add(mesh(G.box(6,10,6),COL.dark,-
   g.add(mesh(G.sph(13,12),COL.white,0,42,0,{roughness:.35}));const v=mesh(G.sph(8.5,10),0x1f2a3a,0,43,6,{roughness:.15});v.scale.set(1.1,.85,.9);g.add(v);g.add(mesh(G.box(12,10,12),0xd8d4cc,0,32,-10));g.add(mesh(G.cyl(.7,.7,10,5),COL.dark,8,54,-6));g.add(mesh(G.sph(1.8,6),COL.coral,8,59,-6));return g}
 function bAlien(){const g=new THREE.Group();g.add(mesh(G.box(4,10,4),COL.dark,-3,5,0));g.add(mesh(G.box(4,10,4),COL.dark,3,5,0));g.add(mesh(G.box(14,18,10),COL.coralL,0,19,0));g.add(mesh(G.sph(12,10),0xbdf0a0,0,40,0));[-5,5].forEach(x=>{const e=mesh(G.sph(3,6),COL.dark,x,42,9);e.scale.set(.8,1.3,.6);g.add(e)});g.add(mesh(G.cyl(.8,.8,10,5),0x7cc45e,0,56,0));g.add(mesh(G.sph(3,6),COL.coral,0,62,0));return g}
 function bRobot(){const g=new THREE.Group();g.add(mesh(G.box(5,10,5),COL.dark,-4,5,0));g.add(mesh(G.box(5,10,5),COL.dark,4,5,0));g.add(mesh(G.box(18,18,14),COL.coral,0,19,0));g.add(mesh(G.box(20,16,16),0xc5ced8,0,38,0));g.add(mesh(G.box(14,6,3),0x1f2a3a,0,39,8.5,{roughness:.2}));[-4,4].forEach(x=>g.add(mesh(G.box(3,2,1),0x6cf0d0,x,39,10.2,{emissive:0x6cf0d0,emissiveIntensity:1})));g.add(mesh(G.cyl(.8,.8,10,5),COL.dark,0,50,0));g.add(mesh(G.sph(3,6),0xffd34d,0,56,0,{emissive:0xffd34d,emissiveIntensity:.5}));return g}
+function bCat(){const g=new THREE.Group();const body=mesh(G.sph(10,10),COL.white,0,12,0);body.scale.set(1.3,.9,1);g.add(body);[[-6,-5],[6,-5],[-6,5],[6,5]].forEach(([x,z])=>g.add(mesh(G.box(4,8,4),COL.white,x,4,z)));
+  g.add(mesh(G.sph(9,10),COL.white,10,22,0));[[-4,1],[4,1]].forEach(([z])=>{const e=mesh(G.cone(3.5,6,4),COL.coral,10,30,z*4);g.add(e)});[[-3],[3]].forEach(([z])=>g.add(mesh(G.sph(1.6,6),COL.dark,17,23,z*1.2)));g.add(mesh(G.sph(1.5,6),COL.coral,18.5,21,0));
+  const tail=mesh(G.cyl(1.5,1,18,5),COL.coral,-14,16,0);tail.rotation.z=-.9;g.add(tail);g.add(mesh(G.box(22,3,14),COL.coral,0,12,0));const helm=new THREE.Mesh(G.sph(13,12),new THREE.MeshStandardMaterial({color:0xbfe8ff,transparent:true,opacity:.28,roughness:.1}));helm.position.set(10,22,0);g.add(helm);return g}
+function bGolem(){const g=new THREE.Group();g.add(mesh(jitter(G.sph(9,7),3,101),COL.coralD,-7,8,0));g.add(mesh(jitter(G.sph(9,7),3,102),COL.coralD,7,8,0));const b=mesh(jitter(G.sph(16,8),5,103),COL.coral,0,28,0);b.scale.set(1.1,1,.9);g.add(b);
+  [-20,20].forEach(x=>g.add(mesh(jitter(G.sph(7,7),3,104+x),COL.coralD,x,24,0)));g.add(mesh(jitter(G.sph(10,8),3,106),COL.coralL,0,50,0));[-4,4].forEach(x=>g.add(mesh(G.sph(2,6),0x6cf0d0,x,51,8,{emissive:0x6cf0d0,emissiveIntensity:1.2})));g.add(mesh(G.sph(4,6),COL.leaf,6,58,-4));return g}
+function bBird(){const g=new THREE.Group();[-4,4].forEach(x=>g.add(mesh(G.box(2,8,2),COL.coral,x,4,0)));const body=mesh(G.sph(11,10),0xffe08a,0,16,0);body.scale.set(1,1.05,1.2);g.add(body);g.add(mesh(G.sph(8,10),0xffe08a,0,30,4));g.add(mesh(G.cone(3,6,4),COL.coral,0,29,12).rotateX(Math.PI/2));
+  [-3,3].forEach(x=>g.add(mesh(G.sph(1.5,6),COL.dark,x,32,10)));g.add(mesh(G.box(3,5,2),COL.coral,0,38,4));[-9,9].forEach(x=>{const w=mesh(G.sph(5,8),0xf5c860,x,16,-2);w.scale.set(.5,1,1.3);g.add(w)});
+  const helm=new THREE.Mesh(G.sph(12,12),new THREE.MeshStandardMaterial({color:0xbfe8ff,transparent:true,opacity:.28,roughness:.1}));helm.position.set(0,30,4);g.add(helm);return g}
+function bDrone(){const g=new THREE.Group();const body=mesh(G.sph(10,10),COL.white,0,46,0);body.scale.set(1.2,.7,1.2);g.add(body);g.add(mesh(G.box(14,6,3),0x1f2a3a,0,46,10,{roughness:.2}));g.add(mesh(G.box(2,1,2),0x6cf0d0,0,46,12,{emissive:0x6cf0d0,emissiveIntensity:1.5}));
+  [[-14,-14],[14,-14],[-14,14],[14,14]].forEach(([x,z])=>{g.add(mesh(G.box(12,2,2),COL.dark,x*.6,46,z*.6).rotateY(Math.atan2(z,x)));const rot=mesh(G.cyl(7,7,1,10),0x3a2620,x,50,z);rot.userData.spin=true;rot.userData.spinY=true;g.add(rot)});g.add(mesh(G.cyl(1,1,10,5),COL.coral,0,40,0));g.userData.fly=true;return g}
+const VILL_BUILD={alien:bAlien,robot:bRobot,cat:bCat,golem:bGolem,bird:bBird,drone:bDrone};
 function bDeco(o){const g=new THREE.Group();const e=o.e;
   if(e==='bench'){g.add(mesh(G.box(50,5,16),COL.wood,0,14,0));g.add(mesh(G.box(50,18,4),COL.wood,0,26,-7));[-20,20].forEach(x=>g.add(mesh(G.box(4,12,14),COL.dark,x,6,0)))}
   else if(e==='lamp'){g.add(mesh(G.cyl(2,2.5,48,6),COL.dark,0,24,0));const bulb=new THREE.Mesh(G.sph(7,8),new THREE.MeshStandardMaterial({color:0xfff2b0,emissive:0xffd060,emissiveIntensity:.05,roughness:.6}));bulb.position.set(0,54,0);g.add(bulb);const l=new THREE.PointLight(0xffc070,0,220,1.5);l.position.set(0,54,0);g.add(l);lampMats.push([bulb.material,l])}
@@ -263,6 +276,10 @@ function bDeco(o){const g=new THREE.Group();const e=o.e;
   else if(e==='wheel'){const l1=mesh(G.box(6,70,6),COL.dark,-26,35,0);l1.rotation.z=.4;g.add(l1);const l2=mesh(G.box(6,70,6),COL.dark,26,35,0);l2.rotation.z=-.4;g.add(l2);const w=new THREE.Group();w.position.y=66;w.add(mesh(G.tor(44,2.5),COL.coral,0,0,0));for(let i=0;i<8;i++){const a=i/8*Math.PI*2;const sp=mesh(G.box(2,88,2),COL.coral,0,0,0);sp.rotation.z=a;w.add(sp);w.add(mesh(G.box(10,10,10),i%2?COL.white:COL.pale,Math.cos(a)*44,Math.sin(a)*44,0))}w.userData.spin=true;g.add(w)}
   else if(e==='gift1'){g.add(mesh(G.cyl(1,1,40,5),COL.dark,0,20,0));g.add(mesh(G.sph(9,8),0xbfe3ff,0,30,0,{roughness:.2}));g.add(mesh(G.box(6,16,2),COL.coral,0,10,0))}
   else if(e==='gift2'){g.add(mesh(G.box(22,46,18),0x8c8c8c,0,23,0));g.add(mesh(G.box(14,4,4),0x6a6a6a,0,26,10));g.add(mesh(G.box(6,10,4),0x6a6a6a,0,14,10))}
+  else if(e==='gift3'){g.add(mesh(G.sph(12,10),0xf7b6a3,0,12,0));g.add(mesh(G.tor(12,1.2),COL.coral,0,12,0).rotateX(.5));g.add(mesh(G.tor(12,1.2),COL.coral,0,12,0).rotateX(2));g.add(mesh(G.tor(12,1.2),COL.coral,0,12,0).rotateZ(1))}
+  else if(e==='gift4'){g.add(mesh(G.cyl(9,11,8,8),COL.dark,0,4,0));const orb=mesh(G.sph(10,12),0xbfe8ff,0,18,0,{roughness:.1,emissive:0x6cc3f0,emissiveIntensity:.6});g.add(orb);const l=new THREE.PointLight(0x8fd8ff,.8,120);l.position.set(0,18,0);g.add(l)}
+  else if(e==='gift5'){g.add(mesh(G.cyl(1,1,60,5),COL.dark,0,30,0));const k=mesh(G.box(24,24,1),COL.coral,10,70,10);k.rotation.set(.5,0,.8);g.add(k);g.add(mesh(G.box(26,1,1),COL.dark,10,70,10).rotateZ(.8));[0,1,2].forEach(i=>g.add(mesh(G.box(5,3,1),COL.white,14+i*6,56-i*8,8)))}
+  else if(e==='gift6'){g.add(mesh(G.box(16,6,16),COL.dark,0,3,0));g.add(mesh(G.cyl(2,2,40,6),COL.dark,0,26,0));const dish=mesh(G.cyl(14,4,8,12,1,true),COL.white,0,48,0);dish.rotation.x=-.8;g.add(dish);g.add(mesh(G.sph(2,6),COL.coral,0,52,8,{emissive:0xff3b2a,emissiveIntensity:1}))}
   return g}
 function bProp(o){const g=new THREE.Group();const e=o.e;
   if(e==='barrel'){g.add(mesh(G.cyl(11,11,26,12),COL.coral,0,13,0));g.add(mesh(G.cyl(11.5,11.5,4,12),COL.white,0,13,0));g.add(mesh(G.cyl(11.5,11.5,2,12),COL.dark,0,25,0))}
@@ -282,8 +299,8 @@ function syncObjects(){const seen=new Set();
   for(const o of S.objs){seen.add(o.id);const key=objKey(o);let rec=objMesh.get(o.id);
     if(!rec||rec.key!==key){if(rec)world.remove(rec.g);const g=BUILD[o.k](o);g.position.copy(W2T(o.x,o.y));if(o.k==='rock'||o.k==='flower'||o.k==='tree')g.rotation.y=o.v*6;if(o.cd>0)g.scale.setScalar(.55);world.add(g);rec={g,key};objMesh.set(o.id,rec)}}
   for(const [id,rec] of objMesh)if(!seen.has(id)){world.remove(rec.g);objMesh.delete(id)}}
-let personG,alienG,robotG;const vehMesh=new Map();
-function initActors(){vehMesh.clear();personG=bPerson();alienG=bAlien();robotG=bRobot();[personG,alienG,robotG].forEach(g=>world.add(g))}
+let personG;const vehMesh=new Map(),villMesh=new Map();
+function initActors(){vehMesh.clear();villMesh.clear();personG=bPerson();world.add(personG);for(const v of S.v){const g=VILL_BUILD[v.kind]();world.add(g);villMesh.set(v.name,g)}}
 function syncVehicles(){const seen=new Set();for(const v of S.vehicles){seen.add(v.id);let g=vehMesh.get(v.id);if(!g){g=VBUILD[v.type]();world.add(g);vehMesh.set(v.id,g)}g.position.copy(W2T(v.x,v.y));g.rotation.y=yaw(v.dir)}for(const [id,g] of vehMesh)if(!seen.has(id)){world.remove(g);vehMesh.delete(id)}}
 
 /* ---------- 게임 로직 ---------- */
@@ -315,7 +332,7 @@ function placeAt(x,y){const h=S.held;if(!h||!S.inv[h]){toast('주머니에서 �
   S.inv[h]--;const base={id:uid++,x,y,v:Math.random()};
   if(h==='seed')S.objs.push({...base,k:'sprout',r:12,w:false,gr:0});else if(h==='sapling')S.objs.push({...base,k:'sapling',r:12,w:false,gr:0});
   else S.objs.push({...base,k:'deco',e:h,r:h==='wheel'?40:h==='tent'?38:h==='bench'?28:14});paintGreen();renderUI();save()}
-function talk(v){v.face=[S.p.x-v.x,S.p.y-v.y];v.t=3;if(S.inv.apple>0){S.inv.apple--;v.h++;if(v.h>=3&&!v.gift){v.gift=true;const e=v.name==='뽀삐'?'gift1':'gift2';add(e);say(v.name,`우리 이제 베프야! 이거 받아 ${ICON[e]}`)}else say(v.name,v.name==='뽀삐'?'사과다!! 고마워 💕':'삐빅! 감사 회로 작동 💕')}
+function talk(v){v.face=[S.p.x-v.x,S.p.y-v.y];v.t=3;if(S.inv.apple>0){S.inv.apple--;v.h++;if(v.h>=3&&!v.gift){v.gift=true;const e=v.giftId;add(e);say(v.name,`우리 이제 베프야! 이거 받아 ${ICON[e]}`)}else say(v.name,{'뽀삐':'사과다!! 고마워 💕','삐걱':'삐빅! 감사 회로 작동 💕','모모':'냐… 고마워 (꼬리 흔들)','돌이':'…고맙다. 오래 기억하겠다','꼬꼬':'꼬꼬꼬! 최고의 간식!','삐삐':'윙— 감사 신호 송신 💕'}[v.name])}
   else say(v.name,LINES[v.name][(Math.random()*4)|0]);renderUI();save()}
 function actFacing(){const mv=myVeh();if(mv){if(mv.type==='tank')fireTank();else dismount();return}const p=S.p;const tg=nearest(p.x+p.dir[0]*34,p.y+p.dir[1]*34,30);if(tg)interactTarget(tg);else placeAt(p.x+p.dir[0]*44,p.y+p.dir[1]*44)}
 
@@ -372,7 +389,7 @@ function update(dt,t){const mv=myVeh();const p=S.p,sp=(mv?VEH[mv.type].sp:170)*d
     else{face(p,walkTo.x,walkTo.y);const ok=tryMove(p,dx/L*Math.min(sp,L),dy/L*Math.min(sp,L),p);walking=true;if(!ok){walkTo.stuck+=dt;if(walkTo.stuck>.5){walkTo=null;pendingAct=null;toast('길이 막혔어요')}}}}
   if(mv){mv.x=p.x;mv.y=p.y;if(walking)mv.dir=p.dir;
     if(mv.type==='dozer'&&walking){for(const o of S.objs){if(o.k!=='rock'||o.cd>0)continue;if(Math.hypot(o.x-(p.x+p.dir[0]*50),o.y-(p.y+p.dir[1]*50))<o.r+30){o.cd=40;add('ore');fx.push({x:o.x,y:o.y,t:0});toast('🚜 돌을 밀어 치웠어요. 철광석 +1');renderUI();save()}}}}
-  for(const v of S.v){v.t-=dt;if(v.tx===null&&v.t<=0){v.t=2+Math.random()*3;if(Math.random()<.75){const a=Math.random()*7,dd=40+Math.random()*120;const nx=v.x+Math.cos(a)*dd,ny=v.y+Math.sin(a)*dd;if(inPlanet(nx,ny,80)&&!blocked(nx,ny,v)){v.tx=nx;v.ty=ny}}}
+  for(const v of S.v){v.t-=dt;if(v.tx===null&&v.t<=0){v.t=2+Math.random()*3;if(Math.random()<.75){const far=Math.hypot(v.x-v.hx,v.y-v.hy)>260;const a=far?Math.atan2(v.hy-v.y,v.hx-v.x)+(Math.random()-.5):Math.random()*7,dd=40+Math.random()*120;const nx=v.x+Math.cos(a)*dd,ny=v.y+Math.sin(a)*dd;if(inPlanet(nx,ny,80)&&!blocked(nx,ny,v)){v.tx=nx;v.ty=ny}}}
     if(v.tx!==null){const dx=v.tx-v.x,dy=v.ty-v.y,L=Math.hypot(dx,dy),vs=70*dt;if(L<3){v.tx=null}else{v.face=[dx,dy];if(!tryMove(v,dx/L*vs,dy/L*vs,v))v.tx=null}}}
   let changed=false;for(const o of S.objs){if(o.cd>0)o.cd=Math.max(0,o.cd-dt);
     if((o.k==='sprout'||o.k==='sapling')&&o.w){o.gr+=dt;if(o.k==='sprout'&&o.gr>=20){o.k='flower';o.r=14;o.e=(Math.random()*5)|0;changed=true}if(o.k==='sapling'&&o.gr>=35){o.k='tree';o.r=18;o.ft=0;o.fruit=false;changed=true}}
@@ -389,8 +406,8 @@ function render(t){
   syncObjects();
   syncVehicles();
   personG.visible=S.riding===null;if(S.riding===null){personG.position.copy(W2T(S.p.x,S.p.y,walking?Math.abs(Math.sin(t/110))*3:0));personG.rotation.y=yaw(S.p.dir)-Math.PI/2}
-  [[alienG,S.v[0]],[robotG,S.v[1]]].forEach(([g,v])=>{const mv=v.tx!==null;g.position.copy(W2T(v.x,v.y,mv?Math.abs(Math.sin(t/120))*2:0));if(v.face)g.rotation.y=yaw(v.face)-Math.PI/2});
-  world.traverse(m=>{if(m.userData.spin)m.rotation.z=t/3000;if(m.userData.blink)m.material.emissiveIntensity=S.riding!==null&&walking&&Math.sin(t/150)>0?1.2:.2});
+  for(const v of S.v){const g=villMesh.get(v.name);if(!g)continue;const mv=v.tx!==null;g.position.copy(W2T(v.x,v.y,g.userData.fly?Math.sin(t/400)*4:mv?Math.abs(Math.sin(t/120))*2:0));if(v.face)g.rotation.y=yaw(v.face)-Math.PI/2}
+  world.traverse(m=>{if(m.userData.spin){if(m.userData.spinY)m.rotation.y=t/40;else m.rotation.z=t/3000}if(m.userData.blink)m.material.emissiveIntensity=S.riding!==null&&walking&&Math.sin(t/150)>0?1.2:.2});
   if(hover&&!drag){const o=hover.o||hover.v||S.vehicles[hover.veh];const r=(hover.o?hover.o.r:hover.v?16:VEH[o.type].r)+8;hoverRing.visible=true;hoverRing.position.copy(W2T(o.x,o.y,.8));hoverRing.scale.setScalar(r/32)}else hoverRing.visible=false;
   faceDot.visible=!walking&&S.riding===null;if(faceDot.visible)faceDot.position.copy(W2T(S.p.x+S.p.dir[0]*34,S.p.y+S.p.dir[1]*34,.9));
   applyDayNight(t);
