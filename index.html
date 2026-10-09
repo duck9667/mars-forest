@@ -32,17 +32,19 @@ canvas#c.grabbing{cursor:grabbing}
 .zoom{display:flex;flex-direction:column;gap:6px;margin-left:auto}
 .zoom button{width:38px;height:38px;background:#fff;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);font:inherit;font-size:18px;font-weight:800;cursor:pointer;color:var(--ink)}
 .zoom button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
-.hint{position:fixed;left:14px;bottom:86px;color:#fff;font-size:11.5px;font-weight:600;line-height:1.6;pointer-events:none;text-shadow:0 1px 0 rgba(0,0,0,.25);z-index:2}
+.hint{position:fixed;right:70px;bottom:14px;text-align:right;color:#fff;font-size:11.5px;font-weight:600;line-height:1.6;pointer-events:none;text-shadow:0 1px 0 rgba(0,0,0,.25);z-index:2}
 #toast{position:fixed;left:50%;top:64px;transform:translateX(-50%) translateY(-8px);background:#fff;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:6px 14px;font-size:13px;font-weight:700;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap;z-index:5}
 #toast.on{opacity:1;transform:translateX(-50%)}
-#shop,#intro{position:fixed;inset:0;background:rgba(31,18,13,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+#craft,#shop,#intro{position:fixed;inset:0;background:rgba(31,18,13,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
 #intro{display:flex;z-index:20}
 .box{background:#fff;border:2px solid var(--ink);padding:18px 20px;width:100%;max-width:400px;box-shadow:6px 6px 0 var(--ink);position:relative}
 .box h2{margin:0;font-size:16px;letter-spacing:.12em;font-weight:800}
 .box p{margin:6px 0 10px;font-size:13px;color:#555;line-height:1.6}
 .row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #ddd}
 .row .e{width:36px;height:36px;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:18px}
-.row .n{flex:1;font-size:13px;font-weight:700}.row .n small{display:block;font-size:11px;color:#777;font-weight:500}
+.sec{font-size:11px;font-weight:800;letter-spacing:.1em;color:#999;margin:10px 0 2px}
+.row .n{flex:1;font-size:13px;font-weight:700}
+#items{max-height:55vh;overflow:auto}.row .n small{display:block;font-size:11px;color:#777;font-weight:500}
 .btn{background:var(--ink);color:#fff;border:2px solid var(--ink);padding:5px 12px;font:inherit;font-size:12px;font-weight:700;letter-spacing:.06em;cursor:pointer}
 .btn:disabled{background:#bbb;border-color:#bbb;cursor:default}
 .btn.o{background:var(--coral)}
@@ -50,6 +52,10 @@ canvas#c.grabbing{cursor:grabbing}
 #intro h1{margin:0 0 4px;font-size:22px;letter-spacing:.14em;font-weight:900}
 #intro .btn{margin-top:8px;width:100%;padding:10px;font-size:14px}
 .reset{position:fixed;right:14px;top:52px;font:inherit;font-size:11px;font-weight:700;background:none;border:0;color:#fff;opacity:.75;cursor:pointer;text-decoration:underline;z-index:2}
+#quest{position:fixed;left:14px;top:60px;width:250px;background:#fff;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);padding:8px 10px;z-index:2;font-size:12px}
+#quest .qh{font-weight:800;letter-spacing:.1em;font-size:11px;color:#999;margin-bottom:4px}#quest .qh span{color:var(--coral);margin-left:6px}
+#quest .q{padding:5px 0;border-top:1px dashed #ddd}#quest .q b{display:block;font-size:13px}#quest .q small{color:#777;display:block;line-height:1.4}#quest .q i{font-style:normal;color:var(--coral);font-weight:700}
+#quest .q.done b{color:#9a9a9a;text-decoration:line-through}
 #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;letter-spacing:.1em;z-index:30;background:#ee7f3f}
 </style>
 </head>
@@ -59,7 +65,10 @@ canvas#c.grabbing{cursor:grabbing}
 <div id="loading">행성 만드는 중…</div>
 <div class="ui top">
   <div class="title">화성의 숲<small>MARS FOREST</small></div>
-  <div class="pill" id="green">녹지 0%</div>
+  <div class="pill" id="green">🌿 녹지 0%</div>
+  <div class="pill" id="o2">🌬️ 산소 0%</div>
+  <div class="pill" id="water">💧 물 0/100</div>
+  <div class="pill" id="power">⚡ 0/0</div>
   <div class="pill" id="stars">★☆☆☆☆</div>
   <div class="pill" id="bells">🔔 0</div>
   <div class="pill" id="clock">☀️ 낮</div>
@@ -71,6 +80,8 @@ canvas#c.grabbing{cursor:grabbing}
   <div class="zoom"><button id="zin">＋</button><button id="zout">－</button><button id="zme" title="내 위치로">◎</button></div>
 </div>
 <div id="toast"></div>
+<div id="quest"><div class="qh">목표 <span id="stage"></span></div><div id="qlist"></div></div>
+<div id="craft"><div class="box"><h2>우리 집 작업대</h2><p>재료를 모아 만들어요.</p><div id="recipes"></div><div class="btns"><button class="btn o" id="craftClose">닫기</button></div></div></div>
 <div id="shop"><div class="box">
   <h2>보보의 화성 상점</h2><p>"어서 오세요! 오늘도 붉은 먼지가 좋네요~"</p>
   <div id="items"></div>
@@ -78,8 +89,8 @@ canvas#c.grabbing{cursor:grabbing}
 </div></div>
 <div id="intro"><div class="box">
   <h1>화성의 숲</h1>
-  <p>작은 붉은 행성에 혼자 내렸어요. 돌과 얼음을 캐서 상점에 팔고, 씨앗을 심어 행성을 초록으로 물들여 보세요.</p>
-  <p>집 옆 🚙 로버를 클릭하거나 E로 타면 두 배 빠르게 달려요. 상점에서 트럭·불도저·탱크도 살 수 있어요. 새싹에는 🧊 얼음으로 물을 줘야 자라요.</p><p>주민 여섯(뽀삐·삐걱·모모·돌이·꼬꼬·삐삐)이 행성 곳곳에 살아요. 🍎 사과를 세 번 주면 각자 선물을 줘요. 지는 조건은 없어요.</p>
+  <p>버려진 붉은 행성을 다시 살 수 있는 곳으로. <b>전력 → 물 → 흙 → 식물 → 산소</b>를 차례로 만들어 녹지와 산소를 올리면 하늘이 파래지고 주민들이 돌아와요.</p><p>왼쪽 <b>목표</b> 칸이 다음 할 일을 알려줘요. 집을 클릭하면 작업대, 건물은 🧰로 회수.</p>
+  <p>🚙 로버는 E로 타고, 상점에서 트럭·불도저·탱크도 살 수 있어요. 지는 조건은 없어요.</p>
   <button class="btn" id="go">행성에 내리기</button>
 </div></div>
 
@@ -90,16 +101,39 @@ import * as THREE from 'three';
 /* ---------- 상수 ---------- */
 const R=1500, WORLD=R*2+200, CX=WORLD/2, CY=WORLD/2;
 const SELL={ore:30,ice:15,apple:100};
-const NAMES={ore:'철광석',ice:'얼음',apple:'사과',seed:'꽃씨',sapling:'묘목',bench:'벤치',lamp:'가로등',tent:'텐트',wheel:'관람차',pot:'화분',gift1:'풍경',gift2:'모아이',gift3:'털실 뭉치',gift4:'수정 구슬',gift5:'연',gift6:'안테나'};
-const ICON={ore:'🪨',ice:'🧊',apple:'🍎',seed:'🌱',sapling:'🌿',bench:'🪑',lamp:'🏮',tent:'⛺',wheel:'🎡',pot:'🪴',gift1:'🎐',gift2:'🗿',gift3:'🧶',gift4:'🔮',gift5:'🪁',gift6:'📡'};
-const SHOP=[['seed','꽃씨','심고 물을 주면 꽃이 피어요',40],['sapling','사과나무 묘목','자라면 🍎가 열려요',120],['pot','화분','꾸미기',150],['bench','벤치','꾸미기',200],['lamp','가로등','밤길을 밝혀요',250],['tent','텐트','꾸미기',400],['wheel','관람차','행성의 명물!',900],['veh:truck','트럭 🚚','탄 채로 돌·얼음 캐기 · 속도 ★★☆',500],['veh:dozer','불도저 🚜','돌을 밀어 치움 · 속도 ★☆☆',800],['veh:tank','탱크 🛡️','Space 포격으로 돌 파괴 · 속도 ★★★',1500]];
+const NAMES={ore:'철광석',ice:'얼음',apple:'사과',seed:'꽃씨',sapling:'묘목',dust:'광물가루',compost:'퇴비',soil:'비옥토','b:solar':'태양광 패널','b:battery':'배터리','b:melter':'제빙기','b:tank':'물탱크','b:sprinkler':'스프링클러','b:grinder':'분쇄기','b:oxygen':'산소 발생기',bench:'벤치',lamp:'가로등',tent:'텐트',wheel:'관람차',pot:'화분',gift1:'풍경',gift2:'모아이',gift3:'털실 뭉치',gift4:'수정 구슬',gift5:'연',gift6:'안테나'};
+const ICON={ore:'🪨',ice:'🧊',apple:'🍎',seed:'🌱',sapling:'🌿',dust:'🫙',compost:'🟤',soil:'🟫','b:solar':'🔆','b:battery':'🔋','b:melter':'🫗','b:tank':'🛢️','b:sprinkler':'💦','b:grinder':'⚙️','b:oxygen':'🌬️',bench:'🪑',lamp:'🏮',tent:'⛺',wheel:'🎡',pot:'🪴',gift1:'🎐',gift2:'🗿',gift3:'🧶',gift4:'🔮',gift5:'🪁',gift6:'📡'};
+const BLD={solar:{name:'태양광 패널',gen:3,desc:'낮에 전력 +3'},battery:{name:'배터리',desc:'낮 전력을 저장해 밤에 공급'},melter:{name:'제빙기',use:2,desc:'얼음을 녹여 물로 (얼음 1 → 물 20)'},tank:{name:'물탱크',desc:'물 저장 용량 +200'},sprinkler:{name:'스프링클러',use:1,desc:'반경 안 식물에 자동으로 물을 줘요'},grinder:{name:'분쇄기',use:2,desc:'돌을 갈아 광물가루로 (돌 1 → 가루 2)'},oxygen:{name:'산소 발생기',use:2,desc:'전력으로 산소를 만들어요'}};
+const SHOP=[['seed','꽃씨','밭에 심고 물을 주면 꽃이 피어요',40],['sapling','사과나무 묘목','산소 20% 이상일 때 심을 수 있어요',120],['b:solar','태양광 패널','낮에 전력 +3. 모든 기계의 시작',80],['b:battery','배터리','낮 전력을 저장해 밤에 공급',150],['b:grinder','분쇄기','돌 → 광물가루. 비옥토 재료',150],['b:melter','제빙기','얼음 → 물. 전력 2',150],['b:tank','물탱크','물 저장 +200',120],['b:sprinkler','스프링클러','반경 안 자동 물주기. 전력 1',200],['b:oxygen','산소 발생기','산소 생산. 전력 2',400],['pot','화분','꾸미기',150],['bench','벤치','꾸미기',200],['lamp','가로등','밤길을 밝혀요',250],['tent','텐트','꾸미기',400],['wheel','관람차','행성의 명물!',900],['veh:truck','트럭 🚚','탄 채로 돌·얼음 캐기 · 속도 ★★☆',500],['veh:dozer','불도저 🚜','돌을 밀어 치움 · 속도 ★☆☆',800],['veh:tank','탱크 🛡️','Space 포격으로 돌 파괴 · 속도 ★★★',1500]];
 const GREEN_R={sprout:45,sapling:75,flower:95,tree:170};
+const STAGES=[{n:'황무지',cond:()=>true},{n:'첫 싹',cond:()=>cnt('flower')>=3},{n:'작은 숲',cond:()=>cnt('tree')>=3&&greenPct>=10},{n:'오아시스',cond:()=>greenPct>=25&&S.o2>=40},{n:'푸른 행성',cond:()=>greenPct>=50&&S.o2>=60}];
+const VSTAGE={'뽀삐':0,'삐걱':0,'모모':1,'꼬꼬':2,'돌이':2,'삐삐':3};
 const LINES={'뽀삐':['화성 먼지는 은근 포근해~','나 오늘 운석 구경했다!','꽃이 피면 냄새가 날까?','너 지구에서 왔다며? 바다 진짜 있어?'],'삐걱':['삐빅. 오늘의 산소 농도: 쾌적.','삐... 녹색은 좋은 색이다.','나는 원래 청소 로봇이었다.','사과... 기름칠보다 맛있다고 들었다.'],'모모':['냐암… 낮잠 자기 딱 좋은 모래야','헬멧 안에서 그루밍은 어떻게 하지','나무가 생기면 거기서 잘 거야','사과? 냄새만 맡을래… 아니 줘'],'돌이':['…나는 원래 저 산의 일부였다','천천히… 천천히 걷자','비가 오면 이끼가 자란다던데','네 발자국 소리, 듣기 좋다'],'꼬꼬':['꼬끼오! 여긴 해가 두 번 뜨지 않아 다행이야','알을 낳을 둥지가 필요해!','풀이 자라면 벌레도 올까?','꼭꼭 숨어라, 모래폭풍 온다'],'삐삐':['윙— 상공 10m, 이상 무','난 땅을 밟아본 적이 없어','너 머리 위에서 보면 되게 작아','배터리 23%… 괜찮아, 태양이 있으니까']};
-const SOLID=new Set(['rock','ice','shop','house','tree','deco','prop']);
+const SOLID=new Set(['rock','ice','shop','house','tree','deco','prop','bld']);
+const PLANT=new Set(['sprout','sapling','flower','tree','wilt']);
 const VILLAGERS=[['뽀삐','alien',-80,220,'gift1'],['삐걱','robot',120,260,'gift2'],['모모','cat',-320,80,'gift3'],['돌이','golem',380,-40,'gift4'],['꼬꼬','bird',40,-360,'gift5'],['삐삐','drone',-200,-300,'gift6']];
 const mkVillager=([name,kind,dx,dy,gift],i)=>({name,kind,x:CX+dx,y:CY+dy,hx:CX+dx,hy:CY+dy,h:0,gift:false,giftId:gift,t:1+i,tx:null,ty:null});
 const VEH={rover:{name:'로버',icon:'🚙',sp:330,r:30},truck:{name:'트럭',icon:'🚚',sp:360,r:34},dozer:{name:'불도저',icon:'🚜',sp:240,r:36},tank:{name:'탱크',icon:'🛡️',sp:420,r:36}};
 const MT_NAMES=['붉은 송곳 능선','먼지바람 언덕','올림푸스 자락','고요한 바위산','노을 절벽','세 봉우리','철가루 산맥','잠든 거인','마른 강 고개'];
+const QUESTS=[
+ {t:'돌 3개 캐기',d:'바위를 클릭하거나 앞에서 Space',c:()=>S.stat.mined>=3,p:()=>`${Math.min(3,S.stat.mined)}/3`,r:30},
+ {t:'상점에 팔아 벨 250 모으기',d:'보보의 상점에서 "모두 팔기"',c:()=>S.bells>=250,p:()=>`${Math.min(250,S.bells)}/250`,r:0},
+ {t:'태양광 패널 설치',d:'상점 구매 → 주머니에서 선택 → 땅 클릭',c:()=>cntB('solar')>=1,r:40},
+ {t:'분쇄기 설치하고 돌 넣기',d:'분쇄기를 클릭하면 돌을 넣어요 → 광물가루',c:()=>S.stat.dust>=2,p:()=>`가루 ${Math.min(2,S.stat.dust)}/2`,r:40},
+ {t:'제빙기 설치하고 얼음 넣기',d:'제빙기를 클릭하면 얼음을 넣어요 → 물',c:()=>S.stat.water>=20,p:()=>`물 ${Math.min(20,Math.floor(S.stat.water))}/20`,r:40},
+ {t:'우리 집에서 비옥토 만들기',d:'집을 클릭 → 작업대: 광물가루 2 + 물 10',c:()=>S.stat.soil>=1,r:40},
+ {t:'밭 만들고 꽃씨 심기',d:'비옥토를 땅에 놓으면 밭, 밭 안에 꽃씨',c:()=>cnt('sprout')+cnt('flower')>=1,r:40},
+ {t:'꽃 3송이 피우기',d:'새싹에 물 주기 (클릭 = 물 10). 마르면 시들어요',c:()=>cnt('flower')>=3,p:()=>`${Math.min(3,cnt('flower'))}/3`,r:80},
+ {t:'스프링클러 설치',d:'밭 옆에 두면 자동으로 물을 줘요',c:()=>cntB('sprinkler')>=1,r:60},
+ {t:'물탱크 설치',d:'저장 용량이 늘어 물이 안 넘쳐요',c:()=>cntB('tank')>=1,r:60},
+ {t:'산소 발생기 설치',d:'산소가 20%를 넘으면 나무를 심을 수 있어요',c:()=>cntB('oxygen')>=1,r:80},
+ {t:'산소 20% 만들기',d:'발생기엔 전력 2가 필요해요. 패널을 더 두세요',c:()=>S.o2>=20,p:()=>`${Math.min(20,Math.floor(S.o2))}/20`,r:100},
+ {t:'사과나무 3그루 키우기',d:'묘목도 밭과 물이 필요해요',c:()=>cnt('tree')>=3,p:()=>`${Math.min(3,cnt('tree'))}/3`,r:150},
+ {t:'녹지 10% 만들기',d:'나무 주변이 넓게 초록으로 변해요',c:()=>greenPct>=10,p:()=>`${Math.min(10,greenPct)}/10`,r:200},
+ {t:'주민 모두와 친해지기',d:'🍎 사과를 세 번씩',c:()=>S.v.filter(v=>VSTAGE[v.name]<=S.stage).every(v=>v.h>=3),r:200},
+ {t:'녹지 25% · 산소 40%',d:'스프링클러와 발생기를 늘리세요',c:()=>greenPct>=25&&S.o2>=40,p:()=>`녹지 ${Math.min(25,greenPct)}/25 · 산소 ${Math.min(40,Math.floor(S.o2))}/40`,r:300},
+ {t:'녹지 50% · 산소 60%',d:'푸른 행성까지',c:()=>greenPct>=50&&S.o2>=60,p:()=>`녹지 ${Math.min(50,greenPct)}/50 · 산소 ${Math.min(60,Math.floor(S.o2))}/60`,r:500}];
+const cnt=k=>S.objs.filter(o=>o.k===k).length,cntB=e=>S.objs.filter(o=>o.k==='bld'&&o.e===e).length;
 const PROP_SAY={sign:'표지판: 상점 ← · 집 → · 올림푸스 1,200km',barrel:'빈 연료통. 두드리면 통통 소리가 난다',container:'낡은 컨테이너. 지구에서 온 보급품이 들어 있었대',pole:'전신주. 전선은 모래폭풍에 날아갔다',tires:'버려진 타이어 더미',car:'버려진 탐사차. 바퀴 하나가 없다',cone:'라바콘. 누가 여기에 두고 갔을까',crate:'나무 상자. 안은 비었다'};
 const COL={ink:0x1f120d,coral:0xe9775c,coralD:0xc2553c,coralL:0xf4a58f,pale:0xfde3d8,white:0xffffff,sand:0xf0894c,road:0xb84c2c,green:0x9fc77a,greenD:0x6f9a52,wood:0x7a4a34,dark:0x2a1a14,ice:0xd8f0ff,leaf:0xa7d48c};
 
@@ -128,19 +162,19 @@ function fresh(){
   const roads=[];for(let i=-2;i<=2;i++){roads.push({axis:'x',c:CY+i*520+(r()-.5)*120});roads.push({axis:'y',c:CX+i*520+(r()-.5)*120})}
   objs.push({id:uid++,k:'shop',x:CX-260,y:CY-200,r:90});objs.push({id:uid++,k:'house',x:CX+240,y:CY-170,r:55});
   spawn('rock',26,26,{cd:0});spawn('ice',16,22,{cd:0});
-  objs.push({id:uid++,k:'flower',x:CX+170,y:CY-90,r:14,e:0,v:r()});objs.push({id:uid++,k:'flower',x:CX+300,y:CY-70,r:14,e:2,v:r()});
+  
   const PROPS=[['sign',6,14],['barrel',14,12],['container',5,40],['pole',12,8],['tires',8,16],['car',5,34],['cone',16,8],['crate',8,14]];
   for(const [e,n,rad] of PROPS)for(let i=0;i<n;i++){for(let t=0;t<80;t++){let x,y;
     if(r()<.75){const rd=roads[(r()*roads.length)|0],along=CX-R+r()*R*2,off=(r()<.5?-1:1)*(28+r()*40);if(rd.axis==='x'){x=along;y=rd.c+off}else{x=rd.c+off;y=along}}
     else{const a=r()*Math.PI*2,d=Math.sqrt(r())*(R-120);x=CX+Math.cos(a)*d;y=CY+Math.sin(a)*d}
     if(free(x,y,rad)){objs.push({id:uid++,k:'prop',e,x,y,r:rad,v:r(),ax:r()<.5});break}}}
-  return{seed,objs,mts,blocks,roads,vehicles:[{id:1,type:'rover',x:CX+150,y:CY+60,dir:[1,0]}],riding:null,bells:150,inv:{ore:0,ice:1,apple:0,seed:3},held:'seed',done5:false,
+  return{seed,objs,mts,blocks,roads,vehicles:[{id:1,type:'rover',x:CX+150,y:CY+60,dir:[1,0]}],riding:null,bells:150,inv:{ore:0,ice:0,apple:0,seed:2},held:null,done5:false,water:0,waterCap:100,o2:3,battery:0,stage:0,qi:0,stat:{mined:0,dust:0,water:0,soil:0},
     p:{x:CX,y:CY+40,dir:[1,1]},
     clock:60,
     v:VILLAGERS.map(mkVillager)};
 }
-function load(){try{const s=JSON.parse(localStorage.getItem('mars-forest-v7'));if(s&&s.objs&&s.mts&&s.roads&&s.vehicles){uid=Math.max(...s.objs.map(o=>o.id))+1;VILLAGERS.forEach((d,i)=>{let v=s.v.find(v=>v.name===d[0]);if(!v){s.v.push(mkVillager(d,i))}else{v.hx=CX+d[2];v.hy=CY+d[3];v.giftId=d[4]}});return s}}catch(e){}return null}
-function save(){try{localStorage.setItem('mars-forest-v7',JSON.stringify(S))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem('mars-forest-v8'));if(s&&s.objs&&s.mts&&s.roads&&s.vehicles&&s.stat){uid=Math.max(...s.objs.map(o=>o.id))+1;VILLAGERS.forEach((d,i)=>{let v=s.v.find(v=>v.name===d[0]);if(!v){s.v.push(mkVillager(d,i))}else{v.hx=CX+d[2];v.hy=CY+d[3];v.giftId=d[4]}});return s}}catch(e){}return null}
+function save(){try{localStorage.setItem('mars-forest-v8',JSON.stringify(S))}catch(e){}}
 S=load()||fresh();
 
 /* ---------- Three 셋업 ---------- */
@@ -202,10 +236,10 @@ const lampMats=[];const fxGroup=new THREE.Group();scene.add(fxGroup);
 function applyDayNight(t){const ph=(S.clock||0)/DAY;  // 0 새벽 → .25 정오 → .5 저녁 → .75 자정
   const day=Math.max(0,Math.sin(ph*Math.PI*2));const dusk=Math.max(0,1-Math.abs(Math.sin(ph*Math.PI*2))*3)*(ph>.4&&ph<.6||ph<.1||ph>.9?1:0);const night=1-day;
   sun.intensity=.25+1.5*day;sun.color.setRGB(1,.86+.12*day-.3*dusk,.75+.2*day-.4*dusk);hemiL.intensity=.25+.7*day;
-  const bg=new THREE.Color().setRGB(.91-.78*night+.05*dusk,.41-.33*night-.1*dusk,.23-.15*night+.05*dusk);scene.background=bg;
+  const b=Math.min(1,S.o2/80);const bg=new THREE.Color().setRGB((.91-.78*night+.05*dusk)*(1-b*.45),(.41-.33*night-.1*dusk)*(1-b*.2)+b*.3*(1-night),(.23-.15*night+.05*dusk)+b*.5*(1-night*.8));scene.background=bg;
   stars.children.forEach(m=>m.material.opacity=night*(.5+.5*Math.sin(t/600+m.userData.tw)));
   const on=night>.35;lampMats.forEach(([m,l])=>{m.emissiveIntensity=on?1.2:.05;l.intensity=on?1.6:0});
-  $('#clock').textContent=(ph<.1||ph>.9?'🌅 새벽':ph<.4?'☀️ 낮':ph<.6?'🌇 저녁':'🌙 밤')+' '+String(Math.floor(((ph+.25)%1)*24)).padStart(2,'0')+':'+String(Math.floor((((ph+.25)%1)*24%1)*60)).padStart(2,'0')}
+  $('#clock').textContent=`${S.day||1}일째 `+(ph<.1||ph>.9?'🌅':ph<.4?'☀️':ph<.6?'🌇':'🌙')+' '+String(Math.floor(((ph+.25)%1)*24)).padStart(2,'0')+':'+String(Math.floor((((ph+.25)%1)*24%1)*60)).padStart(2,'0')}
 const hoverRing=new THREE.Mesh(new THREE.RingGeometry(30,34,32),new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide,transparent:true,opacity:.9}));hoverRing.rotation.x=-Math.PI/2;hoverRing.visible=false;
 const faceDot=new THREE.Mesh(new THREE.CircleGeometry(5,16),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.7}));faceDot.rotation.x=-Math.PI/2;
 const objMesh=new Map();
@@ -230,8 +264,19 @@ function bTree(o){const g=new THREE.Group();g.add(mesh(G.cyl(5,7,36,7),COL.wood,
   if(o.fruit)[[-14,70,10],[18,66,-8],[-24,44,20],[26,40,16]].forEach(([x,y,z])=>g.add(mesh(G.sph(5,8),0xe8463a,x,y,z)));return g}
 function bFlower(o){const g=new THREE.Group();g.add(mesh(G.cyl(1.5,1.5,22,5),COL.greenD,0,11,0));const col=[0xffffff,0xffe08a,0xf7b6a3,0xd9c7ff,0xff8fa3][o.e%5];for(let i=0;i<5;i++){const a=i/5*Math.PI*2;g.add(mesh(G.sph(5,6),col,Math.cos(a)*7,24,Math.sin(a)*7))}g.add(mesh(G.sph(4,6),0xffd34d,0,25,0));return g}
 function drop(x,y){const m=mesh(G.sph(5,8),0x6cc3f0,x,y,0,{roughness:.3});m.scale.y=1.4;m.userData.bob=true;return m}
-function bSprout(o){const g=new THREE.Group();g.add(mesh(G.cyl(16,18,3,10),o.w?0x8a3a24:0xc46a44,0,1.5,0));g.add(mesh(G.cyl(1.2,1.2,12,5),COL.greenD,0,8,0));[[-6,.7],[6,-.7]].forEach(([x,a])=>{const l=mesh(G.sph(5,6),COL.leaf,x,14,0);l.scale.set(1.3,.5,.8);l.rotation.z=a;g.add(l)});if(!o.w)g.add(drop(14,28));return g}
-function bSapling(o){const g=new THREE.Group();g.add(mesh(G.cyl(18,20,3,10),o.w?0x8a3a24:0xc46a44,0,1.5,0));g.add(mesh(G.cyl(2,3,30,6),COL.wood,0,15,0));g.add(mesh(jitter(G.sph(12,8),4,o.id*5),COL.leaf,0,36,0));if(!o.w)g.add(drop(18,46));return g}
+function bSprout(o){const g=new THREE.Group();g.add(mesh(G.cyl(16,18,3,10),o.hyd>.3?0x8a3a24:0xc46a44,0,1.5,0));g.add(mesh(G.cyl(1.2,1.2,12,5),COL.greenD,0,8,0));[[-6,.7],[6,-.7]].forEach(([x,a])=>{const l=mesh(G.sph(5,6),COL.leaf,x,14,0);l.scale.set(1.3,.5,.8);l.rotation.z=a;g.add(l)});if(o.hyd<.3)g.add(drop(14,28));return g}
+function bSapling(o){const g=new THREE.Group();g.add(mesh(G.cyl(18,20,3,10),o.hyd>.3?0x8a3a24:0xc46a44,0,1.5,0));g.add(mesh(G.cyl(2,3,30,6),COL.wood,0,15,0));g.add(mesh(jitter(G.sph(12,8),4,o.id*5),COL.leaf,0,36,0));if(o.hyd<.3)g.add(drop(18,46));return g}
+function bWilt(o){const g=new THREE.Group();const st=mesh(G.cyl(1.5,2,18,5),0x8a6a4a,0,8,0);st.rotation.z=.7;g.add(st);[[-4,14],[6,12]].forEach(([x,y])=>{const l=mesh(G.sph(4,6),0xb08a5a,x,y,0);l.scale.set(1.2,.4,.8);g.add(l)});return g}
+function bField(o){const g=new THREE.Group();const d=mesh(G.cyl(44,46,3,16),0x6b3a22,0,1.5,0);g.add(d);for(let i=0;i<5;i++)g.add(mesh(G.box(70,1.2,3),0x4e2a18,0,3.2,-28+i*14));return g}
+function bBld(o){const g=new THREE.Group();const e=o.e;
+  if(e==='solar'){g.add(mesh(G.cyl(2.5,3,22,6),COL.dark,0,11,0));const pn=mesh(G.box(44,2,30),0x1f3a5a,0,26,0,{roughness:.3,metalness:.2});pn.rotation.z=.5;g.add(pn);const fr=mesh(G.box(46,1,32),COL.white,0,25,0);fr.rotation.z=.5;g.add(fr);for(let i=-1;i<=1;i++){const l=mesh(G.box(44,2.6,.8),COL.white,0,26,i*10);l.rotation.z=.5;g.add(l)}}
+  else if(e==='battery'){g.add(mesh(G.box(26,30,18),COL.white,0,15,0));g.add(mesh(G.box(27,8,19),COL.coral,0,24,0));g.add(mesh(G.box(8,4,8),COL.dark,0,32,0));g.add(mesh(G.box(10,10,1),0xffd34d,0,14,9.6,{emissive:0xffd34d,emissiveIntensity:.5}))}
+  else if(e==='melter'){g.add(mesh(G.box(34,28,30),COL.white,0,14,0));g.add(mesh(G.box(35,6,31),COL.coral,0,8,0));g.add(mesh(G.cyl(5,5,16,8),COL.dark,10,36,-8));const pipe=mesh(G.cyl(3,3,26,8),COL.dark,-18,10,8);pipe.rotation.z=Math.PI/2;g.add(pipe);g.add(mesh(G.box(12,10,1),0x9fd4f0,0,20,15.5,{roughness:.2}));const ic=mesh(G.oct(6),COL.ice,-6,34,4,{roughness:.3});ic.scale.y=1.4;g.add(ic)}
+  else if(e==='tank'){g.add(mesh(G.cyl(22,22,46,14),COL.white,0,23,0));g.add(mesh(G.cyl(22.5,22.5,6,14),0x6cc3f0,0,30,0));g.add(mesh(G.cyl(22.5,22.5,6,14),0x6cc3f0,0,14,0));g.add(mesh(G.cyl(6,6,8,8),COL.dark,0,50,0));[-16,16].forEach(x=>g.add(mesh(G.box(4,8,4),COL.dark,x,4,0)))}
+  else if(e==='sprinkler'){g.add(mesh(G.cyl(2,2.5,30,6),COL.dark,0,15,0));const hd=mesh(G.cyl(5,5,6,8),0x6cc3f0,0,33,0);hd.userData.spin=true;hd.userData.spinY=true;g.add(hd);g.add(mesh(G.box(16,2,2),COL.white,0,36,0));const ring=new THREE.Mesh(new THREE.RingGeometry(140,150,48),new THREE.MeshBasicMaterial({color:0x6cc3f0,transparent:true,opacity:.25,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.9;g.add(ring)}
+  else if(e==='grinder'){g.add(mesh(G.box(34,22,28),COL.coral,0,11,0));g.add(mesh(G.cyl(16,6,16,8),COL.dark,0,30,0));g.add(mesh(G.cyl(13,13,4,10),COL.white,0,38,0));const gear=mesh(G.cyl(9,9,4,8),COL.dark,20,16,0);gear.rotation.z=Math.PI/2;gear.userData.spin=true;g.add(gear);g.add(mesh(G.box(10,6,12),COL.dark,-18,4,8))}
+  else if(e==='oxygen'){g.add(mesh(G.cyl(16,18,40,10),COL.white,0,20,0));g.add(mesh(G.cyl(16.5,16.5,5,10),0xbfe8ff,0,34,0));const fan=new THREE.Group();fan.position.set(0,46,0);fan.add(mesh(G.cyl(3,3,4,8),COL.dark,0,0,0));for(let i=0;i<4;i++){const bl=mesh(G.box(14,1,4),COL.coral,0,0,0);bl.rotation.y=i*Math.PI/2;bl.position.set(Math.cos(i*Math.PI/2)*8,0,Math.sin(i*Math.PI/2)*8);fan.add(bl)}fan.userData.spin=true;fan.userData.spinY=true;g.add(fan);g.add(mesh(G.tor(14,1.5),COL.dark,0,46,0).rotateX(Math.PI/2))}
+  return g}
 function bShop(){const g=new THREE.Group();const sg=g;g.add(mesh(G.box(150,66,110),COL.pale,0,33,0));for(let i=0;i<6;i++)g.add(mesh(G.box(6,66,4),COL.coral,-66+i*26,33,56));for(let i=0;i<4;i++)g.add(mesh(G.box(4,66,6),COL.coral,76,33,-42+i*28));
   const roof=mesh(G.cyl(55,55,150,20,1,false,0,Math.PI),COL.coral,0,66,0);roof.rotation.z=Math.PI/2;g.add(roof);g.add(mesh(G.box(154,6,114),COL.coralD,0,66,0));
   g.add(mesh(G.box(22,34,4),COL.dark,0,17,56));const sign=mesh(G.box(90,20,6),COL.white,0,54,57);g.add(sign);g.add(mesh(G.box(92,3,7),COL.coralD,0,65,57));g.add(mesh(G.box(92,3,7),COL.coralD,0,43,57));g.add(mesh(G.cyl(.8,.8,18,5),COL.dark,-40,78,54));g.add(mesh(G.box(12,8,1),COL.coral,-34,84,54));const face=new THREE.Mesh(new THREE.PlaneGeometry(88,18),new THREE.MeshBasicMaterial({map:signTex('보보 상점')}));face.position.set(0,54,60.2);g.add(face);[[-30,38],[30,38]].forEach(([x,y])=>g.add(mesh(G.box(18,18,3),0x9fd4f0,x,y,56.5,{roughness:.2})));return g}
@@ -293,8 +338,8 @@ function bProp(o){const g=new THREE.Group();const e=o.e;
     const tp=o.ax?[[-16,-d/2+2],[16,-d/2+2],[-16,d/2-2]]:[[-d/2+2,-16],[d/2-2,-16],[-d/2+2,16]];tp.forEach(([x,z])=>{const t=mesh(G.cyl(6,6,5,10),0x2a1a14,x,6,z);if(o.ax)t.rotation.x=Math.PI/2;else t.rotation.z=Math.PI/2;g.add(t)});g.rotation.z=.06}
   return g}
 function signTex(txt){const c=document.createElement('canvas');c.width=360;c.height=80;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,360,80);x.fillStyle='#1f120d';x.font='900 44px -apple-system,"Apple SD Gothic Neo",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(txt,180,42);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-const BUILD={rock:bRock,ice:bIce,tree:bTree,flower:bFlower,sprout:bSprout,sapling:bSapling,shop:bShop,house:bHouse,deco:bDeco,prop:bProp};
-function objKey(o){return o.k+'|'+(o.w?1:0)+(o.fruit?1:0)+(o.cd>0?1:0)+(o.e??'')}
+const BUILD={rock:bRock,ice:bIce,tree:bTree,flower:bFlower,sprout:bSprout,sapling:bSapling,wilt:bWilt,field:bField,bld:bBld,shop:bShop,house:bHouse,deco:bDeco,prop:bProp};
+function objKey(o){return o.k+'|'+(o.hyd!==undefined?(o.hyd>.3?1:0):0)+(o.fruit?1:0)+(o.cd>0?1:0)+(o.e??'')}
 function syncObjects(){const seen=new Set();
   for(const o of S.objs){seen.add(o.id);const key=objKey(o);let rec=objMesh.get(o.id);
     if(!rec||rec.key!==key){if(rec)world.remove(rec.g);const g=BUILD[o.k](o);g.position.copy(W2T(o.x,o.y));if(o.k==='rock'||o.k==='flower'||o.k==='tree')g.rotation.y=o.v*6;if(o.cd>0)g.scale.setScalar(.55);world.add(g);rec={g,key};objMesh.set(o.id,rec)}}
@@ -310,47 +355,86 @@ function say(who,text){bubbles=bubbles.filter(b=>b.who!==who);bubbles.push({who,
 function add(k,n=1){S.inv[k]=(S.inv[k]||0)+n}
 function blocked(x,y,me){for(let i=0;i<S.vehicles.length;i++){if(i===S.riding)continue;const v=S.vehicles[i];if(Math.hypot(v.x-x,v.y-y)<VEH[v.type].r+8)return true}for(const b of S.blocks){if(Math.hypot(b.x-x,b.y-y)<b.r+10)return true}
   for(const o of S.objs){if(!SOLID.has(o.k))continue;if(Math.hypot(o.x-x,o.y-y)<o.r+12)return true}
-  for(const v of S.v){if(v!==me&&Math.hypot(v.x-x,v.y-y)<22)return true}if(me!==S.p&&Math.hypot(S.p.x-x,S.p.y-y)<22)return true;return!inPlanet(x,y,30)}
+  for(const v of S.v){if(v!==me&&VSTAGE[v.name]<=S.stage&&Math.hypot(v.x-x,v.y-y)<22)return true}if(me!==S.p&&Math.hypot(S.p.x-x,S.p.y-y)<22)return true;return!inPlanet(x,y,30)}
 function nearest(x,y,rad){let best=null,bd=rad;for(const o of S.objs){const d=Math.hypot(o.x-x,o.y-y)-o.r;if(d<bd){bd=d;best={o}}}
-  for(const v of S.v){const d=Math.hypot(v.x-x,v.y-y)-16;if(d<bd){bd=d;best={v}}}for(let i=0;i<S.vehicles.length;i++){if(i===S.riding)continue;const v=S.vehicles[i];const d=Math.hypot(v.x-x,v.y-y)-VEH[v.type].r;if(d<bd){bd=d;best={veh:i}}}return best}
+  for(const v of S.v){if(VSTAGE[v.name]>S.stage)continue;const d=Math.hypot(v.x-x,v.y-y)-16;if(d<bd){bd=d;best={v}}}for(let i=0;i<S.vehicles.length;i++){if(i===S.riding)continue;const v=S.vehicles[i];const d=Math.hypot(v.x-x,v.y-y)-VEH[v.type].r;if(d<bd){bd=d;best={veh:i}}}return best}
 const myVeh=()=>S.riding===null?null:S.vehicles[S.riding];
 function board(i){S.riding=i;const v=S.vehicles[i];S.p.x=v.x;S.p.y=v.y;toast(`${VEH[v.type].icon} ${VEH[v.type].name}에 탔어요. E로 내려요`);save()}
 function dismount(){const v=myVeh();if(!v)return;S.riding=null;const a=Math.atan2(S.p.y-CY,S.p.x-CX);let ok=false;for(let k=0;k<8&&!ok;k++){const b=a+k*Math.PI/4,nx=v.x+Math.cos(b)*(VEH[v.type].r+24),ny=v.y+Math.sin(b)*(VEH[v.type].r+24);if(!blocked(nx,ny,S.p)){S.p.x=nx;S.p.y=ny;ok=true}}if(!ok){S.p.x=v.x+60;S.p.y=v.y}toast(`${VEH[v.type].name}에서 내렸어요`);save()}
 function spawnVehicle(type){const sh=S.objs.find(o=>o.k==='shop');for(let k=0;k<24;k++){const a=k/24*Math.PI*2,x=sh.x+Math.cos(a)*170,y=sh.y+Math.sin(a)*170;if(!blocked(x,y,null)&&!nearest(x,y,40)){S.vehicles.push({id:(Math.max(0,...S.vehicles.map(v=>v.id))+1),type,x,y,dir:[1,0]});return true}}return false}
 function fireTank(){const v=myVeh();let best=null,bd=180;for(const o of S.objs){if(o.k!=='rock'||o.cd>0)continue;const d=Math.hypot(o.x-v.x,o.y-v.y);if(d<bd){bd=d;best=o}}if(!best){toast('사거리 안에 깰 돌이 없어요');return}v.dir=[(best.x-v.x)/bd,(best.y-v.y)/bd];best.cd=20;add('ore',2);fx.push({x:best.x,y:best.y,t:0});toast('💥 포격! 철광석 +2');save();renderUI()}
 function interactTarget(tg){if(tg.veh!==undefined){board(tg.veh);return}if(tg.v){talk(tg.v);return}const o=tg.o;
-  if(o.k==='rock'||o.k==='ice'){if(o.cd>0){toast('아직 다시 생기는 중이에요');return}const k=o.k==='rock'?'ore':'ice';add(k);o.cd=o.k==='rock'?20:25;toast(`${ICON[k]} ${NAMES[k]}을(를) 얻었다!`)}
-  else if(o.k==='shop')openShop();else if(o.k==='house')say('me','우리 집. 오늘도 포근하다');
-  else if((o.k==='sprout'||o.k==='sapling')&&!o.w){if(S.inv.ice>0){S.inv.ice--;o.w=true;toast('💧 얼음을 녹여 물을 줬어요')}else toast('물 줄 🧊 얼음이 필요해요')}
-  else if(o.k==='sprout'||o.k==='sapling')toast('쑥쑥 자라는 중…');
+  if(o.k==='rock'||o.k==='ice'){if(o.cd>0){toast('아직 다시 생기는 중이에요');return}const k=o.k==='rock'?'ore':'ice';add(k);if(k==='ore')S.stat.mined++;o.cd=o.k==='rock'?20:25;toast(`${ICON[k]} ${NAMES[k]}을(를) 얻었다!`)}
+  else if(o.k==='shop')openShop();else if(o.k==='house')openCraft();
+  else if(o.k==='bld'){const e=o.e;if(e==='melter'){if(S.inv.ice>0){o.q=(o.q||0)+S.inv.ice;toast(`🧊 얼음 ${S.inv.ice}개를 넣었어요. 녹는 중…`);S.inv.ice=0}else toast(`제빙기: 대기 ${o.q||0}개 · 얼음을 가져오세요`)}
+    else if(e==='grinder'){if(S.inv.ore>0){o.q=(o.q||0)+S.inv.ore;toast(`🪨 돌 ${S.inv.ore}개를 넣었어요. 가는 중…`);S.inv.ore=0}else toast(`분쇄기: 대기 ${o.q||0}개 · 돌을 가져오세요`)}
+    else if(e==='solar')toast(`태양광: 지금 +${(3*dayFactor()).toFixed(1)} 전력`);else if(e==='tank')toast(`물탱크: ${Math.floor(S.water)}/${S.waterCap}`);else if(e==='oxygen')toast(`산소 발생기: ${power.ratio<1?'전력 부족 '+Math.round(power.ratio*100)+'%':'정상 가동'}`);else if(e==='battery')toast(`배터리: ${Math.floor(S.battery)}/${cntB('battery')*60}`);else if(e==='sprinkler')toast(S.water>0?'스프링클러: 반경 안 식물에 물 주는 중':'스프링클러: 물이 없어요');
+    if(e!=='melter'&&e!=='grinder'&&confirmPickup(o))return}
+  else if(o.k==='field'){if(S.held==='seed'||S.held==='sapling')placeAt(o.x+(Math.random()-.5)*40,o.y+(Math.random()-.5)*40);else toast(`밭 (${o.n||0}/4) · 씨앗이나 묘목을 들고 클릭`)}
+  else if(o.k==='wilt'){S.objs.splice(S.objs.indexOf(o),1);add('compost');toast('🟤 시든 식물을 걷어 퇴비 +1');paintGreen()}
+  else if(o.k==='sprout'||o.k==='sapling'||o.k==='flower'){if(o.hyd>=.9)toast(o.k==='flower'?'예쁘게 피었어요':'쑥쑥 자라는 중… (수분 충분)');else if(S.water>=10){S.water-=10;o.hyd=1;toast('💧 물을 줬어요 (물 −10)')}else toast('물이 없어요. 제빙기로 얼음을 녹이세요')}
   else if(o.k==='tree'){if(o.fruit){o.fruit=false;o.ft=0;add('apple');toast('🍎 사과를 땄다!')}else toast('사과가 열리길 기다려요')}
   else if(o.k==='deco'){add(o.e);S.objs.splice(S.objs.indexOf(o),1);toast(`${ICON[o.e]} 다시 주머니에 넣었어요`)}
-  else if(o.k==='flower')say('me','예쁘다');else if(o.k==='prop')say('me',PROP_SAY[o.e]);
+  else if(o.k==='prop')say('me',PROP_SAY[o.e]);
   renderUI();save()}
+function confirmPickup(o){if(S.held!=='pick')return false;add('b:'+o.e);S.objs.splice(S.objs.indexOf(o),1);S.held=null;toast(`${BLD[o.e].name}을(를) 주머니에 넣었어요`);renderUI();save();return true}
 function placeAt(x,y){const h=S.held;if(!h||!S.inv[h]){toast('주머니에서 심거나 놓을 물건을 골라 주세요');return}if(!inPlanet(x,y,50)){toast('행성 가장자리엔 놓을 수 없어요');return}
-  if(nearest(x,y,30)||Math.hypot(S.p.x-x,S.p.y-y)<24||S.blocks.some(b=>Math.hypot(b.x-x,b.y-y)<b.r+30)){toast('여긴 자리가 없어요');return}
-  S.inv[h]--;const base={id:uid++,x,y,v:Math.random()};
-  if(h==='seed')S.objs.push({...base,k:'sprout',r:12,w:false,gr:0});else if(h==='sapling')S.objs.push({...base,k:'sapling',r:12,w:false,gr:0});
-  else S.objs.push({...base,k:'deco',e:h,r:h==='wheel'?40:h==='tent'?38:h==='bench'?28:14});paintGreen();renderUI();save()}
+  const nr=nearest(x,y,30);if((nr&&!(nr.o&&nr.o.k==='field'&&(S.held==='seed'||S.held==='sapling')))||Math.hypot(S.p.x-x,S.p.y-y)<24||S.blocks.some(b=>Math.hypot(b.x-x,b.y-y)<b.r+30)){toast('여긴 자리가 없어요');return}
+  const base={id:uid++,x,y,v:Math.random()};
+  if(h==='seed'||h==='sapling'){const f=S.objs.find(o=>o.k==='field'&&Math.hypot(o.x-x,o.y-y)<48);if(!f){toast('밭 안에만 심을 수 있어요 (비옥토를 땅에 놓으면 밭)');return}if((f.n||0)>=4){toast('이 밭은 가득 찼어요 (4칸)');return}if(h==='sapling'&&S.o2<20){toast('묘목은 산소 20% 이상이어야 살 수 있어요');return}
+    S.inv[h]--;f.n=(f.n||0)+1;S.objs.push({...base,k:h==='seed'?'sprout':'sapling',r:10,hyd:.5,gr:0,fid:f.id})}
+  else if(h==='soil'){if(S.objs.some(o=>o.k==='field'&&Math.hypot(o.x-x,o.y-y)<90)){toast('밭이 너무 가까워요');return}S.inv[h]--;S.objs.push({...base,k:'field',r:45,n:0})}
+  else if(h.startsWith('b:')){S.inv[h]--;S.objs.push({...base,k:'bld',e:h.slice(2),r:h==='b:tank'?26:h==='b:sprinkler'?10:22,q:0})}
+  else{S.inv[h]--;S.objs.push({...base,k:'deco',e:h,r:h==='wheel'?40:h==='tent'?38:h==='bench'?28:14})}paintGreen();renderUI();save()}
 function talk(v){v.face=[S.p.x-v.x,S.p.y-v.y];v.t=3;if(S.inv.apple>0){S.inv.apple--;v.h++;if(v.h>=3&&!v.gift){v.gift=true;const e=v.giftId;add(e);say(v.name,`우리 이제 베프야! 이거 받아 ${ICON[e]}`)}else say(v.name,{'뽀삐':'사과다!! 고마워 💕','삐걱':'삐빅! 감사 회로 작동 💕','모모':'냐… 고마워 (꼬리 흔들)','돌이':'…고맙다. 오래 기억하겠다','꼬꼬':'꼬꼬꼬! 최고의 간식!','삐삐':'윙— 감사 신호 송신 💕'}[v.name])}
   else say(v.name,LINES[v.name][(Math.random()*4)|0]);renderUI();save()}
+/* ---------- 행성 시스템 ---------- */
+let power={gen:0,use:0,ratio:1};
+function dayFactor(){const ph=(S.clock||0)/DAY;return Math.max(0,Math.sin(ph*Math.PI*2))}
+function tickPlanet(dt){
+  const blds=S.objs.filter(o=>o.k==='bld');
+  let gen=0,use=0;for(const b of blds){if(b.e==='solar')gen+=3*dayFactor();if(BLD[b.e].use&&((b.e!=='melter'&&b.e!=='grinder')||b.q>0))use+=BLD[b.e].use}
+  const batCap=cntB('battery')*60;if(gen>use&&S.battery<batCap)S.battery=Math.min(batCap,S.battery+(gen-use)*dt*.5);
+  let ratio=use?Math.min(1,gen/use):1;if(ratio<1&&S.battery>0){const need=(use-gen)*dt;const take=Math.min(S.battery,need);S.battery-=take;ratio=Math.min(1,(gen+take/dt)/use)}
+  power={gen:Math.round(gen*10)/10,use,ratio};
+  S.waterCap=100+cntB('tank')*200;
+  for(const b of blds){if(b.e==='melter'&&b.q>0){b.pr=(b.pr||0)+dt*ratio;if(b.pr>=3){b.pr=0;b.q--;const w=Math.min(20,S.waterCap-S.water);S.water+=w;S.stat.water+=w}}
+    if(b.e==='grinder'&&b.q>0){b.pr=(b.pr||0)+dt*ratio;if(b.pr>=3){b.pr=0;b.q--;add('dust',2);S.stat.dust+=2;renderUI()}}
+    if(b.e==='sprinkler'){for(const o of S.objs){if(!PLANT.has(o.k)||o.k==='wilt'||o.k==='tree')continue;if(Math.hypot(o.x-b.x,o.y-b.y)<150&&o.hyd<.9&&S.water>0){const w=Math.min(S.water,dt*2);S.water-=w;o.hyd=Math.min(1,o.hyd+w*.05)}}}}
+  // 산소: 발생기 + 식물, 자연 누출
+  let o2=0;for(const b of blds)if(b.e==='oxygen')o2+=.035*ratio;o2+=cnt('tree')*.006+cnt('flower')*.0012;o2-=S.o2*.0004;S.o2=Math.max(0,Math.min(100,S.o2+o2*dt));
+  // 식물 수분
+  for(const o of S.objs){if(o.k==='sprout'||o.k==='sapling'||o.k==='flower'){o.hyd=Math.max(0,(o.hyd??.5)-dt*(o.k==='flower'?.004:.012));if(o.hyd<=0){o.dry=(o.dry||0)+dt;if(o.dry>25){o.k='wilt';o.r=12;o.hyd=0;wiltFlag=true}}else o.dry=0}}
+}
+let wiltFlag=false;
+function tickQuests(){let changed=false;while(S.qi<QUESTS.length&&QUESTS[S.qi].c()){const q=QUESTS[S.qi];S.qi++;if(q.r){S.bells+=q.r}toast(`✅ ${q.t}${q.r?` (+${q.r}벨)`:''}`);changed=true}
+  let st=0;for(let i=1;i<STAGES.length;i++)if(STAGES[i].cond())st=i;if(st>S.stage){S.stage=st;const names=S.v.filter(v=>VSTAGE[v.name]===st).map(v=>v.name);say('뽀삐',`행성이 '${STAGES[st].n}' 단계가 됐어!${names.length?' '+names.join('·')+'(이)가 이사 왔어!':''}`);changed=true}
+  if(changed){renderUI();save()}}
+function renderQuests(){$('#stage').textContent=`${S.stage}단계 · ${STAGES[S.stage].n}`;const show=[];for(let i=Math.max(0,S.qi-1);i<Math.min(QUESTS.length,S.qi+2);i++)show.push(i);
+  $('#qlist').innerHTML=show.map(i=>{const q=QUESTS[i],done=i<S.qi,cur=i===S.qi;return `<div class="q${done?' done':''}"><b>${done?'✓ ':cur?'▶ ':'· '}${q.t}</b>${cur?`<small>${q.d}</small>${q.p?`<i>${q.p()}</i>`:''}`:''}</div>`}).join('')||'<div class="q"><b>🎉 모든 목표 달성!</b><small>이제 마음껏 꾸며요</small></div>'}
+const RECIPES=[{out:'soil',n:1,need:{dust:2},water:10,desc:'광물가루 2 + 물 10'},{out:'seed',n:2,need:{compost:1},water:5,desc:'퇴비 1 + 물 5 (시든 식물에서 퇴비)'}];
+function openCraft(){keys={};renderCraft();$('#craft').style.display='flex'}
+function renderCraft(){$('#recipes').innerHTML=RECIPES.map((r,i)=>{const ok=Object.entries(r.need).every(([k,n])=>(S.inv[k]||0)>=n)&&S.water>=r.water;return `<div class="row"><div class="e">${ICON[r.out]}</div><div class="n">${NAMES[r.out]} ×${r.n}<small>${r.desc}</small></div><button class="btn" data-i="${i}" ${ok?'':'disabled'}>만들기</button></div>`}).join('')+`<p style="margin-top:8px">보유: ${['dust','compost','seed','soil'].map(k=>`${ICON[k]} ${S.inv[k]||0}`).join(' · ')} · 💧 ${Math.floor(S.water)}</p>`}
+$('#recipes').onclick=e=>{const b=e.target.closest('button');if(!b)return;const r=RECIPES[+b.dataset.i];for(const [k,n] of Object.entries(r.need))S.inv[k]-=n;S.water-=r.water;add(r.out,r.n);if(r.out==='soil')S.stat.soil+=r.n;toast(`${ICON[r.out]} ${NAMES[r.out]} ×${r.n} 완성!`);renderCraft();renderUI();save()};
+$('#craftClose').onclick=()=>$('#craft').style.display='none';
 function actFacing(){const mv=myVeh();if(mv){if(mv.type==='tank')fireTank();else dismount();return}const p=S.p;const tg=nearest(p.x+p.dir[0]*34,p.y+p.dir[1]*34,30);if(tg)interactTarget(tg);else placeAt(p.x+p.dir[0]*44,p.y+p.dir[1]*44)}
 
 /* ---------- 상점·UI ---------- */
 const shopEl=$('#shop');
 function openShop(){keys={};renderShop();shopEl.style.display='flex'}
-function renderShop(){$('#items').innerHTML=SHOP.map(([id,n,d,p],i)=>`<div class="row"><div class="e">${id.startsWith('veh:')?VEH[id.slice(4)].icon:ICON[id]}</div><div class="n">${n}<small>${d}</small></div><button class="btn" data-i="${i}" ${S.bells<p?'disabled':''}>🔔 ${p}</button></div>`).join('');const total=Object.keys(SELL).reduce((s,k)=>s+(S.inv[k]||0)*SELL[k],0);$('#sell').textContent=total?`모두 팔기 (+${total}벨)`:'팔 물건이 없어요'}
+function renderShop(){const sec=id=>id.startsWith('veh:')?'🚙 탈것':id.startsWith('b:')?'🏗️ 건물':['seed','sapling'].includes(id)?'🌱 씨앗':'🪑 꾸미기';let cur='';$('#items').innerHTML=SHOP.map(([id,n,d,p],i)=>{const h=sec(id)!==cur?`<div class="sec">${cur=sec(id)}</div>`:'';return h+`<div class="row"><div class="e">${id.startsWith('veh:')?VEH[id.slice(4)].icon:ICON[id]}</div><div class="n">${n}<small>${d}</small></div><button class="btn" data-i="${i}" ${S.bells<p?'disabled':''}>🔔 ${p}</button></div>`}).join('');const total=Object.keys(SELL).reduce((s,k)=>s+(S.inv[k]||0)*SELL[k],0);$('#sell').textContent=total?`모두 팔기 (+${total}벨)`:'팔 물건이 없어요'}
 $('#items').onclick=e=>{const b=e.target.closest('button');if(!b)return;const [id,n,,p]=SHOP[+b.dataset.i];if(S.bells<p)return;if(id.startsWith('veh:')){const type=id.slice(4);if(S.vehicles.some(v=>v.type===type)){toast('이미 가지고 있어요');return}if(!spawnVehicle(type)){toast('상점 앞에 세울 자리가 없어요');return}S.bells-=p;toast(`${VEH[type].icon} ${VEH[type].name} 구입! 상점 앞에 세워 뒀어요`);renderShop();renderUI();save();return}S.bells-=p;add(id);S.held=id;toast(`${ICON[id]} ${n} 구입!`);renderShop();renderUI();save()};
 $('#sell').onclick=()=>{let t=0;for(const k in SELL){t+=(S.inv[k]||0)*SELL[k];S.inv[k]=0}if(t){S.bells+=t;toast(`🔔 ${t}벨을 받았어요!`)}renderShop();renderUI();save()};
 $('#close').onclick=()=>shopEl.style.display='none';
 $('#reset').onclick=()=>{if(confirm('행성을 처음부터 다시 시작할까요?')){S=fresh();buildWorld();initActors();cam.x=S.p.x;cam.y=S.p.y;save();renderUI()}};
 $('#go').onclick=()=>{$('#intro').style.display='none';setTimeout(()=>say('뽀삐','어서 와! 붉은 행성에 온 걸 환영해'),400)};
-function renderUI(){const decos=S.objs.filter(o=>o.k==='deco').length,score=greenPct+decos*4,st=[6,16,30,48,70].filter(t=>score>=t).length;
-  $('#green').textContent=`녹지 ${greenPct}%`;$('#stars').textContent='★'.repeat(st)+'☆'.repeat(5-st);$('#bells').textContent=`🔔 ${S.bells.toLocaleString()}`;
+function renderHud(){$('#green').textContent=`🌿 녹지 ${greenPct}%`;$('#o2').textContent=`🌬️ 산소 ${Math.floor(S.o2)}%`;$('#water').textContent=`💧 물 ${Math.floor(S.water)}/${S.waterCap}`;$('#power').textContent=`⚡ ${power.gen}/${power.use}${power.ratio<1?' ⚠️':''}`;$('#power').style.background=power.ratio<1?'#ffe3dc':'#fff'}
+function renderUI(){renderHud();renderQuests();const decos=S.objs.filter(o=>o.k==='deco').length,score=greenPct+decos*4,st=[6,16,30,48,70].filter(t=>score>=t).length;
+  $('#stars').textContent='★'.repeat(st)+'☆'.repeat(5-st);$('#bells').textContent=`🔔 ${S.bells.toLocaleString()}`;
   if(st===5&&!S.done5){S.done5=true;say('뽀삐','행성이 별 다섯 개야!! 우주에서 제일 예쁜 행성');setTimeout(()=>say('삐걱','삐빅. 행복 수치 최대.'),600)}
   const ks=Object.keys(S.inv).filter(k=>S.inv[k]>0);if(S.held&&!S.inv[S.held])S.held=ks.find(k=>!SELL[k])||null;
-  $('#inv').innerHTML=ks.map(k=>`<div class="slot${SELL[k]?' sell':''}${S.held===k?' on':''}" data-k="${k}" title="${NAMES[k]}">${ICON[k]}<b>${S.inv[k]}</b></div>`).join('')||'<div class="empty">주머니가 비었어요</div>'}
-$('#inv').onclick=e=>{const s=e.target.closest('.slot');if(!s||SELL[s.dataset.k])return;S.held=S.held===s.dataset.k?null:s.dataset.k;renderUI()};
+  $('#inv').innerHTML=ks.map(k=>`<div class="slot${SELL[k]||k==='dust'||k==='compost'?' sell':''}${S.held===k?' on':''}" data-k="${k}" title="${NAMES[k]}">${ICON[k]}<b>${S.inv[k]}</b></div>`).join('')+`<div class="slot${S.held==='pick'?' on':''}" data-k="pick" title="건물 회수">🧰</div>`||'<div class="empty">주머니가 비었어요</div>'}
+$('#inv').onclick=e=>{const s=e.target.closest('.slot');if(!s||SELL[s.dataset.k]||s.dataset.k==='dust'||s.dataset.k==='compost')return;S.held=S.held===s.dataset.k?null:s.dataset.k;renderUI()};
 $('#zin').onclick=()=>cam.tz=clampZoom(cam.tz*1.3);$('#zout').onclick=()=>cam.tz=clampZoom(cam.tz/1.3);$('#zme').onclick=()=>{cam.follow=true;cam.tz=1};
 
 /* ---------- 입력 ---------- */
@@ -381,7 +465,7 @@ function face(p,x,y){const dx=x-p.x,dy=y-p.y,L=Math.hypot(dx,dy)||1;p.dir=[dx/L,
 function tryMove(e,dx,dy,me){let moved=false;if(!blocked(e.x+dx,e.y,me)){e.x+=dx;moved=moved||dx!==0}if(!blocked(e.x,e.y+dy,me)){e.y+=dy;moved=moved||dy!==0}return moved}
 
 /* ---------- 루프 ---------- */
-let last=0,saveT=0,walking=false,fx=[];const DAY=240;  // 하루 240초
+let last=0,saveT=0,walking=false,fx=[],qT=0;const DAY=240;  // 하루 240초
 function update(dt,t){const mv=myVeh();const p=S.p,sp=(mv?VEH[mv.type].sp:170)*dt;walking=false;let d=null;for(const k in keys)if(DIRS[k]){d=DIRS[k];break}
   if(d){p.dir=d;tryMove(p,d[0]*sp,d[1]*sp,p);walking=true}
   else if(walkTo){const dx=walkTo.x-p.x,dy=walkTo.y-p.y,L=Math.hypot(dx,dy);
@@ -389,15 +473,16 @@ function update(dt,t){const mv=myVeh();const p=S.p,sp=(mv?VEH[mv.type].sp:170)*d
     else{face(p,walkTo.x,walkTo.y);const ok=tryMove(p,dx/L*Math.min(sp,L),dy/L*Math.min(sp,L),p);walking=true;if(!ok){walkTo.stuck+=dt;if(walkTo.stuck>.5){walkTo=null;pendingAct=null;toast('길이 막혔어요')}}}}
   if(mv){mv.x=p.x;mv.y=p.y;if(walking)mv.dir=p.dir;
     if(mv.type==='dozer'&&walking){for(const o of S.objs){if(o.k!=='rock'||o.cd>0)continue;if(Math.hypot(o.x-(p.x+p.dir[0]*50),o.y-(p.y+p.dir[1]*50))<o.r+30){o.cd=40;add('ore');fx.push({x:o.x,y:o.y,t:0});toast('🚜 돌을 밀어 치웠어요. 철광석 +1');renderUI();save()}}}}
-  for(const v of S.v){v.t-=dt;if(v.tx===null&&v.t<=0){v.t=2+Math.random()*3;if(Math.random()<.75){const far=Math.hypot(v.x-v.hx,v.y-v.hy)>260;const a=far?Math.atan2(v.hy-v.y,v.hx-v.x)+(Math.random()-.5):Math.random()*7,dd=40+Math.random()*120;const nx=v.x+Math.cos(a)*dd,ny=v.y+Math.sin(a)*dd;if(inPlanet(nx,ny,80)&&!blocked(nx,ny,v)){v.tx=nx;v.ty=ny}}}
+  for(const v of S.v){if(VSTAGE[v.name]>S.stage)continue;v.t-=dt;if(v.tx===null&&v.t<=0){v.t=2+Math.random()*3;if(Math.random()<.75){const far=Math.hypot(v.x-v.hx,v.y-v.hy)>260;const a=far?Math.atan2(v.hy-v.y,v.hx-v.x)+(Math.random()-.5):Math.random()*7,dd=40+Math.random()*120;const nx=v.x+Math.cos(a)*dd,ny=v.y+Math.sin(a)*dd;if(inPlanet(nx,ny,80)&&!blocked(nx,ny,v)){v.tx=nx;v.ty=ny}}}
     if(v.tx!==null){const dx=v.tx-v.x,dy=v.ty-v.y,L=Math.hypot(dx,dy),vs=70*dt;if(L<3){v.tx=null}else{v.face=[dx,dy];if(!tryMove(v,dx/L*vs,dy/L*vs,v))v.tx=null}}}
   let changed=false;for(const o of S.objs){if(o.cd>0)o.cd=Math.max(0,o.cd-dt);
-    if((o.k==='sprout'||o.k==='sapling')&&o.w){o.gr+=dt;if(o.k==='sprout'&&o.gr>=20){o.k='flower';o.r=14;o.e=(Math.random()*5)|0;changed=true}if(o.k==='sapling'&&o.gr>=35){o.k='tree';o.r=18;o.ft=0;o.fruit=false;changed=true}}
+    if((o.k==='sprout'||o.k==='sapling')&&o.hyd>.15){o.gr+=dt;if(o.k==='sprout'&&o.gr>=25){o.k='flower';o.r=12;o.e=(Math.random()*5)|0;changed=true}if(o.k==='sapling'&&o.gr>=45){o.k='tree';o.r=18;o.ft=0;o.fruit=false;changed=true}}
     if(o.k==='tree'&&!o.fruit){o.ft+=dt;if(o.ft>=30)o.fruit=true}}
-  if(changed){paintGreen();renderUI();toast('🌸 무언가 자랐어요!')}
+  tickPlanet(dt);if(wiltFlag){wiltFlag=false;changed=true;toast('🥀 물이 말라 식물이 시들었어요')}else if(changed)toast('🌸 무언가 자랐어요!');if(changed){paintGreen();renderUI()}
+  qT+=dt;if(qT>.5){qT=0;tickQuests();renderQuests();renderHud()}
   bubbles.forEach(b=>b.t-=dt);bubbles=bubbles.filter(b=>b.t>0);
   if(cam.follow){cam.x+=(p.x-cam.x)*Math.min(1,dt*5);cam.y+=(p.y-cam.y)*Math.min(1,dt*5)}cam.z+=(cam.tz-cam.z)*Math.min(1,dt*8);const lim=R+400;cam.x=Math.max(CX-lim,Math.min(CX+lim,cam.x));cam.y=Math.max(CY-lim,Math.min(CY+lim,cam.y));
-  S.clock=((S.clock||0)+dt)%DAY;fx.forEach(f=>f.t+=dt);fx=fx.filter(f=>f.t<.6);
+  {const c=(S.clock||0)+dt;if(c>=DAY){S.day=(S.day||1)+1;toast(`🌅 ${S.day}일째 아침`)}S.clock=c%DAY}fx.forEach(f=>f.t+=dt);fx=fx.filter(f=>f.t<.6);
   saveT+=dt;if(saveT>5){saveT=0;save()}}
 const labelsEl=$('#labels');let labelHtml='';
 function tagAt(txt,x,y,h,cls='',pin=0){const s=toScreen(x,y,h);if(s.x<-100||s.x>VW+100||s.y<-50||s.y>VH+50)return;labelHtml+=`<div class="tag ${cls}" style="left:${s.x}px;top:${s.y-pin}px;--pin:${pin}px">${txt}</div>`}
@@ -406,7 +491,7 @@ function render(t){
   syncObjects();
   syncVehicles();
   personG.visible=S.riding===null;if(S.riding===null){personG.position.copy(W2T(S.p.x,S.p.y,walking?Math.abs(Math.sin(t/110))*3:0));personG.rotation.y=yaw(S.p.dir)-Math.PI/2}
-  for(const v of S.v){const g=villMesh.get(v.name);if(!g)continue;const mv=v.tx!==null;g.position.copy(W2T(v.x,v.y,g.userData.fly?Math.sin(t/400)*4:mv?Math.abs(Math.sin(t/120))*2:0));if(v.face)g.rotation.y=yaw(v.face)-Math.PI/2}
+  for(const v of S.v){const g=villMesh.get(v.name);if(!g)continue;g.visible=VSTAGE[v.name]<=S.stage;if(!g.visible)continue;const mv=v.tx!==null;g.position.copy(W2T(v.x,v.y,g.userData.fly?Math.sin(t/400)*4:mv?Math.abs(Math.sin(t/120))*2:0));if(v.face)g.rotation.y=yaw(v.face)-Math.PI/2}
   world.traverse(m=>{if(m.userData.spin){if(m.userData.spinY)m.rotation.y=t/40;else m.rotation.z=t/3000}if(m.userData.blink)m.material.emissiveIntensity=S.riding!==null&&walking&&Math.sin(t/150)>0?1.2:.2});
   if(hover&&!drag){const o=hover.o||hover.v||S.vehicles[hover.veh];const r=(hover.o?hover.o.r:hover.v?16:VEH[o.type].r)+8;hoverRing.visible=true;hoverRing.position.copy(W2T(o.x,o.y,.8));hoverRing.scale.setScalar(r/32)}else hoverRing.visible=false;
   faceDot.visible=!walking&&S.riding===null;if(faceDot.visible)faceDot.position.copy(W2T(S.p.x+S.p.dir[0]*34,S.p.y+S.p.dir[1]*34,.9));
@@ -416,12 +501,12 @@ function render(t){
   labelHtml='';const sh=S.objs.find(o=>o.k==='shop'),ho=S.objs.find(o=>o.k==='house');
   tagAt('보보의 상점',sh.x,sh.y,130,'',14);tagAt('우리 집',ho.x,ho.y,95,'',14);S.vehicles.forEach((v,i)=>{if(i!==S.riding)tagAt(`${VEH[v.type].name} (E)`,v.x,v.y,62,'',10)});
   if(cam.z<1.1)for(const m of S.mts)tagAt(m.name,m.x,m.y,0,'mt');
-  for(const v of S.v)tagAt(v.name+(v.h?' '+'♥'.repeat(Math.min(v.h,5)):''),v.x,v.y,-6,'');
+  for(const v of S.v)if(VSTAGE[v.name]<=S.stage)tagAt(v.name+(v.h?' '+'♥'.repeat(Math.min(v.h,5)):''),v.x,v.y,-6,'');
   for(const b of bubbles){const e=b.who==='me'?S.p:S.v.find(v=>v.name===b.who);if(!e)continue;const s=toScreen(e.x,e.y,70);labelHtml+=`<div class="bub" style="left:${Math.max(120,Math.min(VW-120,s.x))}px;top:${s.y}px">${b.who==='me'?b.text:b.who+': '+b.text}</div>`}
   labelsEl.innerHTML=labelHtml}
 function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;update(dt,t);render(t);requestAnimationFrame(loop)}
 buildWorld();initActors();renderUI();updateCamera();$('#loading').remove();requestAnimationFrame(loop);
-Object.assign(window,{get S(){return S},cam,fresh,buildWorld,initActors,board,dismount,spawnVehicle,fireTank,renderUI,toWorld,setKeys:k=>{keys=k},resetGame:()=>{localStorage.removeItem('mars-forest-v7');S=fresh();buildWorld();initActors();renderUI()}});
+Object.assign(window,{get S(){return S},get power(){return power},tickQuests,interactTarget,placeAt,cam,fresh,buildWorld,initActors,board,dismount,spawnVehicle,fireTank,renderUI,toWorld,setKeys:k=>{keys=k},resetGame:()=>{localStorage.removeItem('mars-forest-v8');S=fresh();buildWorld();initActors();renderUI()}});
 </script>
 </body>
 </html>
