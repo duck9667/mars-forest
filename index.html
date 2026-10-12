@@ -72,7 +72,7 @@ canvas#c.grabbing{cursor:grabbing}
 .ui.top{gap:4px;padding:calc(8px + env(safe-area-inset-top)) 8px 4px}
 .pill{padding:3px 7px;font-size:11px;box-shadow:2px 2px 0 var(--ink)}
 #bells{font-size:13px;padding:4px 10px;order:-2}#stars{order:-1}#clock{order:0}#cust{order:1;flex-basis:auto}.ui.top #gear{display:block;order:2;margin-left:auto}
-#green,#o2,#water,#power,#carry{font-size:10px;padding:2px 6px;box-shadow:none;border-width:1.5px;order:3}
+#green,#o2,#water,#power{display:none}.ui.top #planet{display:block;order:3;font-size:10px;padding:3px 6px;box-shadow:none;border-width:1.5px;letter-spacing:0}#carry{order:1;font-size:11px}
 #quest{left:8px;right:8px;width:auto;top:calc(82px + env(safe-area-inset-top));font-size:11px;padding:6px 10px;box-shadow:2px 2px 0 var(--ink)}
 #quest .qh{margin-bottom:2px}#quest .qh::after{content:"▾";float:right;color:#999}#quest.min .qh::after{content:"▸"}
 #quest.min .q{display:none}#quest.min .q.cur{display:block;padding:3px 0}#quest.min .q.cur small,#quest.min .q.cur i{display:none}#quest .q.cur b{font-size:12px}
@@ -81,7 +81,7 @@ canvas#c.grabbing{cursor:grabbing}
 #toast{top:calc(52px + env(safe-area-inset-top));font-size:12px;max-width:calc(100vw - 24px);white-space:normal;text-align:center}
 .box{padding:14px 16px;max-height:calc(100vh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto}#items{max-height:50vh}
 }
-#gear{display:none;cursor:pointer}
+#gear,#planet{display:none}#gear{cursor:pointer}
 #settings{position:fixed;inset:0;background:rgba(31,18,13,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:12}
 #settings .btns{flex-direction:column}#settings .btns .btn{padding:11px;font-size:13px}#settings .btn.ghost{background:#fff;color:var(--ink)}
 #settings .kb{font-size:12px;color:#666;line-height:1.7;margin:4px 0 8px}
@@ -103,6 +103,7 @@ canvas#c.grabbing{cursor:grabbing}
   <div class="pill" id="stars">★☆☆☆☆</div>
   <div class="pill" id="bells">🔔 0</div>
   <div class="pill" id="clock">☀️ 낮</div>
+  <div class="pill" id="planet"></div>
   <div class="pill" id="gear">⚙</div>
 </div>
 <div id="settings"><div class="box"><h2>설정</h2><p class="kb">화면을 드래그하면 조이스틱 · 탭하면 다가가서 행동 · 두 손가락으로 확대·축소<br>얼음·돌 옆을 지나가면 자동으로 주워요</p><div class="btns"><button class="btn" id="mute2">🔊 소리</button><button class="btn ghost" id="reset2">처음부터 다시</button><button class="btn o" id="setClose">닫기</button></div></div></div>
@@ -202,7 +203,7 @@ const PROP_SAY={sign:'표지판: 상점 ← · 집 → · 올림푸스 1,200km',
 const COL={ink:0x1f120d,coral:0xe9775c,coralD:0xc2553c,coralL:0xf4a58f,pale:0xfde3d8,white:0xffffff,sand:0xf0894c,road:0xb84c2c,green:0x9fc77a,greenD:0x6f9a52,wood:0x7a4a34,dark:0x2a1a14,ice:0xd8f0ff,leaf:0xa7d48c};
 
 /* ---------- 유틸 ---------- */
-const $=s=>document.querySelector(s);
+const $=s=>document.querySelector(s);const COARSE=matchMedia('(pointer:coarse)').matches;
 function rng(seed){let a=seed>>>0;return()=>{a+=0x6D2B79F5;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
 const inPlanet=(x,y,m=40)=>Math.hypot(x-CX,y-CY)<R-m;
 let uid=1;
@@ -535,7 +536,7 @@ function workAI(v,dt){v.carry=v.carry||[];v.wt=(v.wt||0)+dt;const near=(k,f)=>{l
   else if(j==='harvest'){const c=bld('counter');const drop=()=>{if(goTo(v,c.x+90,c.y,dt,130)){while(v.carry.length&&shelfCount()<S.shelfCap){const k=v.carry.pop();S.shelf[k]=(S.shelf[k]||0)+1}floatTxt(c.x,c.y,'선반 +🌸🍎')}};
     if(v.carry.length<3){const t=near('tree',o=>o.fruit)||near('flower');if(!t){if(v.carry.length)drop();else if(Math.hypot(v.x-v.hx,v.y-v.hy)>60)goTo(v,v.hx,v.hy,dt,130);return}if(goTo(v,t.x,t.y,dt,130)){if(t.k==='tree'){t.fruit=false;t.ft=0;v.carry.push('apple')}else{S.objs.splice(S.objs.indexOf(t),1);const f=S.objs.find(q=>q.id===t.fid);if(f)f.n=Math.max(0,(f.n||0)-1);v.carry.push('flower');paintGreen()}floatTxt(t.x,t.y,'+'+(t.k==='tree'?'🍎':'🌸'))}}else drop()}}
 function proximity(dt){proxT+=dt;if(proxT<.35)return;proxT=0;const p=S.p;
-  if(COARSE&&S.carry.length<carryMax()){const mv=myVeh();if(!mv||mv.type==='truck'){for(const o of S.objs){if((o.k!=='rock'&&o.k!=='ice')||o.cd>0)continue;if(Math.hypot(o.x-p.x,o.y-p.y)<o.r+34){face(p,o.x,o.y);interactTarget({o});break}}}}
+  if(COARSE&&S.carry.length<carryMax()){const mv=myVeh();if(!mv||mv.type==='truck'){const kinds=new Set(S.carry);for(const o of S.objs){if((o.k!=='rock'&&o.k!=='ice')||o.cd>0)continue;const k=o.k==='rock'?(o.e==='gem'?'gem':'ore'):'ice';if(kinds.size&&!kinds.has(k))continue;if(Math.hypot(o.x-p.x,o.y-p.y)<o.r+34){face(p,o.x,o.y);interactTarget({o});break}}}}
   for(const b of S.objs){if(b.k!=='bld')continue;const d=Math.hypot(b.x-p.x,b.y-p.y);if(d>(b.e==='counter'?120:75))continue;
     if(b.e==='melter'&&carried('ice'))feed(b);else if(b.e==='bottler'){if((b.out||0)>0&&S.carry.length<carryMax())grab(b)}else if(b.e==='counter')stock(b)
     else if(b.e==='wrap'&&carried('flower')>=3){takeCarry('flower',3);S.carry.push('bouquet');floatTxt(b.x,b.y,'🌸×3 → 💐');sfx('up');renderUI()}
@@ -582,15 +583,14 @@ $('#close').onclick=()=>shopEl.style.display='none';
 $('#reset').onclick=()=>{if(confirm('행성을 처음부터 다시 시작할까요?')){S=fresh();buildWorld();initActors();cam.x=S.p.x;cam.y=S.p.y;save();renderUI()}};
 $('#mute').textContent=muted?'🔇 소리':'🔊 소리';$('#mute').onclick=()=>{muted=!muted;try{localStorage.setItem('mf-mute',muted?'1':'0')}catch(e){}$('#mute').textContent=muted?'🔇 소리':'🔊 소리'};
 $('#go').onclick=()=>{$('#intro').style.display='none';setTimeout(()=>say('뽀삐','어서 와! 붉은 행성에 온 걸 환영해'),400)};
-function renderHud(){$('#carry').textContent=`🎒 ${S.carry.length}/${carryMax()}`;$('#cust').textContent=`🧑‍🚀 오늘 ${S.today.served}명 · 🔔${S.today.earned}${S.today.lost?' · 💢'+S.today.lost:''}`;$('#carry').style.background=S.carry.length>=carryMax()?'#ffe3dc':'#fff';$('#green').textContent=`🌿 녹지 ${greenPct}%`;$('#o2').textContent=`🌬️ 산소 ${Math.floor(S.o2)}%`;$('#water').textContent=`💧 물 ${Math.floor(S.water)}/${S.waterCap}`;$('#power').textContent=`⚡ ${power.gen}/${power.use}${power.ratio<1?' ⚠️':''}`;$('#power').style.background=power.ratio<1?'#ffe3dc':'#fff'}
+function renderHud(){$('#carry').textContent=`🎒 ${S.carry.length}/${carryMax()}`;$('#cust').textContent=`🧑‍🚀 오늘 ${S.today.served}명 · 🔔${S.today.earned}${S.today.lost?' · 💢'+S.today.lost:''}`;$('#carry').style.background=S.carry.length>=carryMax()?'#ffe3dc':'#fff';$('#green').textContent=`🌿 녹지 ${greenPct}%`;$('#o2').textContent=`🌬️ 산소 ${Math.floor(S.o2)}%`;$('#water').textContent=`💧 물 ${Math.floor(S.water)}/${S.waterCap}`;$('#power').textContent=`⚡ ${power.gen}/${power.use}${power.ratio<1?' ⚠️':''}`;$('#power').style.background=power.ratio<1?'#ffe3dc':'#fff';if(COARSE){$('#planet').textContent=`🌿${greenPct}% 🌬️${Math.floor(S.o2)}% 💧${Math.floor(S.water)}/${S.waterCap} ⚡${power.gen}/${power.use}${power.ratio<1?'⚠️':''}`;$('#planet').style.background=power.ratio<1?'#ffe3dc':'#fff'}}
 function renderUI(){renderHud();renderQuests();const decos=S.objs.filter(o=>o.k==='deco').length,score=greenPct+decos*4,st=[6,16,30,48,70].filter(t=>score>=t).length;
   $('#stars').textContent='★'.repeat(st)+'☆'.repeat(5-st);
   if(st===5&&!S.done5){S.done5=true;say('뽀삐','행성이 별 다섯 개야!! 우주에서 제일 예쁜 행성');setTimeout(()=>say('삐걱','삐빅. 행복 수치 최대.'),600)}
   const ks=Object.keys(S.inv).filter(k=>S.inv[k]>0&&!CARRY.has(k));if(S.held&&!S.inv[S.held])S.held=ks.find(k=>!SELL[k])||null;
   $('#inv').innerHTML=ks.map(k=>`<div class="slot${SELL[k]||k==='dust'||k==='compost'?' sell':''}${S.held===k?' on':''}" data-k="${k}" title="${NAMES[k]}">${ICON[k]}<b>${S.inv[k]}</b></div>`).join('')+`<div class="slot${S.held==='pick'?' on':''}" data-k="pick" title="건물 회수">🧰</div>`||'<div class="empty">주머니가 비었어요</div>'}
 $('#inv').onclick=e=>{const s=e.target.closest('.slot');if(!s||SELL[s.dataset.k]||s.dataset.k==='dust'||s.dataset.k==='compost')return;S.held=S.held===s.dataset.k?null:s.dataset.k;renderUI()};
-const COARSE=matchMedia('(pointer:coarse)').matches;
-{const qe=$('#quest');if(COARSE)qe.classList.add('min');qe.querySelector('.qh').onclick=()=>qe.classList.toggle('min');
+{const qe=$('#quest');if(COARSE){qe.classList.add('min');const top=$('.ui.top');const place=()=>{qe.style.top=(top.getBoundingClientRect().bottom+2)+'px';$('#toast').style.top=(top.getBoundingClientRect().bottom-6)+'px'};new ResizeObserver(place).observe(top);place()}qe.querySelector('.qh').onclick=()=>qe.classList.toggle('min');
  const setEl=$('#settings');$('#gear').onclick=()=>{$('#mute2').textContent=muted?'🔇 소리 꺼짐':'🔊 소리 켜짐';setEl.style.display='flex'};$('#setClose').onclick=()=>setEl.style.display='none';
  $('#mute2').onclick=()=>{$('#mute').click();$('#mute2').textContent=muted?'🔇 소리 꺼짐':'🔊 소리 켜짐'};$('#reset2').onclick=()=>{setEl.style.display='none';$('#reset').click()};
  if(COARSE&&innerHeight>innerWidth){cam.z=cam.tz=.8}}
