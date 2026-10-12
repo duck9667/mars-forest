@@ -2,7 +2,7 @@ name: MarsForest
 options:
   bundleIdPrefix: com.jakekwak
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "16.4"
   xcodeVersion: "15.0"
 targets:
   MarsForest:
