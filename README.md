@@ -11,6 +11,8 @@
 
 ## 화성 물병 가게 (app/)
 
+<p><img src="docs/screenshot-start.png" width="240"> <img src="docs/screenshot-late.png" width="240"></p>
+
 루프: 얼음 줍기 → 제빙기 → 병입기 → 카운터 → 손님 결제 → 벨 → 노란 발판을 밟아 업그레이드·고용·확장.
 
 - **조작**: 화면 아무 데나 드래그하면 플로팅 조이스틱. 버튼 없음. 줍기·넣기·올리기·돈 줍기는 가까이 가면 자동.
