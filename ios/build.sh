@@ -6,13 +6,19 @@
 set -e
 cd "$(dirname "$0")"
 
-# 1) 웹 번들 동기화: 앱용 게임(app/index.html) + three.js (importmap 경로를 번들 기준으로 치환)
+# 1) three.js 확보 (한 번만 내려받아 ../vendor/에 캐시) → 웹 번들 동기화, importmap을 번들 경로로 치환
+THREE_URL=https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js
+mkdir -p ../vendor
+[[ -s ../vendor/three.module.js ]] || curl -fsSL "$THREE_URL" -o ../vendor/three.module.js
 rm -rf App/Web && mkdir -p App/Web/vendor
-sed 's#\.\./vendor/three\.module\.js#./vendor/three.module.js#' ../app/index.html > App/Web/index.html
+sed "s#$THREE_URL#./vendor/three.module.js#" ../app/index.html > App/Web/index.html
 cp ../vendor/three.module.js App/Web/vendor/three.module.js
 
-# 2) 앱 아이콘 복원 (PNG는 base64 텍스트로 저장돼 있음) + 프로젝트 생성
-base64 -D -i App/icon-1024.png.b64 -o App/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+# 2) 앱 아이콘: SVG → 1024px PNG (macOS 내장 qlmanage) + 프로젝트 생성
+ICON=App/Assets.xcassets/AppIcon.appiconset/icon-1024.png
+if [[ ! -s $ICON ]]; then
+  TMP=$(mktemp -d); qlmanage -t -s 1024 -o "$TMP" App/icon.svg >/dev/null 2>&1 && cp "$TMP/icon.svg.png" "$ICON"
+fi
 xcodegen generate >/dev/null
 
 if [[ "$1" == "xcode" ]]; then open MarsForest.xcodeproj; exit 0; fi

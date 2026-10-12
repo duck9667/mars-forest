@@ -7,7 +7,7 @@
 | `app/index.html` | **화성 물병 가게** (앱용, 세로 전용) | iOS 앱 본체. 피자레디 루프만 남긴 새 설계 |
 | `index.html` | 화성의 숲 (웹, 가로·세로 모두) | 녹지화·주민·탈것까지 있는 원본 콜로니 게임 |
 
-둘 다 바닐라 JS + three.js(`vendor/` 동봉, 오프라인 동작), 진행은 localStorage.
+둘 다 바닐라 JS + three.js(CDN importmap. 앱 빌드 때는 `vendor/`에 내려받아 번들에 넣어 오프라인 동작), 진행은 localStorage.
 
 ## 화성 물병 가게 (app/)
 
@@ -21,7 +21,7 @@
 
 ## iOS 앱
 
-`ios/`에 WKWebView 래퍼. `app/index.html`과 three.js를 번들에 넣고 `mars://app/` 커스텀 스킴으로 서빙한다(ES 모듈·localStorage 안정). 세로 고정, 상태바 숨김.
+`ios/`에 WKWebView 래퍼. `app/index.html`과 three.js(빌드 때 내려받음)를 번들에 넣고 `mars://app/` 커스텀 스킴으로 서빙한다(ES 모듈·localStorage 안정). 세로 고정, 상태바 숨김.
 
 ```bash
 cd ios

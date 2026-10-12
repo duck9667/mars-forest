@@ -60,7 +60,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 <div class="modal on" id="intro"><div class="box"><h1>화성 물병 가게</h1><p>붉은 행성 광장에서 물병 가게를 열어요. 얼음을 녹여 물병을 만들고, 여행자에게 팔아 벨을 모으고, 발판을 밟아 가게를 키워요.<br>화면을 드래그하면 걸어요. 나머지는 가까이 가면 알아서 돼요.</p><button class="btn" id="start">가게 열기</button></div></div>
 <div class="modal" id="offline"><div class="box"><h2>부재 중 장사</h2><p id="offtxt"></p><div class="big" id="offamt"></div><button class="btn o" id="offok">받기</button></div></div>
 <div class="modal" id="settings"><div class="box"><h2>설정</h2><p>드래그 = 걷기 · 가까이 가면 자동으로 줍고·넣고·팔아요 · 노란 발판에 서 있으면 벨이 들어가요</p><button class="btn" id="muteBtn">🔊 소리</button><button class="btn g" id="resetBtn">처음부터 다시</button><button class="btn o" id="setClose">닫기</button></div></div>
-<script type="importmap">{"imports":{"three":"../vendor/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
 const $=s=>document.querySelector(s);
