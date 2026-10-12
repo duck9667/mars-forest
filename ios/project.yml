@@ -1,0 +1,29 @@
+name: MarsForest
+options:
+  bundleIdPrefix: com.jakekwak
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+targets:
+  MarsForest:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        excludes: ["Web/**"]
+      - path: App/Web
+        type: folder
+        buildPhase: resources
+    info:
+      path: App/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jakekwak.marsforest
+        PRODUCT_NAME: 화성 물병 가게
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: SXH247VWQA
+        SWIFT_VERSION: "5"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: false
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_USER_SCRIPT_SANDBOXING: false
