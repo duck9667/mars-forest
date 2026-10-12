@@ -32,7 +32,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 .rc{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.96);border:2px solid #2b3a55;border-radius:14px;padding:2px 8px 2px 5px;font-size:12.5px;font-weight:900;color:#1b2740;box-shadow:0 2px 0 rgba(0,0,0,.25)}
 .rc .ic{width:16px;height:16px}
 .rc.full{border-color:#ff5a3c}
-.rc .mx{background:#ff5a3c;color:#fff;border-radius:8px;padding:0 5px;font-size:10px;margin-left:2px;line-height:14px;animation:bounce .5s}
+.rc .mx{background:#ff5a3c;color:#fff;border-radius:8px;padding:0 5px;font-size:11px;margin-left:2px;line-height:14px;animation:bounce .5s}
 .rc.cash{background:#e6ffd9;border-color:#2e7d32;color:#1b5e20}
 .pulse{animation:pulse .32s}
 @keyframes pulse{0%{transform:translate(-50%,-100%) scale(1)}40%{transform:translate(-50%,-100%) scale(1.2)}100%{transform:translate(-50%,-100%) scale(1)}}
@@ -41,12 +41,12 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 .bub::after{content:"";position:absolute;left:50%;top:100%;margin-left:-5px;border:5px solid transparent;border-top-color:#2b3a55}
 .bub.hot{background:#ffe3dc;border-color:#c23b2a}
 .bub .ic{width:15px;height:15px}
-.sg{background:rgba(21,33,58,.9);border:2px solid #4a6190;color:#fff;padding:2px 7px 3px;font-size:10px;font-weight:800;border-radius:9px;display:flex;flex-direction:column;align-items:center;line-height:1.15;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.sg{background:rgba(21,33,58,.9);border:2px solid #4a6190;color:#fff;padding:2px 7px 3px;font-size:11px;font-weight:800;border-radius:9px;display:flex;flex-direction:column;align-items:center;line-height:1.15;box-shadow:0 2px 0 rgba(0,0,0,.35)}
 .sg b{font-weight:900;font-size:12px;color:#ffd45a;display:flex;align-items:center;gap:2px}.sg b .ic{width:13px;height:13px}
 .sg.ok{background:#ffd54a;border-color:#fff2b0;color:#3a2200;box-shadow:0 2px 0 #8a5200,0 0 0 3px rgba(255,213,74,.4)}.sg.ok b{color:#3a2200}
 .sg.gate{flex-direction:row;gap:4px;background:linear-gradient(#55a9ff,#1f63d6);border-color:#a9d6ff;color:#fff;border-radius:10px;padding:3px 10px;font-size:12.5px;box-shadow:0 2px 0 var(--blueD);-webkit-text-stroke:3px var(--blueD);paint-order:stroke fill}.sg.gate b{color:#fff;font-size:12.5px}
 .sg.gate.ok{background:linear-gradient(#ffd45a,#f0a428);border-color:#fff0b8;box-shadow:0 2px 0 var(--goldD),0 0 0 3px rgba(255,213,74,.35);-webkit-text-stroke-color:#8a5200}.sg.gate.ok b{color:#fff}
-.nm{background:rgba(21,33,58,.85);color:#fff;padding:1px 7px;font-size:10.5px;font-weight:800;border-radius:8px;border:1.5px solid var(--line)}
+.nm{background:rgba(21,33,58,.85);color:#fff;padding:1px 7px;font-size:11.5px;font-weight:800;border-radius:8px;border:1.5px solid var(--line)}
 .fl{font-weight:900;font-size:17px;color:#fff;-webkit-text-stroke:4px #1b2740;paint-order:stroke fill;display:flex;align-items:center;gap:2px}
 .fl.gold{color:#ffd45a}
 .fl .ic{width:16px;height:16px}
@@ -70,7 +70,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 .bs{font-size:12.5px;font-weight:800;-webkit-text-stroke:3px var(--blueD);paint-order:stroke fill;display:flex;justify-content:center;align-items:center;gap:3px}
 .bpw{height:7px;background:rgba(10,30,80,.55);border-radius:4px;margin-top:4px;overflow:hidden;border:1px solid rgba(255,255,255,.25)}
 #bp{height:100%;width:0;background:linear-gradient(#ffe58a,#f0a428);border-radius:4px;transition:width .3s}
-#upBtn{pointer-events:auto;cursor:pointer;width:66px;height:66px;border-radius:50%;background:linear-gradient(#ffd45a,#f2a92a 60%,#e08f12);border:3px solid #fff0b8;box-shadow:0 4px 0 var(--goldD),0 8px 14px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:10.5px;font-weight:900;-webkit-text-stroke:3px #8a5200;paint-order:stroke fill;position:relative;flex:none;transition:transform .1s}
+#upBtn{pointer-events:auto;cursor:pointer;touch-action:none;width:66px;height:66px;border-radius:50%;background:linear-gradient(#ffd45a,#f2a92a 60%,#e08f12);border:3px solid #fff0b8;box-shadow:0 4px 0 var(--goldD),0 8px 14px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:11.5px;font-weight:900;-webkit-text-stroke:3px #8a5200;paint-order:stroke fill;position:relative;flex:none;transition:transform .1s}
 #upBtn .ic{width:26px;height:26px;margin-bottom:-2px}
 #upBtn:active{transform:translateY(2px)}
 #upBtn .dot{position:absolute;top:-1px;right:-1px;width:18px;height:18px;border-radius:50%;background:#ff4d4d;border:2px solid #fff;display:none}
@@ -204,7 +204,7 @@ const MELT_CAP=12,BOTTLE_CAP=6;
 const KEY='mars-bottle-v1';
 function fresh(){return{bells:0,sold:0,custs:0,pads:{},padProg:{},p:{x:200,y:450,dir:[0,1],carry:[]},water:0,bottles:0,shelf:0,cash:0,
   meltQ:0,meltT:0,botT:0,spots:ICE_SPOTS.map(()=>0),savedAt:Date.now(),muted:false,spawnT:3,penTip:0,penT:0}}
-function migrate(s){if(!Array.isArray(s.spots))s.spots=[];while(s.spots.length<ICE_SPOTS.length)s.spots.push(0);if((s.pads.drill||0)>=1&&!s.pads.ice2)s.pads.ice2=1;s.penTip=s.penTip||0;s.penT=s.penT||0;if(!s.p.carry)s.p.carry=[];return s}
+function migrate(s){const f=fresh();for(const k in f)if(s[k]===undefined||s[k]===null)s[k]=f[k];for(const k in f.p)if(s.p[k]===undefined)s.p[k]=f.p[k];if(!Array.isArray(s.spots))s.spots=[];while(s.spots.length<ICE_SPOTS.length)s.spots.push(0);if((s.pads.drill||0)>=1&&!s.pads.ice2)s.pads.ice2=1;s.penTip=s.penTip||0;s.penT=s.penT||0;if(!s.p.carry)s.p.carry=[];return s}
 let S=load()||fresh();
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.p&&s.pads)return migrate(s)}catch(e){}return null}
 function save(){S.savedAt=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
@@ -461,8 +461,8 @@ function interact(dt){actT-=dt;if(actT>0)return;const p=S.p,c=p.carry;
 function flashBells(){const b=$('#bells');b.classList.add('flash');setTimeout(()=>b.classList.remove('flash'),150)}
 /* ================= 발판·구매 ================= */
 let padCoinT=0;
-function completePad(pd){const lv=padLv(pd.id);S.pads[pd.id]=lv+1;S.padProg[pd.id]=0;sfx(pd.zone?'unlock':'up');ringFx(pd.x,pd.y);toast(`✨ ${pd.n} ${pd.max>1?'Lv.'+(lv+1):'완료'}`);onPad(pd.id);save();renderHud();if($('#sheet').classList.contains('on'))renderSheet()}
-function tickPads(dt){const p=S.p;padCoinT-=dt;for(const pd of PADS){const lv=padLv(pd.id);if(lv>=pd.max||!pd.req(S))continue;if(Math.hypot(p.x-pd.x,p.y-pd.y)>30)continue;
+function completePad(pd){const lv=padLv(pd.id);S.pads[pd.id]=lv+1;S.padProg[pd.id]=0;if(pd.id==='drill'&&blocked(S.p.x,S.p.y))S.p.y=STN.drill.y+STN.drill.h/2+9;sfx(pd.zone?'unlock':'up');ringFx(pd.x,pd.y);toast(`✨ ${pd.n} ${pd.max>1?'Lv.'+(lv+1):'완료'}`);onPad(pd.id);save();renderHud();if($('#sheet').classList.contains('on'))renderSheet()}
+function tickPads(dt){if(walking)return;const p=S.p;padCoinT-=dt;for(const pd of PADS){const lv=padLv(pd.id);if(lv>=pd.max||!pd.req(S))continue;if(Math.hypot(p.x-pd.x,p.y-pd.y)>30)continue;
   const cost=pd.cost(lv);let prog=S.padProg[pd.id]||0;if(prog>=cost)continue;const take=Math.min(S.bells,cost-prog,Math.max(3,cost*dt*1.1));if(take<=0)continue;
   S.bells-=take;prog+=take;S.padProg[pd.id]=prog;if(padCoinT<=0){padCoinT=.08;fly('coin',{x:p.x,y:p.y,h:50},{x:pd.x,y:pd.y,h:4},.25);sfx('pad')}
   if(prog>=cost)completePad(pd)}}
@@ -508,7 +508,7 @@ function tickBots(dt){for(const b of bots){b.moving=false;if(b.k!=='runner')cont
   if(b.st==='toBottler'){if(moveTo(b,STN.bottler.x-58,STN.bottler.y+8,sp)<2){b.st='load';b.t=0;b.dir=[1,0]}}
   else if(b.st==='load'){b.t+=dt;if(S.bottles>0&&b.carry<4&&b.t>.25){b.t=0;S.bottles--;b.carry++;const s=STN.bottler;fly('bottle',{x:s.x-32,y:s.y+24,h:10},{x:b.x+10,y:b.y+8,h:24},.25)}if(b.carry>=4||(b.carry>0&&S.bottles===0&&b.t>1.5))b.st='toCounter'}
   else if(b.st==='toCounter'){if(moveTo(b,STN.counter.x-30,STN.counter.y-40,sp)<2){b.st='unload';b.t=0;b.dir=[0,1]}}
-  else if(b.st==='unload'){b.t+=dt;if(b.carry>0&&S.shelf<shelfCap()&&b.t>.2){b.t=0;b.carry--;const i=S.shelf;S.shelf++;fly('bottle',{x:b.x,y:b.y+12,h:24},shelfPos(i),.25,()=>sfx('put'))}if(b.carry===0||(S.shelf>=shelfCap()&&b.t>1.2))b.st='toBottler'}}}
+  else if(b.st==='unload'){b.t+=dt;if(b.carry>0&&S.shelf<shelfCap()&&b.t>.2){b.t=0;b.carry--;const i=S.shelf;S.shelf++;fly('bottle',{x:b.x,y:b.y+12,h:24},shelfPos(i),.25,()=>sfx('put'))}if(b.carry===0)b.st='toBottler';else if(S.shelf>=shelfCap())b.t=0}}}
 function tickHoppers(dt){for(const h of hoppers){h.moving=false;if(h.wait>0){h.wait-=dt;if(h.wait<=0){h.tx=PEN.x0+20+Math.random()*(PEN.x1-PEN.x0-40);h.ty=PEN.y0+44+Math.random()*(PEN.y1-PEN.y0-66)}continue}
   const d=moveTo(h,h.tx,h.ty,58*dt);h.hop+=dt*7.5;if(d<2){h.wait=1+Math.random()*3;h.hop=0}}}
 /* ================= 부재 중 수익 ================= */
@@ -520,13 +520,13 @@ $('#offok').onclick=()=>{$('#offline').classList.remove('on');sfx('coin')};
 let hintTarget=null;
 function nextPad(){let best=null;for(const pd of PADS){const lv=padLv(pd.id);if(lv>=pd.max||!pd.req(S))continue;const cost=pd.cost(lv),prog=S.padProg[pd.id]||0;if(!best||cost-prog<best.rem)best={pd,lv,cost,prog,rem:cost-prog}}return best}
 function hint(){const c=S.p.carry,s=S;let t='',tg=null;const ice=c.length&&c[0]==='ice',bot=c.length&&c[0]==='bottle';
-  if(ice&&c.length>=Math.min(carryMax(),3)){t='제빙기에 얼음을 넣어요';tg=STN.melter}
+  if(ice&&(c.length>=Math.min(carryMax(),3)||s.bottles>0||!s.spots.some((v,i)=>v<=0&&spotOpen(i)))){t='제빙기에 얼음을 넣어요';tg=STN.melter}
   else if(bot&&s.shelf<shelfCap()){t='카운터에 물병을 올려요';tg={x:STN.counter.x,y:STN.counter.y-30}}
-  else if(bot&&!padLv('cashier')){t='선반이 꽉 찼어요 · 계산대 옆에 서서 팔아요';tg=STN.register}
+  else if(bot){if(padLv('cashier')){t='선반이 꽉 찼어요 · 손님이 사가면 올려요';tg={x:STN.counter.x,y:STN.counter.y-30}}else{t='선반이 꽉 찼어요 · 계산대 옆에 서서 팔아요';tg=STN.register}}
   else if(s.cash>0&&(!padLv('cashier')||s.cash>bottlePrice()*4)){t='계산대의 벨을 주워요';tg=STN.register}
   else if(s.bottles>0&&s.shelf<shelfCap()&&!padLv('runner')){t='병입기에서 물병을 받아요';tg=STN.bottler}
-  else if(s.shelf>0&&custs.some(x=>x.st==='queue'&&x.qi===0)&&!padLv('cashier')){t='계산대 옆에 서면 팔려요';tg=STN.register}
-  else if(s.penTip>0&&s.sold>5){t='토끼 우리에 떨어진 벨을 주워요';tg=PEN_TIP}
+  else if(s.shelf>0&&custs.some(x=>x.st==='queue'&&x.qi===0&&x.want<=s.shelf)&&!padLv('cashier')){t='계산대 옆에 서면 팔려요';tg=STN.register}
+  else if(s.penTip>=bottlePrice()*4){t='토끼 우리에 떨어진 벨을 주워요';tg=PEN_TIP}
   else{const np=nextPad();
     if(np&&s.sold>=1&&s.bells>=np.rem*.5){t=np.pd.zone?`게이트 발판에 서서 구역을 열어요: ${np.pd.n}`:`노란 발판에 서서: ${np.pd.n}`;tg=np.pd}
     else if(!padLv('drill')&&(s.meltQ===0||ice)){t=ice?'얼음을 더 주워요':'얼음을 주워요 (가까이 가면 자동)';const i=s.spots.findIndex((v,i)=>v<=0&&spotOpen(i));tg=i>=0?{x:ICE_SPOTS[i][0],y:ICE_SPOTS[i][1]}:null}
@@ -568,7 +568,7 @@ function renderSheet(){const rows=$('#rows');const order=PADS.map(pd=>{const lv=
   if(rows._html!==html){rows.innerHTML=html;rows._html=html;rows.querySelectorAll('.buy[data-id]').forEach(b=>b.onclick=()=>{buyPad(b.dataset.id)})}}
 const openSheet=()=>{renderSheet();$('#sheet').classList.add('on');$('#scrim').classList.add('on');joy=null;joyVec=null;joyEl.classList.remove('on')};
 const closeSheet=()=>{$('#sheet').classList.remove('on');$('#scrim').classList.remove('on')};
-$('#upBtn').onclick=openSheet;$('#banner').onclick=openSheet;$('#scrim').onclick=closeSheet;$('#sheetClose').onclick=closeSheet;
+for(const id of ['#upBtn','#banner']){const el=$(id);el.onclick=null;el.addEventListener('pointerup',e=>{e.preventDefault();openSheet()})} // click은 조이스틱 손가락이 눌린 채 두 번째 손가락으로 누르면 안 올 수 있다$('#scrim').onclick=closeSheet;$('#sheetClose').onclick=closeSheet;
 /* ================= 라벨 (키 기반 DOM 재사용) ================= */
 const labelsEl=$('#labels'),labMap=new Map();let labUsed=new Set();
 function lab(key,cls,html,x,y,h,pulse,clampX){const s=toScreen(x,y,h);if(s.x<-140||s.x>VW+140||s.y<-80||s.y>VH+80)return;let e=labMap.get(key);
@@ -620,9 +620,9 @@ function render(t){const dt=1/60;const bob=Math.sin(t/420)*2.5;
   lab('rc-shelf','rc'+(S.shelf>=shelfCap()?' full':''),cnt('bottle',S.shelf,shelfCap()),STN.counter.x-40,STN.counter.y,122+bob,true);
   if(S.cash>0)lab('rc-cash','rc cash',`<i class="ic cash"></i>${S.cash}`,STN.register.x+36,STN.register.y+4,20+cashHeight()+bob,true);
   if(S.penTip>0&&padLv('pen'))lab('rc-pen','rc cash',`<i class="ic bell"></i>${S.penTip}`,PEN_TIP.x,PEN_TIP.y,26+bob,true);
-  for(const k in ZONES){const z=ZONES[k];if(z.pad&&zoneOpen(k)){const a=zoneG[k].arch.position;lab('zn-'+k,'nm',z.name,a.x+200,a.z+520,52)}}
+  for(const k in ZONES){const z=ZONES[k];if(z.pad&&zoneOpen(k)){lab('zn-'+k,'nm',z.name,(z.x0+z.x1)/2,z.y0-4,26)}}
   for(const [id,g] of padG){if(!g.visible)continue;const pd=g.userData.pd,lv=padLv(id),cost=pd.cost(lv),prog=S.padProg[id]||0,ok=S.bells>=cost-prog;
-    if(pd.zone){const a=zoneG[pd.zone].arch.position;lab('pad-'+id,'sg gate'+(ok?' ok':''),`<i class="ic lock"></i>${pd.sn} <b><i class="ic bell"></i>${Math.ceil(cost-prog)}</b>`,a.x+200,a.z+520,58,false,true)}
+    if(pd.zone){const a=zoneG[pd.zone].arch.position;lab('pad-'+id,'sg gate'+(ok?' ok':''),`<i class="ic lock"></i>${pd.sn} <b><i class="ic bell"></i>${Math.ceil(cost-prog)}</b>`,a.x+200,a.z+520,24,false,true)}
     else lab('pad-'+id,'sg'+(ok?' ok':''),`<span>${pd.sn}</span><b><i class="ic bell"></i>${Math.ceil(cost-prog)}</b>`,pd.x,pd.y+14,4)}
   for(const c of custs){if(c.st==='queue'||c.st==='walkin')lab('cu'+c.id,'bub'+(c.wait>25?' hot':''),`<i class="ic bottle"></i>×${c.want}`,c.x,c.y,72);else if(c.jump!==undefined)lab('cu'+c.id,'bub','<i class="ic heart"></i>',c.x,c.y,80)}
   for(const b of bots)lab('bt'+bots.indexOf(b),'nm',b.k==='cashier'?'삐걱':'뽀삐',b.x,b.y,72);
@@ -636,6 +636,7 @@ function restoreBots(){for(const g of botG)world.remove(g);botG.length=0;bots=[]
   stnG.drill.visible=padLv('drill')>0;domeG.visible=padLv('dome')>0;penG.visible=padLv('pen')>0;if(padLv('pen'))spawnHoppers();else{for(const h of hoppers)world.remove(h.g);hoppers.length=0}
   for(const k in ZONES){const zg=zoneG[k];const open=zoneOpen(k);zg.g.visible=open;zg.g.scale.setScalar(1);if(zg.arch)zg.arch.userData.lock.visible=!open}
   ICE_SPOTS.forEach((_,i)=>{iceG[i].scale.setScalar(S.spots[i]>0?.001:1);iceG[i].visible=spotOpen(i)})}
+if(blocked(S.p.x,S.p.y)){const f=fresh().p;S.p.x=f.x;S.p.y=f.y;S.p.dir=[0,1]} // 옛 배치의 저장 위치가 새 건물 안이면 갇히므로 시작 지점으로
 restoreBots();renderHud();hint();cam.y=S.p.y;updateCamera();$('#loading').remove();
 $('#start').onclick=()=>{$('#intro').classList.remove('on');sfx('up');offlineEarn()};
 if(S.sold>0){$('#intro h1').textContent='다시 오셨군요';$('#intro p').innerHTML=`지금까지 물병 ${S.sold}개 판매 · <i class="ic bell"></i> ${Math.floor(S.bells)}`;$('#start').textContent='이어서 하기'}
@@ -643,7 +644,7 @@ $('#gear').onclick=()=>{$('#muteBtn').textContent=S.muted?'🔇 소리 꺼짐':'
 $('#setClose').onclick=()=>$('#settings').classList.remove('on');
 $('#muteBtn').onclick=()=>{S.muted=!S.muted;$('#muteBtn').textContent=S.muted?'🔇 소리 꺼짐':'🔊 소리 켜짐';save()};
 let resetArm=0;$('#resetBtn').onclick=()=>{const b=$('#resetBtn');if(Date.now()-resetArm>4000){resetArm=Date.now();b.textContent='정말 처음부터? 다시 누르면 지워요';toast('다시 누르면 가게가 지워져요');setTimeout(()=>{b.textContent='처음부터 다시';resetArm=0},4000);return}b.textContent='처음부터 다시';resetArm=0;{localStorage.removeItem(KEY);S=fresh();for(const [id,g] of custG)world.remove(g);custG.clear();custs=[];seats.forEach(s=>{s.used=0;s.tip=0;s.mesh.visible=false});restoreBots();$('#settings').classList.remove('on');renderHud();save()}};
-addEventListener('visibilitychange',()=>{if(document.hidden)save()});addEventListener('pagehide',save);
+addEventListener('visibilitychange',()=>{if(document.hidden)save();else if(!$('#intro').classList.contains('on'))offlineEarn()});addEventListener('pagehide',save);
 Object.defineProperties(window,{S:{get:()=>S},custs:{get:()=>custs},bots:{get:()=>bots},joyVec:{get:()=>joyVec,set:v=>{joyVec=v}}});
 window.dbg={onPad,restoreBots,save,buyPad,unlockZone,openSheet,renderer};window.PADS=PADS;window.STN=STN;window.ICE_SPOTS=ICE_SPOTS;window.ZONES=ZONES;window.padLv=padLv;window.carryMax=carryMax;window.spotOpen=spotOpen;
 requestAnimationFrame(loop);
