@@ -642,7 +642,7 @@ if(S.sold>0){$('#intro h1').textContent='다시 오셨군요';$('#intro p').inne
 $('#gear').onclick=()=>{$('#muteBtn').textContent=S.muted?'🔇 소리 꺼짐':'🔊 소리 켜짐';$('#settings').classList.add('on')};
 $('#setClose').onclick=()=>$('#settings').classList.remove('on');
 $('#muteBtn').onclick=()=>{S.muted=!S.muted;$('#muteBtn').textContent=S.muted?'🔇 소리 꺼짐':'🔊 소리 켜짐';save()};
-$('#resetBtn').onclick=()=>{if(confirm('가게를 처음부터 다시 시작할까요?')){localStorage.removeItem(KEY);S=fresh();for(const [id,g] of custG)world.remove(g);custG.clear();custs=[];seats.forEach(s=>{s.used=0;s.tip=0;s.mesh.visible=false});restoreBots();$('#settings').classList.remove('on');renderHud();save()}};
+let resetArm=0;$('#resetBtn').onclick=()=>{const b=$('#resetBtn');if(Date.now()-resetArm>4000){resetArm=Date.now();b.textContent='정말 처음부터? 다시 누르면 지워요';toast('다시 누르면 가게가 지워져요');setTimeout(()=>{b.textContent='처음부터 다시';resetArm=0},4000);return}b.textContent='처음부터 다시';resetArm=0;{localStorage.removeItem(KEY);S=fresh();for(const [id,g] of custG)world.remove(g);custG.clear();custs=[];seats.forEach(s=>{s.used=0;s.tip=0;s.mesh.visible=false});restoreBots();$('#settings').classList.remove('on');renderHud();save()}};
 addEventListener('visibilitychange',()=>{if(document.hidden)save()});addEventListener('pagehide',save);
 Object.defineProperties(window,{S:{get:()=>S},custs:{get:()=>custs},bots:{get:()=>bots},joyVec:{get:()=>joyVec,set:v=>{joyVec=v}}});
 window.dbg={onPad,restoreBots,save,buyPad,unlockZone,openSheet,renderer};window.PADS=PADS;window.STN=STN;window.ICE_SPOTS=ICE_SPOTS;window.ZONES=ZONES;window.padLv=padLv;window.carryMax=carryMax;window.spotOpen=spotOpen;
