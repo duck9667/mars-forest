@@ -1,3 +1,4 @@
 build/
 *.xcodeproj
 App/Web/
+App/Assets.xcassets/AppIcon.appiconset/icon-1024.png

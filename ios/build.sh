@@ -11,7 +11,8 @@ rm -rf App/Web && mkdir -p App/Web/vendor
 sed 's#\.\./vendor/three\.module\.js#./vendor/three.module.js#' ../app/index.html > App/Web/index.html
 cp ../vendor/three.module.js App/Web/vendor/three.module.js
 
-# 2) 프로젝트 생성
+# 2) 앱 아이콘 복원 (PNG는 base64 텍스트로 저장돼 있음) + 프로젝트 생성
+base64 -D -i App/icon-1024.png.b64 -o App/Assets.xcassets/AppIcon.appiconset/icon-1024.png
 xcodegen generate >/dev/null
 
 if [[ "$1" == "xcode" ]]; then open MarsForest.xcodeproj; exit 0; fi
