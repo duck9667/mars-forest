@@ -19,7 +19,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jakekwak.marsforest
-        PRODUCT_NAME: 화성의 숲
+        PRODUCT_NAME: 화성 물병 가게
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: SXH247VWQA
         SWIFT_VERSION: "5"

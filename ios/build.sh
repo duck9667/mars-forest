@@ -6,9 +6,9 @@
 set -e
 cd "$(dirname "$0")"
 
-# 1) 웹 번들 동기화: 게임 본체 + three.js
+# 1) 웹 번들 동기화: 앱용 게임(app/index.html) + three.js (importmap 경로를 번들 기준으로 치환)
 rm -rf App/Web && mkdir -p App/Web/vendor
-cp ../index.html App/Web/index.html
+sed 's#\.\./vendor/three\.module\.js#./vendor/three.module.js#' ../app/index.html > App/Web/index.html
 cp ../vendor/three.module.js App/Web/vendor/three.module.js
 
 # 2) 프로젝트 생성
@@ -21,7 +21,7 @@ mkdir -p build
 xcodebuild -project MarsForest.xcodeproj -scheme MarsForest -configuration Debug \
   -destination 'generic/platform=iOS Simulator' -derivedDataPath build/dd \
   CODE_SIGNING_ALLOWED=NO -quiet build
-APP=build/dd/Build/Products/Debug-iphonesimulator/화성의\ 숲.app
+APP=build/dd/Build/Products/Debug-iphonesimulator/화성\ 물병\ 가게.app
 echo "✓ $APP"
 
 # 4) 켜져 있는 시뮬레이터에 설치·실행 (없으면 건너뜀)
