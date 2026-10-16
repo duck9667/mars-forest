@@ -695,8 +695,9 @@ for(const pd of PADS){const g=new THREE.Group();g.position.copy(W2T(pd.x,pd.y));
   const fill=mesh(G.cyl(24,24,1.6,24),COL.navy,0,3,0);fill.castShadow=false;fill.scale.setScalar(.001);g.add(fill);
   g.userData={pd,ring,fill,inner};world.add(g);padG.set(pd.id,g)}
 /* ================= 얼음 (결정 덩어리) ================= */
-const iceG=ICE_SPOTS.map(([x,y])=>{const g=new THREE.Group();const m=mesh(G.oct(12),COL.ice,0,11,0,{roughness:.2,emissive:0x8fd0ff,emissiveIntensity:.35});m.scale.y=1.6;g.add(m);
-  const s1=mesh(G.oct(5.5),COL.ice,10,5,6,{roughness:.2,emissive:0x8fd0ff,emissiveIntensity:.35});s1.scale.y=1.3;g.add(s1);const s2=mesh(G.oct(4),COL.ice,-9,4,8,{roughness:.2,emissive:0x8fd0ff,emissiveIntensity:.35});g.add(s2);g.add(disc(13));
+// 얼음 더미: 등짐과 같은 얼음 판 3장이 어긋나게 쌓인 것 + 작은 조각 (주우면 판이 날아와 등에 쌓이는 게 이어져 보인다)
+const iceG=ICE_SPOTS.map(([x,y])=>{const g=new THREE.Group();const m=new THREE.Group();[[0,0,0,0],[1.5,ITEM_H.ice,-1,.25],[-1,ITEM_H.ice*2,1.5,-.2]].forEach(([dx,dy,dz,ry])=>{const sl=new THREE.Mesh(slabGeo,iceMat);sl.position.set(dx,1.8+dy,dz);sl.rotation.y=ry;sl.castShadow=true;sl.receiveShadow=true;m.add(sl)});g.add(m);
+  const s2=mesh(G.oct(3.5),COL.ice,-10,3,7,{roughness:.2,emissive:0x8fd0ff,emissiveIntensity:.35});g.add(s2);g.add(disc(12));
   g.position.copy(W2T(x,y));g.rotation.y=rnd()*3;g.userData={m,s:1};world.add(g);return g});
 /* ================= 날아가는 아이템·동전 (아크 트윈), 팝, 링, 먼지, 김, 회오리 ================= */
 const flying=[];
@@ -957,7 +958,7 @@ function render(t){const rdt=Math.min(.05,(t-lastR)/1000||0);lastR=t;const dt=1/
     landerG.userData.beacon.material.emissiveIntensity=.6+Math.sin(t/300)*.5;if(landerG.userData.flag)landerG.userData.flag.rotation.y=Math.sin(t/260)*.35;if(dishG)dishG.rotation.y=t/1800;
     const pt=penG.userData.tip;syncStack(pt,Array(S.penTip>0?Math.min(4,Math.ceil(S.penTip/15)):0).fill('coin'),'p'+Math.min(4,Math.ceil(S.penTip/15)),i=>[(i%2)*9-4.5,i>1?2:0,Math.floor(i/2)*9-4.5])}
   // 얼음
-  iceG.forEach((g,i)=>{g.visible=spotOpen(i);g.userData.m.rotation.y=t/900+i;g.userData.m.position.y=11+Math.sin(t/500+i)*1.2});
+  iceG.forEach((g,i)=>{g.visible=spotOpen(i);g.userData.m.position.y=Math.sin(t/500+i)*.6});
   // 발판
   for(const [id,g] of padG){const {pd,ring,fill}=g.userData;const lv=padLv(id),vis=pd.req(S)&&lv<pd.max;g.visible=vis;if(!vis)continue;const cost=pd.cost(lv),prog=S.padProg[id]||0;const fs=Math.max(.001,Math.sqrt(prog/cost));fill.scale.set(fs,1,fs);const ok=S.bells>=cost-prog;ring.material=mat(ok?COL.gold:COL.cream,ok?{emissive:0xffd34d,emissiveIntensity:.3}:{});ring.scale.setScalar(ok?1+Math.sin(t/250)*.04:1)}
   // 힌트 화살표
@@ -970,13 +971,11 @@ function render(t){const rdt=Math.min(.05,(t-lastR)/1000||0);lastR=t;const dt=1/
   lab('rc-shelf','rc'+(S.shelf>=shelfCap()?' full':''),cnt('bottle',S.shelf,shelfCap()),STN.counter.x-40,STN.counter.y,122+bob,true);
   if(S.cash>0)lab('rc-cash','rc cash',`<i class="ic cash"></i>${S.cash}`,STN.register.x+36,STN.register.y+4,20+cashHeight()+bob,true);
   if(S.penTip>0&&padLv('pen'))lab('rc-pen','rc cash',`<i class="ic bell"></i>${S.penTip}`,PEN_TIP.x,PEN_TIP.y,26+bob,true);
-  for(const k in ZONES){const z=ZONES[k];if(z.pad&&zoneOpen(k)&&toScreen((z.x0+z.x1)/2,z.y0-4,26).y>VH*.17)lab('zn-'+k,'nm',z.name,(z.x0+z.x1)/2,z.y0-4,26)}
   for(const [id,g] of padG){if(!g.visible)continue;const pd=g.userData.pd,lv=padLv(id),cost=pd.cost(lv),prog=S.padProg[id]||0,ok=S.bells>=cost-prog;
-    if(pd.zone){const a=zoneG[pd.zone].arch.position;lab('pad-'+id,'sg gate'+(ok?' ok':''),`<i class="ic lock"></i>${pd.sn} <b><i class="ic bell"></i>${Math.ceil(cost-prog)}</b>`,a.x+200,a.z+520,24,false,true)}
-    else lab('pad-'+id,'sg'+(ok?' ok':''),`<span>${pd.sn}</span><b><i class="ic bell"></i>${Math.ceil(cost-prog)}</b>`,pd.x,pd.y+14,4)}
+    if(pd.zone){const a=zoneG[pd.zone].arch.position;lab('pad-'+id,'sg gate'+(ok?' ok':''),`<i class="ic lock"></i><span class="em">${pd.ic}</span><b><i class="ic bell"></i>${Math.ceil(cost-prog)}</b>`,a.x+200,a.z+520,24,false,true)}
+    else lab('pad-'+id,'sg'+(ok?' ok':''),`<span class="em">${pd.ic}</span><b><i class="ic bell"></i>${Math.ceil(cost-prog)}</b>`,pd.x,pd.y+14,4)}
   for(const c of custs){const hb=c.vip?92:74;if(c.st==='queue'||c.st==='walkin')lab('cu'+c.id,'bub'+(c.wait>25?' hot':''),(c.wait>25?'<i class="ic bang"></i>':'')+`<i class="ic bottle"></i>×${c.want}`,c.x,c.y,hb);else if(c.jump!==undefined)lab('cu'+c.id,'bub love','<i class="ic heart"></i>',c.x,c.y,hb+12,true);else if(c.st==='sit')lab('cu'+c.id,'bub zz','<i class="ic zz"></i>',c.x,c.y,66);
     if(c.vip&&c.st!=='sit')lab('vip'+c.id,'nm vip','<i class="ic crown"></i>VIP',c.x,c.y,66)}
-  for(const b of bots)lab('bt'+bots.indexOf(b),'nm',b.k==='cashier'?'삐걱':'뽀삐',b.x,b.y,72);
   for(const f of floats)lab('fl'+f.id,'fl'+(f.gold?' gold':'')+(f.big?' big':''),f.txt,f.x,f.y,40+f.t*50);
   labFlush();tickDust(1/60,t);tickDevils(rdt,t);tickSteam(rdt);tickFx(rdt);
   renderer.render(scene,camera)}
