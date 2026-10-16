@@ -647,7 +647,7 @@ function bPerson(suit=0xf7f3ec,acc=COL.orange){const g=new THREE.Group();g.rotat
   g.add(mesh(G.box(14,14,7),DK,0,28,-12));[-4,4].forEach(x=>g.add(mesh(G.cyl(3,3,14,8),COL.white,x,28,-15)));
   g.add(mesh(G.sph(15,14),suit,0,49,0));const vis=mesh(G.sph(11.5,12),COL.navy,0,50,6.5);vis.scale.set(1.05,.9,.7);g.add(vis);const hl=mesh(G.sph(3,8),COL.white,-4,54,14.5);hl.scale.set(1.3,.6,.3);hl.castShadow=false;g.add(hl);
   g.add(mesh(G.tor(15.3,1.6),acc,0,41,0).rotateX(Math.PI/2));g.add(mesh(G.cyl(.8,.8,9,5),DK,11,61,-4));const tip=mesh(G.sph(2,6),acc,11,66,-4,{emissive:0xff6b5a,emissiveIntensity:.8});tip.userData.noOl=1;g.add(tip);
-  const carry=new THREE.Group();carry.position.set(0,66,0);carry.userData.dyn=1;g.add(carry);g.userData.anim={lL,lR,aL,aR,body,by:25,carry,ph:Math.random()*7};return finishChar(g,[lL,lR,aL,aR],1.8)}
+  const carry=new THREE.Group();carry.position.set(0,30,-17);carry.rotation.x=-.1;carry.userData.dyn=1;g.add(carry);/* 등 뒤에 지는 짐 (피자레디식) */g.userData.anim={lL,lR,aL,aR,body,by:25,carry,ph:Math.random()*7};return finishChar(g,[lL,lR,aL,aR],1.8)}
 const CUST_COLS=[0x6fb1e0,0xf2c14e,0x9bd36b,0xe88cc0,0xc49bf0,0xff8c69,0x5ed6c8];
 function bTraveler(col,acc=0,vip=false){const g=new THREE.Group();g.rotation.order='YXZ';const DK=COL.dark;if(vip)col=COL.gold;
   const lL=limbOf(g,-5,11,0,4.5,7,DK),lR=limbOf(g,5,11,0,4.5,7,DK);
@@ -753,7 +753,7 @@ let comboT=null;function showCombo(n){const e=$('#combo');e.textContent=`콤보 
 /* ================= 플레이어 상호작용 (근접 자동) ================= */
 let actT=0,pend=0; // pend: 손으로 날아오는 중인 아이템 수
 function nearStn(k,r){const s=STN[k],p=S.p;return Math.abs(p.x-s.x)<s.w/2+r&&Math.abs(p.y-s.y)<s.h/2+r}
-function stackTop(list){return 66+list.reduce((a,k)=>a+ITEM_H[k],0)}
+function stackTop(list){return 30+list.reduce((a,k)=>a+ITEM_H[k],0)}
 const shelfPos=i=>({x:STN.counter.x-84+(i%12)*15,y:STN.counter.y-8+Math.floor(i/12)*14,h:36});
 function interact(dt){actT-=dt;if(actT>0)return;const p=S.p,c=p.carry;
   if(c.length+pend<carryMax()&&!(c.length&&c[0]!=='ice')){for(let i=0;i<ICE_SPOTS.length;i++){if(S.spots[i]>0||!spotOpen(i))continue;const [x,y]=ICE_SPOTS[i];if(Math.hypot(p.x-x,p.y-y)<36){S.spots[i]=14+Math.random()*6;const ig=iceG[i];ig.userData.s=0;ig.scale.setScalar(.001);pend++;puff(x,y);
