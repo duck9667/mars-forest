@@ -1,0 +1,11 @@
+{
+  "name": "mars-forest-qa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node checks.mjs && node checks2.mjs",
+    "bot": "node bot.mjs out/bot.png 150 8",
+    "shots": "node shot.mjs out/start.png setups/start.js 2500 && node shot.mjs out/mid.png setups/mid.js 2500 && node shot.mjs out/dome.png setups/dome.js 2500"
+  },
+  "devDependencies": { "playwright": "1.56.1" }
+}
