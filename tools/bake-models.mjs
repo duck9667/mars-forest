@@ -8,11 +8,11 @@
 import fs from 'node:fs';import path from 'node:path';import zlib from 'node:zlib';import {fileURLToPath} from 'node:url';
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const SRC=path.join(ROOT,'assets','models');
-// 구울 모델 목록. parts:true 면 메시 노드마다 "이름.노드명"으로 따로 굽고 피벗(노드의 루트 기준 위치)을 함께 적는다 (팔다리 애니메이션용).
+// 구울 모델 목록. q:[x,y,z,w] 면 그 쿼터니언으로 먼저 돌린다. parts:true 면 메시 노드마다 "이름.노드명"으로 따로 굽고 피벗(노드의 루트 기준 위치)을 함께 적는다 (팔다리 애니메이션용).
 const LIST=[
   {name:'coin',file:'coin.glb'},
   {name:'trees',file:'grass-trees.glb'},{name:'treesTall',file:'grass-trees-tall.glb'},{name:'fountain',file:'pavement-fountain.glb'},
-  {name:'barrel',file:'barrel.glb'},
+  {name:'barrel',file:'barrel.glb',q:[0,0,0.7071068,0.7071068]}, // 누워 있는 통을 세운다 (z축 +90°)
   {name:'rockA',file:'formation-rock.glb'},{name:'rockB',file:'formation-large-rock.glb'},{name:'rockC',file:'formation-stone.glb'},{name:'rockD',file:'formation-large-stone.glb'},
 ];
 /* ---------- PNG (8bit RGB/RGBA, 비인터레이스) ---------- */
@@ -50,6 +50,7 @@ const palette=[],palIdx=new Map();const colorIndex=c=>{if(palIdx.has(c))return p
 const chunks=[];let offset=0;const index={};const stats=[];
 for(const m of LIST){const g=glb(path.join(SRC,m.file));const sets=triangles(g,!!m.parts);
   for(const key in sets){const {tris,piv}=sets[key];if(!tris.length)continue;const name=key?`${m.name}.${key}`:m.name;
+    if(m.q){const R=m4.trs([0,0,0],m.q,[1,1,1]);for(const t of tris)for(const v of t)v.p=m4.ap(R,v.p[0],v.p[1],v.p[2])} // 선택: 사전 회전(쿼터니언)
     const bbox=()=>{mn=[1e9,1e9,1e9];mx=[-1e9,-1e9,-1e9];for(const t of tris)for(const v of t)for(let k=0;k<3;k++){mn[k]=Math.min(mn[k],v.p[k]);mx[k]=Math.max(mx[k],v.p[k])}};let mn,mx;bbox();
     if(!m.parts){const cx=(mn[0]+mx[0])/2,cz=(mn[2]+mx[2])/2,y0=mn[1];for(const t of tris)for(const v of t){v.p[0]-=cx;v.p[1]-=y0;v.p[2]-=cz}bbox()} // 통모델은 바닥 중심을 원점으로
     const ext=Math.max(mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2])||1,s=ext/65535;const q=(v,k)=>Math.max(0,Math.min(65535,Math.round((v-mn[k])/s)));
