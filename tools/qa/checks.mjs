@@ -3,10 +3,10 @@ import { openPage, BASE } from './lib.mjs';
 const out=[];const ok=(name,c,extra='')=>out.push((c?'PASS ':'FAIL ')+name+(extra?' '+extra:''));
 // 1) 구 저장 형식 (spots 6개, drill 구매, ice2 없음)
 const {b,p,logs}=await openPage();
-await p.goto(BASE+'/README.md');await p.evaluate(()=>{const s={bells:1234,sold:40,custs:30,pads:{hand:2,cashier:1,runner:1,drill:1,dome:1},padProg:{},p:{x:200,y:430,dir:[0,1],carry:[]},water:20,bottles:2,shelf:5,cash:36,meltQ:3,meltT:0,botT:0,spots:[0,0,5,0,0,0],savedAt:Date.now()-40*60*1000,muted:false,spawnT:3};localStorage.setItem('mars-bottle-v1',JSON.stringify(s))});
+await p.goto(BASE+'/README.md');await p.evaluate(()=>{const s={bells:1234,sold:40,custs:30,pads:{hand:2,cashier:1,runner:1,drill:1,dome:1},padProg:{hand:50,price:20,bottler:30},p:{x:200,y:430,dir:[0,1],carry:[]},water:20,bottles:2,shelf:5,cash:36,meltQ:3,meltT:0,botT:0,spots:[0,0,5,0,0,0],savedAt:Date.now()-40*60*1000,muted:false,spawnT:3};localStorage.setItem('mars-bottle-v1',JSON.stringify(s))});
 await p.goto(BASE+'/app/index.html',{waitUntil:'load'});await p.waitForTimeout(800);
-const m=await p.evaluate(()=>({spots:S.spots.length,ice2:S.pads.ice2,drillVis:dbg.renderer&&true,sold:S.sold,bells:Math.floor(S.bells),intro:document.querySelector('#intro h1').textContent,zoneIce2:ZONES.ice2&&true,bots:bots.length}));
-ok('migrate spots 6->10',m.spots===10,JSON.stringify(m));ok('migrate drill->ice2',m.ice2===1);ok('bots restored',m.bots===2);ok('intro resume title',m.intro==='다시 오셨군요');
+const m=await p.evaluate(()=>({spots:S.spots.length,ice2:S.pads.ice2,drillVis:dbg.renderer&&true,sold:S.sold,bells:Math.floor(S.bells),padProgB:S.padProg.bottler,intro:document.querySelector('#intro h1').textContent,zoneIce2:ZONES.ice2&&true,bots:bots.length}));
+ok('migrate spots 6->12',m.spots===12,JSON.stringify(m));ok('migrate refunds menu padProg (hand 50 + price 20, bottler kept)',m.bells===1234+70&&m.padProgB===30,JSON.stringify({bells:m.bells,padProgB:m.padProgB}));ok('migrate drill->ice2',m.ice2===1);ok('bots restored',m.bots===2);ok('intro resume title',m.intro==='다시 오셨군요');
 await p.evaluate(()=>{S.savedAt=Date.now()-40*60*1000;document.getElementById('start').click()});await p.waitForTimeout(400);
 const off=await p.evaluate(()=>({on:document.getElementById('offline').classList.contains('on'),amt:document.getElementById('offamt').textContent,txt:document.getElementById('offtxt').textContent,bells:Math.floor(S.bells)}));
 ok('offline modal shown',off.on,JSON.stringify(off));await p.screenshot({path:'out/chk_offline.png'});
@@ -17,7 +17,7 @@ const r1=await p.evaluate(()=>{const before={vis:window.ZONES&&true};const ok=db
 ok('buyPad pen',r1.ok&&r1.lv===1,JSON.stringify(r1));
 await p.waitForTimeout(250);await p.screenshot({path:'out/chk_pop.png'});
 await p.waitForTimeout(1500);
-const r2=await p.evaluate(()=>({pen:padLv('pen'),bells:Math.floor(S.bells)}));ok('pen bought, bells deducted',r2.pen===1&&r2.bells===5000-450,JSON.stringify(r2));
+const r2=await p.evaluate(()=>({pen:padLv('pen'),bells:Math.floor(S.bells)}));ok('pen bought, bells deducted',r2.pen===1&&r2.bells===5000-400,JSON.stringify(r2));
 // 3) 시트에서 구매 (hand Lv.3 -> 4): 버튼 클릭
 await p.evaluate(()=>dbg.openSheet());await p.waitForTimeout(400);
 const before=await p.evaluate(()=>padLv('hand'));

@@ -118,7 +118,7 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 #upBtn .ic{width:28px;height:28px;margin-bottom:-3px}
 #upBtn .dot{position:absolute;top:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:#ff4d4d;border:2.5px solid #fff;display:none;box-shadow:0 2px 0 rgba(0,0,0,.3)}
 #upBtn.has .dot{display:block;animation:bounce .5s}
-#upBtn.has{animation:upGlow 1s infinite alternate}
+#upBtn.has{animation:upGlow 1.2s infinite alternate}
 @keyframes upGlow{0%{box-shadow:0 5px 0 #7a4a00,0 9px 16px rgba(0,0,0,.35),inset 0 3px 0 rgba(255,255,255,.55)}100%{box-shadow:0 5px 0 #7a4a00,0 0 0 6px rgba(255,213,74,.5),inset 0 3px 0 rgba(255,255,255,.55)}}
 #joy{position:fixed;left:0;top:0;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.22);border:2.5px solid rgba(255,255,255,.5);display:none;pointer-events:none;transform:translate(-60px,-60px);z-index:3}
 #joy.on{display:block}
@@ -142,6 +142,8 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 .row .nm2{font-size:15px;display:flex;align-items:center;gap:6px}
 .row .lv{font-size:11px;background:var(--navy);padding:1px 7px 2px;border-radius:8px;color:#ffe58a;border:1.5px solid #0b1428;white-space:nowrap;flex:none}
 .row .ds{font-size:11.5px;color:#a9b8d6;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stats{display:flex;flex-direction:column;gap:7px;padding-bottom:8px;margin-bottom:2px;border-bottom:2px dashed var(--edge)}
+.row.stat .ico{width:56px;height:56px;font-size:30px;border-radius:15px}.row.stat .nm2{font-size:12.5px}.row.stat .buy{min-height:44px;min-width:96px}.row.stat .pips{margin-top:6px}.row.stat .pips i{width:16px;height:8px}
 .pips{display:flex;gap:3px;margin-top:5px}.pips i{width:14px;height:7px;border-radius:3px;background:#0b1428;box-shadow:inset 0 1px 0 rgba(0,0,0,.4)}.pips i.on{background:linear-gradient(#ffe58a,#f0a428);box-shadow:0 1px 0 #7a4a00}
 .qbar{height:8px;background:#0b1428;border-radius:4px;margin-top:5px;overflow:hidden}.qbar i{display:block;height:100%;background:linear-gradient(#ffe58a,#f0a428);width:0}
 .buy{flex:none;min-width:88px;padding:9px 10px;border-radius:14px;border:3px solid #0b2f80;background:linear-gradient(#7cc0ff,#2a74e8 55%,#1a5bd0);color:#fff;font:inherit;font-size:14px;box-shadow:0 4px 0 #0b2f80,inset 0 2px 0 rgba(255,255,255,.45);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;-webkit-text-stroke:3px var(--blueD);paint-order:stroke fill;transition:transform .08s}
@@ -241,8 +243,8 @@ const STN={
   register:{x:316,y:504,w:40,h:40,name:'계산대'},
   drill:{x:62,y:104,w:80,h:60,name:'얼음 드릴'},
 };
-const ICE_SPOTS=[[60,240],[116,268],[178,232],[84,312],[152,318],[44,366],[150,86],[204,118],[148,158],[206,172]];
-const BASE_SPOTS=6;
+const ICE_SPOTS=[[60,240],[116,268],[178,232],[84,312],[152,318],[44,366],[190,350],[112,380],[150,86],[204,118],[148,158],[206,172]];
+const BASE_SPOTS=8;
 const QUEUE_X=216,QUEUE_Y0=584,QUEUE_GAP=46,ENTRY={x:206,y:1000};
 const DOME={x:108,y:838,r:84};
 const SEATS=[[74,786],[142,786],[74,838],[142,838],[74,890],[142,890]];
@@ -261,20 +263,21 @@ const ZONES={
   pen:{x0:276,y0:740,x1:378,y1:934,floor:'#dcb085',name:'먼지 토끼 우리',sides:'NESW',gates:[{s:'N',at:330,w:60}],pad:'pen'},
 };
 const PADS=[
-  {id:'hand',x:60,y:452,n:'손 크기',sn:'손 크기',d:'한 번에 더 많이 들어요',ic:'🧤',rq:'판매 1개',cost:l=>Math.round(90*Math.pow(1.7,l)),max:5,req:s=>s.sold>=1},
-  {id:'ice2',x:126,y:220,n:'얼음밭 확장',sn:'얼음밭 확장',d:'얼음 4곳이 더 열려요',ic:'🧊',rq:'판매 2개',cost:()=>120,max:1,req:s=>s.sold>=2,zone:'ice2'},
-  {id:'bottler',x:290,y:372,n:'병입기 속도',sn:'병입 속도',d:'물병이 더 빨리 나와요',ic:'🧴',rq:'판매 3개',cost:l=>Math.round(140*Math.pow(1.75,l)),max:6,req:s=>s.sold>=3},
-  {id:'melter',x:290,y:192,n:'제빙기 속도',sn:'제빙 속도',d:'얼음을 더 빨리 녹여요',ic:'🔥',rq:'판매 3개',cost:l=>Math.round(110*Math.pow(1.7,l)),max:6,req:s=>s.sold>=3},
-  {id:'shelf',x:134,y:452,n:'선반 칸',sn:'선반 칸',d:'카운터에 더 많이 올려요',ic:'🗄️',rq:'판매 5개',cost:l=>Math.round(160*Math.pow(1.8,l)),max:4,req:s=>s.sold>=5},
-  {id:'cashier',x:360,y:598,n:'삐걱 고용',sn:'삐걱 고용',d:'계산을 대신 봐요',ic:'🤖',rq:'판매 8개',cost:()=>380,max:1,req:s=>s.sold>=8},
-  {id:'ads',x:50,y:598,n:'간판',sn:'간판',d:'손님이 더 자주 와요',ic:'📣',rq:'판매 10개',cost:l=>Math.round(200*Math.pow(1.8,l)),max:5,req:s=>s.sold>=10},
-  {id:'pen',x:330,y:720,n:'먼지 토끼 우리',sn:'토끼 우리',d:'토끼들이 가끔 벨을 떨어뜨려요',ic:'🐰',rq:'판매 12개',cost:()=>450,max:1,req:s=>s.sold>=12,zone:'pen'},
-  {id:'runner',x:282,y:598,n:'뽀삐 고용',sn:'뽀삐 고용',d:'손수레로 물병을 날라요',ic:'🛒',rq:'판매 14개',cost:()=>520,max:1,req:s=>s.sold>=14},
-  {id:'price',x:134,y:598,n:'프리미엄 라벨',sn:'라벨',d:'물병 값이 올라요',ic:'🏷️',rq:'삐걱 고용 후',cost:l=>Math.round(260*Math.pow(1.9,l)),max:5,req:s=>(s.pads.cashier||0)>=1},
-  {id:'drill',x:62,y:166,n:'얼음 드릴',sn:'얼음 드릴',d:'얼음을 자동으로 캐서 보내요',ic:'⛏️',rq:'뽀삐 고용·얼음밭 확장 후',cost:()=>900,max:1,req:s=>(s.pads.runner||0)>=1&&(s.pads.ice2||0)>=1},
-  {id:'dome',x:106,y:720,n:'휴게 돔',sn:'휴게 돔',d:'손님이 쉬고 팁을 남겨요',ic:'🏕️',rq:'삐걱 고용·판매 25개',cost:()=>800,max:1,req:s=>(s.pads.cashier||0)>=1&&s.sold>=25,zone:'dome'},
-  {id:'runspd',x:282,y:662,n:'뽀삐 속도',sn:'뽀삐 속도',d:'손수레가 더 빨리 달려요',ic:'⚡',rq:'뽀삐 고용 후',cost:l=>Math.round(300*Math.pow(1.8,l)),max:4,req:s=>(s.pads.runner||0)>=1},
-  {id:'runner2',x:360,y:662,n:'뽀삐 한 명 더',sn:'뽀삐 추가',d:'운반 로봇이 둘이 돼요',ic:'🛒',rq:'얼음 드릴 후',cost:()=>1400,max:1,req:s=>(s.pads.drill||0)>=1},
+  {id:'hand',x:60,y:452,n:'손 크기',sn:'손 크기',d:'더 많이 들어요',ic:'🧤',rq:'',cost:l=>Math.round(40*Math.pow(1.75,l)),max:6,menu:true,req:()=>true},
+  {id:'spd',x:200,y:452,n:'이동 속도',sn:'이동 속도',d:'더 빨리 걸어요',ic:'👟',rq:'',cost:l=>Math.round(60*Math.pow(1.8,l)),max:5,menu:true,req:()=>true},
+  {id:'price',x:134,y:598,n:'프리미엄 라벨',sn:'라벨',d:'값이 올라요',ic:'🏷️',rq:'판매 10개',cost:l=>Math.round(200*Math.pow(1.9,l)),max:5,menu:true,req:s=>s.sold>=10},
+  {id:'cashier',x:360,y:598,n:'삐걱 고용',sn:'삐걱 고용',d:'계산을 대신 봐요',ic:'🤖',rq:'판매 3개',cost:()=>150,max:1,req:s=>s.sold>=3},
+  {id:'bottler',x:290,y:372,n:'병입기 속도',sn:'병입 속도',d:'물병이 더 빨리 나와요',ic:'🧴',rq:'판매 3개',cost:l=>Math.round(80*Math.pow(1.7,l)),max:6,req:s=>s.sold>=3},
+  {id:'ice2',x:126,y:220,n:'얼음밭 확장',sn:'얼음밭 확장',d:'얼음 4곳이 더 열려요',ic:'🧊',rq:'병입 속도 1 후',cost:()=>120,max:1,req:s=>(s.pads.bottler||0)>=1,zone:'ice2'},
+  {id:'melter',x:290,y:192,n:'제빙기 속도',sn:'제빙 속도',d:'얼음을 더 빨리 녹여요',ic:'🔥',rq:'얼음밭 확장 후',cost:l=>Math.round(70*Math.pow(1.7,l)),max:6,req:s=>(s.pads.ice2||0)>=1},
+  {id:'shelf',x:134,y:452,n:'선반 칸',sn:'선반 칸',d:'카운터에 더 많이 올려요',ic:'🗄️',rq:'얼음밭 확장 후',cost:l=>Math.round(120*Math.pow(1.8,l)),max:4,req:s=>(s.pads.ice2||0)>=1},
+  {id:'runner',x:282,y:598,n:'뽀삐 고용',sn:'뽀삐 고용',d:'손수레로 물병을 날라요',ic:'🛒',rq:'판매 20개',cost:()=>350,max:1,req:s=>s.sold>=20},
+  {id:'ads',x:50,y:598,n:'간판',sn:'간판',d:'손님이 더 자주 와요',ic:'📣',rq:'뽀삐 고용 후',cost:l=>Math.round(150*Math.pow(1.8,l)),max:5,req:s=>(s.pads.runner||0)>=1},
+  {id:'drill',x:62,y:166,n:'얼음 드릴',sn:'얼음 드릴',d:'얼음을 자동으로 캐서 보내요',ic:'⛏️',rq:'뽀삐 고용·얼음밭 확장 후',cost:()=>600,max:1,req:s=>(s.pads.runner||0)>=1&&(s.pads.ice2||0)>=1},
+  {id:'pen',x:330,y:720,n:'먼지 토끼 우리',sn:'토끼 우리',d:'토끼들이 가끔 벨을 떨어뜨려요',ic:'🐰',rq:'얼음 드릴 후',cost:()=>400,max:1,req:s=>(s.pads.drill||0)>=1,zone:'pen'},
+  {id:'dome',x:106,y:720,n:'휴게 돔',sn:'휴게 돔',d:'손님이 쉬고 팁을 남겨요',ic:'🏕️',rq:'토끼 우리 후',cost:()=>700,max:1,req:s=>(s.pads.pen||0)>=1,zone:'dome'},
+  {id:'runspd',x:282,y:662,n:'뽀삐 속도',sn:'뽀삐 속도',d:'손수레가 더 빨리 달려요',ic:'⚡',rq:'뽀삐 고용 후',cost:l=>Math.round(250*Math.pow(1.8,l)),max:4,req:s=>(s.pads.runner||0)>=1},
+  {id:'runner2',x:360,y:662,n:'뽀삐 한 명 더',sn:'뽀삐 추가',d:'운반 로봇이 둘이 돼요',ic:'🛒',rq:'얼음 드릴 후',cost:()=>1200,max:1,req:s=>(s.pads.drill||0)>=1},
 ];
 const DECOS=[
   {id:'awning',n:'차양 색',d:'파란 줄무늬 차양으로 바꿔요',ic:'🎪',c:150,sw:'repeating-linear-gradient(90deg,#4fb0f0 0 6px,#fff 6px 12px)'},
@@ -286,15 +289,16 @@ const DECOS=[
 ];
 const padLv=id=>S.pads[id]||0;
 const spotOpen=i=>i<BASE_SPOTS||padLv('ice2')>0;
-const carryMax=()=>5+padLv('hand')*3;
-const shelfCap=()=>8+padLv('shelf')*4;
+const CARRY=[6,9,12,16,20,26,32]; /* 등짐 용량 곡선: 손 크기 Lv + 프레스티지(최대 2) */
+const carryMax=()=>CARRY[Math.min(6,padLv('hand')+Math.min(2,S.prestige||0))];
+const shelfCap=()=>8+padLv('shelf')*7;
 const prestigeMul=()=>Math.pow(1.5,S.prestige||0);
-const bottlePrice=()=>Math.round((12+padLv('price')*5)*prestigeMul());
-const meltTime=()=>3.2/(1+padLv('melter')*.35);
-const bottleTime=()=>4/(1+padLv('bottler')*.35);
-const spawnGap=()=>Math.max(2.2,7-padLv('ads')*.9)/(rush>0?3:1);
+const bottlePrice=()=>Math.round((12+padLv('price')*6)*prestigeMul());
+const meltTime=()=>1.6/(1+padLv('melter')*.35);
+const bottleTime=()=>1.6/(1+padLv('bottler')*.35);
+const spawnGap=()=>Math.max(2.0,6.5-padLv('ads')*.9)/(rush>0?3:1);
 const runnerSpd=()=>95+padLv('runspd')*25;
-const MELT_CAP=12,BOTTLE_CAP=6,DAY_LEN=300;
+const MELT_CAP=40,BOTTLE_CAP=24,DAY_LEN=300;
 /* ================= 목표 (순차 마일스톤) ================= */
 const decoCount=s=>Object.values(s.deco||{}).filter(v=>v).length;
 const QUESTS=[
@@ -337,6 +341,7 @@ function fresh(){return{bells:0,sold:0,custs:0,pads:{},padProg:{},p:{x:200,y:450
 function migrate(s){const f=fresh();if(s.quest===undefined)s.qinit=1;for(const k in f)if(s[k]===undefined||s[k]===null)s[k]=f[k];for(const k in f.p)if(s.p[k]===undefined)s.p[k]=f.p[k];
   for(const k in f.qc)if(typeof s.qc[k]!=='number')s.qc[k]=f.qc[k];for(const k in f.deco)if(s.deco[k]===undefined)s.deco[k]=f.deco[k];
   if(!Array.isArray(s.spots))s.spots=[];while(s.spots.length<ICE_SPOTS.length)s.spots.push(0);if((s.pads.drill||0)>=1&&!s.pads.ice2)s.pads.ice2=1;s.penTip=s.penTip||0;s.penT=s.penT||0;if(!s.p.carry)s.p.carry=[];
+  for(const pd of PADS)if(pd.menu&&(s.padProg[pd.id]||0)>0){s.bells+=s.padProg[pd.id];s.padProg[pd.id]=0} /* 손 크기·라벨·이동 속도는 시트 전용이라 월드 발판 부분 납입금 환불 */
   s.quest=clamp(s.quest|0,0,QUESTS.length);return s}
 let S=load()||fresh();
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.p&&s.pads)return migrate(s)}catch(e){}return null}
@@ -352,7 +357,7 @@ function noise(d,gain=.1,fq=1200,t0=0,q=1,type='bandpass'){try{const A=ac();if(!
 function wind(){if(windOn||S.muted)return;try{const A=ac();windOn=true;if(!noiseBuf){noiseBuf=A.createBuffer(1,A.sampleRate,A.sampleRate);const x=noiseBuf.getChannelData(0);for(let i=0;i<x.length;i++)x[i]=Math.random()*2-1}const s=A.createBufferSource();s.buffer=noiseBuf;s.loop=true;const f=A.createBiquadFilter();f.type='lowpass';f.frequency.value=260;f.Q.value=.7;const g=A.createGain();g.gain.value=.016;const lfo=A.createOscillator(),lg=A.createGain();lfo.frequency.value=.09;lg.gain.value=140;lfo.connect(lg);lg.connect(f.frequency);lfo.start();s.connect(f);f.connect(g);g.connect(master);s.start()}catch(e){}}
 function sfx(k,v=0){if(S.muted)return;
   switch(k){
-    case 'pick':tone(620,.06,'square',0,.06,1.3);noise(.05,.05,2400);return;
+    case 'pick':tone(520+380*(v||0),.07,'triangle',0,.07,1.2);noise(.04,.04,2400);return;
     case 'put':tone(420,.08,'triangle',0,.08,.8);noise(.04,.04,900);return;
     case 'coin':tone(1100*Math.pow(1.06,v),.1,'sine',0,.07,1.25);tone(1650*Math.pow(1.06,v),.08,'sine',.03,.035);return;
     case 'sell':tone(880,.1,'triangle',0,.08);tone(1320,.14,'triangle',.08,.07);noise(.08,.05,3000,.0,2);return;
@@ -579,8 +584,8 @@ function bBottler(){const g=new THREE.Group();
   const belt=new THREE.Mesh(G.box(60,4,18),new THREE.MeshStandardMaterial({map:beltTex,roughness:.9,flatShading:true}));belt.position.set(-6,6,24);belt.castShadow=true;belt.receiveShadow=true;g.add(belt);for(let i=0;i<4;i++){const r=mesh(G.cyl(2,2,16,6),COL.dark,-26+i*13,8.5,24);r.rotation.z=Math.PI/2;g.add(r)}
   g.add(mesh(G.box(22,3,22),COL.wood,38,6.5,16));const tank=mesh(G.box(18,12,18),COL.blue,38,14,16,{roughness:.3,transparent:true,opacity:.85});g.add(tank);
   g.add(mesh(G.cyl(.9,.9,40,5),COL.dark,40,30,-22));const fl=mesh(G.box(13,8,.6),COL.orange,47,45,-22);fl.userData.dyn=1;fl.userData.flagc=1;g.add(fl);
-  const bar=progressBar(g,-6,13,25);const outG=new THREE.Group();outG.position.set(-6,10,24);outG.userData.dyn=1;g.add(outG);
-  const bb=new THREE.Mesh(bottleGeo,bottleMat);bb.castShadow=true;bb.position.set(30,10,24);bb.visible=false;bb.userData.dyn=1;g.add(bb);
+  const bar=progressBar(g,-6,13,25);const outG=new THREE.Group();outG.position.set(-6,10,24);outG.rotation.y=Math.PI/2;outG.userData.dyn=1;g.add(outG); /* 트레이: 6열(x)×4단, 판의 10폭이 x를 따르도록 90° */
+  const bb=new THREE.Mesh(bottleGeo,bottleMat);bb.castShadow=true;bb.position.set(44,10,30);bb.visible=false;bb.userData.dyn=1;g.add(bb);
   bake(g,2.2);g.userData={out:outG,bar,flag:fl,belt,bb};return g}
 function bCounter(){const g=new THREE.Group();
   g.add(mesh(G.box(220,30,36),COL.cream,0,15,0));g.add(mesh(G.box(224,5,40),COL.woodD,0,32,0));g.add(mesh(G.box(220,8,37),COL.wood,0,4,0));
@@ -620,23 +625,23 @@ const bottleGeo=(()=>{const pts=[[0,0],[3.4,0],[3.6,2],[3.6,8.2],[2.4,9.8],[2.2,
 const bottleMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.35,flatShading:true});
 const billTex=(()=>{const cv=document.createElement('canvas');cv.width=32;cv.height=20;const c=cv.getContext('2d');c.fillStyle='#4fbf55';c.fillRect(0,0,32,20);c.fillStyle='#d8f5c8';c.fillRect(12,0,8,20);c.fillStyle='#2f7a33';c.fillRect(0,0,32,2);c.fillRect(0,18,32,2);const t=canvasTex(cv);t.magFilter=THREE.NearestFilter;return t})();
 const billMat=new THREE.MeshStandardMaterial({map:billTex,roughness:.9,flatShading:true});
-// 등짐 아이템은 피자 박스처럼 납작한 판(14×3.6×10)이라 20개도 한 기둥으로 쌓인다: 얼음 판, 물병 6개들이 팩(윗면 텍스처)
+// 등짐 아이템은 피자 박스처럼 납작한 판(14×2.4×10, 간격 2.8~3.0)이라 32개도 한 기둥으로 쌓인다: 얼음 판, 물병 6개들이 팩(윗면 텍스처)
 const packTex=(()=>{const cv=document.createElement('canvas');cv.width=56;cv.height=40;const c=cv.getContext('2d');c.fillStyle='#2f86d8';c.fillRect(0,0,56,40);for(let i=0;i<3;i++)for(let j=0;j<2;j++){const x=10+i*18,y=11+j*18;c.fillStyle='#7fd0ff';c.beginPath();c.arc(x,y,6.5,0,7);c.fill();c.fillStyle='#f4fbff';c.beginPath();c.arc(x,y,3.2,0,7);c.fill()}const t=canvasTex(cv);t.magFilter=THREE.NearestFilter;return t})();
-const slabGeo=G.box(14,3.6,10);
-const rimTex=(top,mid,bot)=>{const cv=document.createElement('canvas');cv.width=8;cv.height=16;const c=cv.getContext('2d');c.fillStyle=mid;c.fillRect(0,0,8,16);c.fillStyle=top;c.fillRect(0,0,8,3);c.fillStyle=bot;c.fillRect(0,12,8,4);const t=canvasTex(cv);t.magFilter=THREE.NearestFilter;return t};
+const slabGeo=G.box(14,2.4,10);
+const rimTex=(top,mid,bot)=>{const cv=document.createElement('canvas');cv.width=8;cv.height=16;const c=cv.getContext('2d');c.fillStyle=mid;c.fillRect(0,0,8,16);c.fillStyle=top;c.fillRect(0,0,8,4);c.fillStyle=bot;c.fillRect(0,11,8,5);const t=canvasTex(cv);t.magFilter=THREE.NearestFilter;return t};
 const slabMats=(top,mid,bot,topMat,o={})=>{const side=new THREE.MeshStandardMaterial({map:rimTex(top,mid,bot),roughness:.6,flatShading:true,...o});return[side,side,topMat,mat(0x2a3a4a),side,side]};
 const iceMat=slabMats('#f4fbff','#cfe9fb','#86b8d8',mat(0xeaf6ff,{roughness:.2,emissive:0x8fd0ff,emissiveIntensity:.25}),{emissive:0x6fb6e8,emissiveIntensity:.15});
 const packMat=slabMats('#7fd0ff','#3b9ae6','#1f5a9c',new THREE.MeshStandardMaterial({map:packTex,roughness:.6,flatShading:true}));
-const STACK={ice:{geo:slabGeo,mat:iceMat,max:24,sy:1},bottle:{geo:slabGeo,mat:packMat,max:24,sy:1},bill:{geo:G.box(16,3,10),mat:billMat,max:12,sy:1},coin:{geo:G.cyl(5,5,1.6,10),mat:mat(COL.gold,{emissive:0xffd34d,emissiveIntensity:.5}),max:4,sy:1}};
+const STACK={ice:{geo:slabGeo,mat:iceMat,max:40,sy:1},bottle:{geo:slabGeo,mat:packMat,max:40,sy:1},bill:{geo:G.box(16,3,10),mat:billMat,max:24,sy:1},coin:{geo:G.cyl(5,5,1.6,10),mat:mat(COL.gold,{emissive:0xffd34d,emissiveIntensity:.5}),max:4,sy:1}};
 function itemMesh(k){const s=STACK[k];const m=new THREE.Mesh(s.geo,s.mat);m.scale.y=s.sy;m.castShadow=true;m.receiveShadow=true;return m}
-const ITEM_H={ice:3.9,bottle:3.9,bill:3.2,coin:1.8};
+const ITEM_H={ice:2.8,bottle:3.0,bill:3.2,coin:1.8};
 // 스택: 종류별 InstancedMesh 하나 (물병 24개도 드로우콜 1)
 function syncStack(group,list,key,layout){if(group.userData.key===key)return;const u=group.userData;u.key=key;u.inst=u.inst||{};u.items=list.slice();u.base=[];for(const k in u.inst){u.inst[k].count=0;u.inst[k].visible=false}
   const idx={};let y=0;list.forEach((k,i)=>{let im=u.inst[k];if(!im){const sk=STACK[k];sk.imat=sk.imat||(Array.isArray(sk.mat)?sk.mat.map(x=>x.clone()):sk.mat.clone());im=new THREE.InstancedMesh(sk.geo,sk.imat,sk.max);im.customDepthMaterial=instDepth;im.castShadow=true;im.receiveShadow=true;im.frustumCulled=false;im.userData.ol=1;group.add(im);u.inst[k]=im}const j=idx[k]||0;idx[k]=j+1;if(j>=STACK[k].max)return;let p;if(layout)p=layout(i);else{p=[0,y,0];y+=ITEM_H[k]}u.base[i]=p;
     dummy.position.set(p[0],p[1],p[2]);dummy.rotation.set(0,0,0);dummy.scale.set(1,STACK[k].sy,1);dummy.updateMatrix();im.setMatrixAt(j,dummy.matrix);im.count=j+1;im.visible=true;im.instanceMatrix.needsUpdate=true})}
 const cartLayout=i=>[0,i*ITEM_H.bottle,0];
-function stackSway(group,vel,dt,an){const tx=clamp(-vel[0]*.9,-9,9),tz=clamp(-vel[1]*.9,-9,9);an.swx=lerp(an.swx||0,tx,Math.min(1,dt*7));an.swz=lerp(an.swz||0,tz,Math.min(1,dt*7));const u=group.userData;if(!u.items||!u.items.length)return;const idx={};
-  u.items.forEach((k,i)=>{const im=u.inst[k],j=idx[k]||0;idx[k]=j+1;if(j>=STACK[k].max)return;const p=u.base[i];dummy.position.set(p[0]+an.swx*i*.18,p[1],p[2]+an.swz*i*.18);dummy.rotation.set(-an.swz*.012*i,0,an.swx*.012*i);dummy.scale.set(1,STACK[k].sy,1);dummy.updateMatrix();im.setMatrixAt(j,dummy.matrix);im.instanceMatrix.needsUpdate=true})}
+function stackSway(group,vel,dt,an){const tx=clamp(-vel[0]*.9,-9,9),tz=clamp(-vel[1]*.9,-9,9);an.swx=lerp(an.swx||0,tx,Math.min(1,dt*9));an.swz=lerp(an.swz||0,tz,Math.min(1,dt*9));const u=group.userData;if(!u.items||!u.items.length)return;const idx={};
+  u.items.forEach((k,i)=>{const im=u.inst[k],j=idx[k]||0;idx[k]=j+1;if(j>=STACK[k].max)return;const p=u.base[i],kk=Math.min(i,18);dummy.position.set(p[0]+an.swx*kk*.11,p[1],p[2]+an.swz*kk*.11);dummy.rotation.set(-an.swz*.007*kk,0,an.swx*.007*kk);dummy.scale.set(1,STACK[k].sy,1);dummy.updateMatrix();im.setMatrixAt(j,dummy.matrix);im.instanceMatrix.needsUpdate=true})}
 /* ================= 캐릭터 (땅딸막한 우주복, 팔·등짐·바운스 걷기, 베이크 외곽선 + 접지 그림자) ================= */
 function limbOf(g,x,y,z,r,h,c){const m=mesh(G.sph(r,8),c);m.scale.set(1,h/r,1);const piv=new THREE.Group();piv.position.set(x,y,z);m.position.y=-h*.5;piv.add(m);g.add(piv);return piv}
 function finishChar(g,parts,thick=1.7,om){for(const p of parts){const lm=bake(p,thick,om);if(lm)lm.castShadow=false}const body=bake(g,thick,om);const an=g.userData.anim;if(body){an.body=body;an.by=0}return g}
@@ -692,12 +697,15 @@ function applyDeco(){const d=S.deco,cu=stnG.counter.userData;cu.canopy.material.
   const fl=zoneG.shop.floor;if(fl){if(!fl.userData.map0)fl.userData.map0=fl.material.map;if(d.tile&&!shopTileTex){const z=ZONES.shop;shopTileTex=floorTex(z.x1-z.x0,z.y1-z.y0,z.floor,'shop',true)}fl.material.map=d.tile?shopTileTex:fl.userData.map0;fl.material.needsUpdate=true}}
 /* ================= 발판 ================= */
 const padG=new Map();
-for(const pd of PADS){const g=new THREE.Group();g.position.copy(W2T(pd.x,pd.y));const ring=mesh(G.cyl(30,32,2.5,24),COL.gold,0,1.2,0,{emissive:0xffd34d,emissiveIntensity:.2});ring.castShadow=false;g.add(ring);const inner=mesh(G.cyl(24,24,2,24),COL.cream,0,2.4,0);inner.castShadow=false;g.add(inner);
+for(const pd of PADS){if(pd.menu)continue;const g=new THREE.Group();g.position.copy(W2T(pd.x,pd.y));const ring=mesh(G.cyl(30,32,2.5,24),COL.gold,0,1.2,0,{emissive:0xffd34d,emissiveIntensity:.2});ring.castShadow=false;g.add(ring);const inner=mesh(G.cyl(24,24,2,24),COL.cream,0,2.4,0);inner.castShadow=false;g.add(inner);
   const fill=mesh(G.cyl(24,24,1.6,24),COL.navy,0,3,0);fill.castShadow=false;fill.scale.setScalar(.001);g.add(fill);
   g.userData={pd,ring,fill,inner};world.add(g);padG.set(pd.id,g)}
 /* ================= 얼음 (결정 덩어리) ================= */
 // 얼음 더미: 등짐과 같은 얼음 판 3장이 어긋나게 쌓인 것 + 작은 조각 (주우면 판이 날아와 등에 쌓이는 게 이어져 보인다)
-const iceG=ICE_SPOTS.map(([x,y])=>{const g=new THREE.Group();const m=new THREE.Group();[[0,0,0,0],[1.5,ITEM_H.ice,-1,.25],[-1,ITEM_H.ice*2,1.5,-.2]].forEach(([dx,dy,dz,ry])=>{const sl=new THREE.Mesh(slabGeo,iceMat);sl.position.set(dx,1.8+dy,dz);sl.rotation.y=ry;sl.castShadow=true;sl.receiveShadow=true;m.add(sl)});g.add(m);
+// 더미의 판 3장은 InstancedMesh 하나(12더미×3): 판 메시 1장이 6재질 그룹=6드로우콜이라 더미 12개면 216콜이던 것을 6콜로
+const PILE_L=[[0,0,0,0],[1.5,ITEM_H.ice,-1,.25],[-1,ITEM_H.ice*2,1.5,-.2]];
+const icePile=new THREE.InstancedMesh(slabGeo,(STACK.ice.imat=STACK.ice.imat||iceMat.map(x=>x.clone())),ICE_SPOTS.length*PILE_L.length);icePile.customDepthMaterial=instDepth;icePile.castShadow=true;icePile.receiveShadow=true;icePile.frustumCulled=false;icePile.userData.ol=1;world.add(icePile);
+const iceG=ICE_SPOTS.map(([x,y])=>{const g=new THREE.Group();const m=new THREE.Group();g.add(m);
   const s2=mesh(G.oct(3.5),COL.ice,-10,3,7,{roughness:.2,emissive:0x8fd0ff,emissiveIntensity:.35});g.add(s2);g.add(disc(12));
   g.position.copy(W2T(x,y));g.rotation.y=rnd()*3;g.userData={m,s:1};world.add(g);return g});
 /* ================= 날아가는 아이템·동전 (아크 트윈), 팝, 링, 먼지, 김, 회오리 ================= */
@@ -752,16 +760,19 @@ function sq(g,a=1){if(!g)return;g.userData.sqT=0;g.userData.sqA=a}
 function tickSq(g,dt){const u=g.userData;if(u.sqT===undefined)return;u.sqT+=dt;const k=u.sqT/.32,base=u.baseScale||1;if(k>=1){g.scale.setScalar(base);u.sqT=undefined;return}const s=Math.sin(k*Math.PI)*.22*u.sqA;g.scale.set(base*(1+s),base*(1-s),base*(1+s))}
 let comboT=null;function showCombo(n){const e=$('#combo');e.textContent=`콤보 ×${n}!`;e.classList.remove('on');void e.offsetWidth;e.classList.add('on');sfx('combo',n);buzz(20)}
 /* ================= 플레이어 상호작용 (근접 자동) ================= */
-let actT=0,pend=0; // pend: 손으로 날아오는 중인 아이템 수
+let actT=0,pend=0,pendK=null; // pend: 손으로 날아오는 중인 아이템 수, pendK: 그 종류 (날아오는 동안 다른 종류를 섞어 줍지 않게)
 function nearStn(k,r){const s=STN[k],p=S.p;return Math.abs(p.x-s.x)<s.w/2+r&&Math.abs(p.y-s.y)<s.h/2+r}
 function stackTop(list){return 30+list.reduce((a,k)=>a+ITEM_H[k],0)}
-const shelfPos=i=>({x:STN.counter.x-84+(i%12)*15,y:STN.counter.y-8+Math.floor(i/12)*14,h:36});
-function interact(dt){actT-=dt;if(actT>0)return;const p=S.p,c=p.carry;
-  if(c.length+pend<carryMax()&&!(c.length&&c[0]!=='ice')){for(let i=0;i<ICE_SPOTS.length;i++){if(S.spots[i]>0||!spotOpen(i))continue;const [x,y]=ICE_SPOTS[i];if(Math.hypot(p.x-x,p.y-y)<36){S.spots[i]=14+Math.random()*6;const ig=iceG[i];ig.userData.s=0;ig.scale.setScalar(.001);pend++;puff(x,y);
-      fly('ice',{x,y,h:8},{x:p.x,y:p.y,h:stackTop(c)+pend*ITEM_H.ice},.3,()=>{pend--;c.push('ice');sfx('pick');sq(playerG,.9)});actT=.16;return}}}
-  if(c.length&&c[c.length-1]==='ice'&&nearStn('melter',40)){c.pop();const s=STN.melter;fly('ice',{x:p.x,y:p.y,h:stackTop(c)},{x:s.x-8,y:s.y-2,h:78},.3,()=>{S.meltQ++;sfx('put');sq(stnG.melter,.25)});sq(playerG,.6);actT=.13;return}
-  if(S.bottles>0&&c.length+pend<carryMax()&&!(c.length&&c[0]!=='bottle')&&nearStn('bottler',40)){S.bottles--;const s=STN.bottler;pend++;fly('bottle',{x:s.x-6,y:s.y+24,h:10},{x:p.x,y:p.y,h:stackTop(c)+pend*ITEM_H.bottle},.3,()=>{pend--;c.push('bottle');sfx('pick');sq(playerG,.9)});actT=.13;return}
-  if(c.length&&c[c.length-1]==='bottle'&&S.shelf<shelfCap()&&nearStn('counter',48)&&p.y<STN.counter.y){c.pop();const i=S.shelf;S.shelf++;fly('bottle',{x:p.x,y:p.y,h:stackTop(c)},shelfPos(i),.28,()=>sfx('put'));sq(playerG,.6);actT=.11;return}
+const shelfPos=i=>({x:STN.counter.x-84+(i%12)*15,y:STN.counter.y-10+Math.floor(i/12)*12,h:36}); /* 선반 12열×3단 */
+const trayPos=i=>({x:STN.bottler.x-31+(i%6)*10,y:STN.bottler.y+24,h:10+Math.floor(i/6)*ITEM_H.bottle}); /* 병입기 트레이 i번째 칸 (6열×4단) */
+const meltPos=i=>({x:STN.melter.x-14+(i%2)*14,y:STN.melter.y-2,h:78+Math.floor(Math.min(i,9)/2)*ITEM_H.ice}); /* 제빙기 큐 i번째 칸 (2열) */
+function onPick(c){const n=c.length,m=carryMax(),u=playerG.userData;sfx('pick',n/m);if(n%3===0)buzz(6);if(n>=m&&!u.fullSfx){u.fullSfx=1;sfx('ding');buzz(12)}if(c[0]==='ice')u.unload=0;else u.loading=(n<m&&S.bottles>0)?1:0} /* 줍는 소리는 찰수록 높아지고, 가득 차는 순간 딩 1회 */
+function interact(dt){actT-=dt;const p=S.p,c=p.carry;if(!c.length){const u=playerG.userData;u.fullSfx=0;u.unload=0;u.loading=0}if(actT>0)return;
+  if(c.length+pend<carryMax()&&!(c.length&&c[0]!=='ice')&&!(pend&&pendK!=='ice')){for(let i=0;i<ICE_SPOTS.length;i++){if(S.spots[i]>0||!spotOpen(i))continue;const [x,y]=ICE_SPOTS[i];if(Math.hypot(p.x-x,p.y-y)<40){S.spots[i]=6+Math.random()*3;const ig=iceG[i];ig.userData.s=0;ig.scale.setScalar(.001);pend++;pendK='ice';puff(x,y);
+      fly('ice',{x,y,h:8},{x:p.x,y:p.y,h:stackTop(c)+pend*ITEM_H.ice},.3,()=>{pend--;c.push('ice');onPick(c);sq(playerG,.9)});actT=.09;return}}}
+  if(c.length&&c[c.length-1]==='ice'&&nearStn('melter',40)){c.pop();playerG.userData.unload=1;fly('ice',{x:p.x,y:p.y,h:stackTop(c)},meltPos(S.meltQ),.3,()=>{S.meltQ++;sfx('put');sq(stnG.melter,.25)});sq(playerG,.6);actT=.06;return}
+  if(S.bottles>0&&c.length+pend<carryMax()&&!(c.length&&c[0]!=='bottle')&&!(pend&&pendK!=='bottle')&&nearStn('bottler',40)){S.bottles--;pend++;pendK='bottle';fly('bottle',trayPos(S.bottles),{x:p.x,y:p.y,h:stackTop(c)+pend*ITEM_H.bottle},.3,()=>{pend--;c.push('bottle');onPick(c);sq(playerG,.9)});actT=.13;return}
+  if(c.length&&c[c.length-1]==='bottle'&&S.shelf<shelfCap()&&nearStn('counter',48)&&p.y<STN.counter.y){c.pop();playerG.userData.loading=0;const i=S.shelf;S.shelf++;fly('bottle',{x:p.x,y:p.y,h:stackTop(c)},shelfPos(i),.28,()=>sfx('put'));sq(playerG,.6);actT=.11;return}
   if(S.cash>0&&nearStn('register',54)){const n=S.cash;S.cash=0;const s=STN.register;const cnt=Math.min(10,Math.ceil(n/12));for(let i=0;i<cnt;i++)setTimeout(()=>fly('coin',{x:s.x+36,y:s.y+4,h:8+i*2},{x:S.p.x,y:S.p.y,h:40},.4),i*45);
     const sc=toScreen(s.x+36,s.y+4,20);addBells(n,sc.x,sc.y);floatTxt(s.x+30,s.y,`+${n}`,true,n>=bottlePrice()*4);sq(playerG,1);buzz(15);actT=.25;return}
   if(S.penTip>0&&Math.hypot(p.x-PEN_TIP.x,p.y-PEN_TIP.y)<40){const n=S.penTip;S.penTip=0;S.qc.penGot++;fly('coin',{x:PEN_TIP.x,y:PEN_TIP.y,h:4},{x:p.x,y:p.y,h:40},.35);const sc=toScreen(PEN_TIP.x,PEN_TIP.y,10);addBells(n,sc.x,sc.y,8);floatTxt(PEN_TIP.x,PEN_TIP.y-8,`+${n}`,true);sfx('hop');actT=.2;return}
@@ -769,15 +780,16 @@ function interact(dt){actT-=dt;if(actT>0)return;const p=S.p,c=p.carry;
 function flashBells(){const b=$('#bells');b.classList.add('flash');setTimeout(()=>b.classList.remove('flash'),150)}
 /* ================= 발판·구매 ================= */
 let padCoinT=0;
-function completePad(pd){const lv=padLv(pd.id);S.pads[pd.id]=lv+1;S.padProg[pd.id]=0;if(pd.id==='drill'&&blocked(S.p.x,S.p.y))S.p.y=STN.drill.y+STN.drill.h/2+9;sfx(pd.zone?'unlock':'ding');ringFx(pd.x,pd.y);ringFx(pd.x,pd.y,COL.white,12);const g=padG.get(pd.id);if(g)pop(g,1.4,.5);
-  flashScreen(pd.zone?.5:.3);shake(pd.zone?7:3);buzz(pd.zone?[40,30,60]:30);toast(`✨ ${pd.n} ${pd.max>1?'Lv.'+(lv+1):'완료'}`);onPad(pd.id);save();renderHud();if($('#sheet').classList.contains('on'))renderSheet()}
-function tickPads(dt){if(walking)return;const p=S.p;padCoinT-=dt;for(const pd of PADS){const lv=padLv(pd.id);if(lv>=pd.max||!pd.req(S))continue;if(Math.hypot(p.x-pd.x,p.y-pd.y)>30)continue;
-  const cost=pd.cost(lv);let prog=S.padProg[pd.id]||0;if(prog>=cost)continue;const take=Math.min(S.bells,cost-prog,Math.max(3,cost*dt*1.1));if(take<=0)continue;
-  S.bells-=take;prog+=take;S.padProg[pd.id]=prog;if(padCoinT<=0){padCoinT=.08;fly('coin',{x:p.x,y:p.y,h:50},{x:pd.x,y:pd.y,h:4},.25);sfx('tick',prog/cost);punch($('#bellsN'))}
+function completePad(pd){const lv=padLv(pd.id);S.pads[pd.id]=lv+1;S.padProg[pd.id]=0;if(pd.id==='drill'&&blocked(S.p.x,S.p.y))S.p.y=STN.drill.y+STN.drill.h/2+9;sfx(pd.zone?'unlock':'ding');if(!pd.menu){ringFx(pd.x,pd.y);ringFx(pd.x,pd.y,COL.white,12)}const g=padG.get(pd.id);if(g)pop(g,1.4,.5);
+  flashScreen(pd.zone?.5:.3);shake(pd.zone?7:3);buzz(pd.zone?[40,30,60]:30);toast(`✨ ${pd.n} ${pd.max>1?'Lv.'+(lv+1):'완료'}`);onPad(pd.id);refreshVis(true);save();renderHud();if($('#sheet').classList.contains('on'))renderSheet()}
+function tickPads(dt){if(walking)return;const p=S.p;padCoinT-=dt;for(const pd of PADS){const lv=padLv(pd.id);if(lv>=pd.max||!pd.req(S)||!visSet.has(pd.id))continue;if(Math.hypot(p.x-pd.x,p.y-pd.y)>30)continue;
+  const cost=pd.cost(lv);let prog=S.padProg[pd.id]||0;if(prog>=cost)continue;const take=Math.min(S.bells,cost-prog,Math.max(3,cost*dt*.6));if(take<=0)continue;
+  S.bells-=take;prog+=take;S.padProg[pd.id]=prog;if(padCoinT<=0){padCoinT=.05;fly('coin',{x:p.x,y:p.y,h:50},{x:pd.x,y:pd.y,h:4},.25);sfx('tick',prog/cost);punch($('#bellsN'))}
   if(prog>=cost)completePad(pd)}}
 function buyPad(id,el){const pd=PADS.find(p=>p.id===id);if(!pd)return false;const lv=padLv(id);if(lv>=pd.max||!pd.req(S))return false;const rem=pd.cost(lv)-(S.padProg[id]||0);if(S.bells<rem){sfx('no');toast('벨이 부족해요');buzz(40);if(el){el.classList.remove('punch');void el.offsetWidth;el.classList.add('punch')}return false}
-  S.bells-=rem;const n=Math.min(8,Math.ceil(rem/60));for(let i=0;i<n;i++)setTimeout(()=>fly('coin',{x:S.p.x,y:S.p.y,h:50},{x:pd.x,y:pd.y,h:4},.45,null,80),i*40);
-  if(el){const r=el.getBoundingClientRect();coinsFromHud(r.left+r.width/2,r.top+r.height/2,Math.min(12,n+4))}completePad(pd);return true}
+  S.bells-=rem;const n=Math.min(8,Math.ceil(rem/60));if(!pd.menu)for(let i=0;i<n;i++)setTimeout(()=>fly('coin',{x:S.p.x,y:S.p.y,h:50},{x:pd.x,y:pd.y,h:4},.45,null,80),i*40);
+  if(pd.menu){closeSheet();const sc=toScreen(S.p.x,S.p.y,40);coinsFromHud(sc.x,sc.y,6)} /* 시트 스탯: 시트 닫고 HUD→플레이어 코인 아크 */
+  else if(el){const r=el.getBoundingClientRect();coinsFromHud(r.left+r.width/2,r.top+r.height/2,Math.min(12,n+4))}completePad(pd);return true}
 function buyDeco(id,el){const d=DECOS.find(x=>x.id===id);if(!d||S.deco[id])return false;if(S.bells<d.c){sfx('no');toast('벨이 부족해요');buzz(40);return false}S.bells-=d.c;S.deco[id]=1;applyDeco();sfx('unlock');flashScreen(.3);toast(`🎨 ${d.n} 적용!`);if(el){const r=el.getBoundingClientRect();coinsFromHud(r.left+r.width/2,r.top+r.height/2,10)}const sc=toScreen(STN.counter.x,STN.counter.y,80);confetti(sc.x,sc.y,20);save();renderHud();if($('#sheet').classList.contains('on'))renderSheet();return true}
 function spawnBot(k,cart){const b=k==='cashier'?{k:'cashier',x:STN.register.x+2,y:STN.register.y-34,dir:[0,1]}:mkRunner();bots.push(b);const g=addShadow(bRobot(k==='cashier'?0x9aa7b2:COL.orange,cart),cart?18:13);g.position.copy(W2T(b.x,b.y));world.add(g);botG.push(g);b.g=g;pop(g);return b}
 function unlockZone(k){const zg=zoneG[k];if(!zg)return;zg.g.visible=true;pop(zg.g,.05,.7);if(zg.arch){zg.arch.userData.lock.visible=false;pop(zg.arch,.6,.5)}ringFx((zg.z.x0+zg.z.x1)/2,(zg.z.y0+zg.z.y1)/2,COL.white,60);syncLamps();const sc=toScreen((zg.z.x0+zg.z.x1)/2,(zg.z.y0+zg.z.y1)/2,40);confetti(clamp(sc.x,40,VW-40),clamp(sc.y,80,VH-80),32)}
@@ -791,7 +803,7 @@ function spawnHoppers(){if(hoppers.length)return;for(let i=0;i<3;i++){const h={x
 let steamT=0;
 function tickMachines(dt){
   if(S.meltQ>0){S.meltT+=dt;steamT-=dt;if(steamT<=0){steamT=.28;steamPuff(STN.melter.x-8,STN.melter.y-2,82)}if(S.meltT>=meltTime()){S.meltT=0;S.meltQ--;S.water+=10;sfx('puff')}}else S.meltT=0;
-  if(S.water>=10&&S.bottles<BOTTLE_CAP){S.botT+=dt;if(S.botT>=bottleTime()){S.botT=0;S.water-=10;S.bottles++;const s=STN.bottler;fly('bottle',{x:s.x-8,y:s.y+24,h:10},{x:s.x-32+((S.bottles-1)%6)*10,y:s.y+24,h:10},.3);sq(stnG.bottler,.2)}}else S.botT=0;
+  if(S.water>=10&&S.bottles<BOTTLE_CAP){S.botT+=dt;if(S.botT>=bottleTime()){S.botT=0;S.water-=10;S.bottles++;const s=STN.bottler;fly('bottle',{x:s.x+30,y:s.y+30,h:10},trayPos(S.bottles-1),.3);sq(stnG.bottler,.2)}}else S.botT=0;
   for(let i=0;i<S.spots.length;i++)if(S.spots[i]>0){S.spots[i]=Math.max(0,S.spots[i]-dt);if(S.spots[i]===0&&spotOpen(i)){iceG[i].userData.s=1;pop(iceG[i],.2)}}
   if(padLv('drill')){S.drillT=(S.drillT||0)+dt;if(S.drillT>=2.5){S.drillT=0;if(S.meltQ<MELT_CAP){const d=STN.drill,m=STN.melter;fly('ice',{x:d.x,y:d.y+10,h:30},{x:m.x-8,y:m.y-2,h:78},.9,()=>{S.meltQ++},140)}}}
   if(padLv('pen')){S.penT+=dt;if(S.penT>=22){S.penT=0;if(S.penTip<bottlePrice()*8){S.penTip+=Math.round(bottlePrice()*1.2);sfx('hop');floatTxt(PEN_TIP.x,PEN_TIP.y,'<i class="ic bell"></i>',true);const h=hoppers[Math.random()*hoppers.length|0];if(h)sq(h.g,1.2)}}}
@@ -823,9 +835,9 @@ function moveTo(e,tx,ty,sp){const dx=tx-e.x,dy=ty-e.y,L=Math.hypot(dx,dy);if(L<.
 /* ================= 로봇 ================= */
 function tickBots(dt){for(const b of bots){b.moving=false;if(b.k!=='runner')continue;const sp=runnerSpd()*dt;
   if(b.st==='toBottler'){if(moveTo(b,STN.bottler.x-58,STN.bottler.y+8,sp)<2){b.st='load';b.t=0;b.dir=[1,0]}}
-  else if(b.st==='load'){b.t+=dt;if(S.bottles>0&&b.carry<4&&b.t>.25){b.t=0;S.bottles--;b.carry++;const s=STN.bottler;fly('bottle',{x:s.x-32,y:s.y+24,h:10},{x:b.x+10,y:b.y+8,h:24},.25)}if(b.carry>=4||(b.carry>0&&S.bottles===0&&b.t>1.5))b.st='toCounter'}
+  else if(b.st==='load'){b.t+=dt;if(S.bottles>0&&b.carry<8&&b.t>.18){b.t=0;S.bottles--;b.carry++;fly('bottle',trayPos(S.bottles),{x:b.x+10,y:b.y+8,h:24},.25)}if(b.carry>=8||(b.carry>0&&S.bottles===0&&b.t>1.5))b.st='toCounter'}
   else if(b.st==='toCounter'){if(moveTo(b,STN.counter.x-30,STN.counter.y-40,sp)<2){b.st='unload';b.t=0;b.dir=[0,1]}}
-  else if(b.st==='unload'){b.t+=dt;if(b.carry>0&&S.shelf<shelfCap()&&b.t>.2){b.t=0;b.carry--;const i=S.shelf;S.shelf++;fly('bottle',{x:b.x,y:b.y+12,h:24},shelfPos(i),.25,()=>sfx('put'))}if(b.carry===0)b.st='toBottler';else if(S.shelf>=shelfCap())b.t=0}}}
+  else if(b.st==='unload'){b.t+=dt;if(b.carry>0&&S.shelf<shelfCap()&&b.t>.15){b.t=0;b.carry--;const i=S.shelf;S.shelf++;fly('bottle',{x:b.x,y:b.y+12,h:24},shelfPos(i),.25,()=>sfx('put'))}if(b.carry===0)b.st='toBottler';else if(S.shelf>=shelfCap())b.t=0}}}
 function tickHoppers(dt){for(const h of hoppers){h.moving=false;if(h.wait>0){h.wait-=dt;if(h.wait<=0){h.tx=PEN.x0+20+Math.random()*(PEN.x1-PEN.x0-40);h.ty=PEN.y0+44+Math.random()*(PEN.y1-PEN.y0-66)}continue}
   const d=moveTo(h,h.tx,h.ty,58*dt);h.hop+=dt*7.5;if(d<2){h.wait=1+Math.random()*3;h.hop=0}}}
 /* ================= 부재 중 수익 ================= */
@@ -842,9 +854,20 @@ $('#chestOk').onclick=()=>{$('#chestM').classList.remove('on');chestBusy=false;h
 function prestige(){S.prestige=(S.prestige||0)+1;S.pads={};S.padProg={};S.bells=0;S.shelf=0;S.bottles=0;S.water=0;S.cash=0;S.meltQ=0;S.meltT=0;S.botT=0;S.penTip=0;S.spots=ICE_SPOTS.map(()=>0);S.p={x:200,y:450,dir:[0,1],carry:[]};for(const [id,g] of custG)rmChar(g);custG.clear();custs=[];seats.forEach(s=>{s.used=0;s.tip=0;s.mesh.visible=false});restoreBots();syncLamps();applyDeco();save();renderHud();closeSheet();flashScreen(.8);shake(8);sfx('chest');toast(`🚀 새 기지! 물병 값 ×${prestigeMul().toFixed(1)}`)}
 /* ================= 힌트·목표 ================= */
 let hintTarget=null;
-function nextPad(){let best=null;for(const pd of PADS){const lv=padLv(pd.id);if(lv>=pd.max||!pd.req(S))continue;const cost=pd.cost(lv),prog=S.padProg[pd.id]||0;if(!best||cost-prog<best.rem)best={pd,lv,cost,prog,rem:cost-prog}}return best}
-function hint(){const c=S.p.carry,s=S;let t='',tg=null;const ice=c.length&&c[0]==='ice',bot=c.length&&c[0]==='bottle';
-  if(ice&&(c.length>=Math.min(carryMax(),3)||s.bottles>0||!s.spots.some((v,i)=>v<=0&&spotOpen(i)))){t='제빙기에 얼음을 넣어요';tg=STN.melter}
+/* 월드 발판 노출 규칙: ORDER 순서로 아직 안 산 것 최대 2개(+부분 납입 중인 것). 시트 전용(menu) 스탯은 제외. ORDER가 소진되면 남은 것 중 가장 싼 2개 */
+const ORDER=['cashier','bottler','ice2','melter','shelf','runner','ads','bottler','melter','drill','pen','shelf','ads','dome','runspd','bottler','melter','runner2','ads','shelf','runspd','bottler','melter','runspd','ads','bottler','melter','runspd','shelf'];
+function visiblePads(){const cnt={},out=[];for(const id of ORDER){cnt[id]=(cnt[id]||0)+1;const pd=PADS.find(p=>p.id===id);if(!pd||pd.menu||padLv(id)>=cnt[id]||padLv(id)>=pd.max||!pd.req(S))continue;if(!out.includes(pd))out.push(pd);if(out.length>=2)break}
+  for(const pd of PADS)if(!pd.menu&&(S.padProg[pd.id]||0)>0&&padLv(pd.id)<pd.max&&!out.includes(pd))out.push(pd);
+  if(!out.length){const rest=PADS.filter(p=>!p.menu&&padLv(p.id)<p.max&&p.req(S)).sort((a,b)=>a.cost(padLv(a.id))-b.cost(padLv(b.id)));out.push(...rest.slice(0,2))}return out}
+let visSet=new Set(),visList=[],visInit=false;
+/* 단일 visSet: tickPads·render·hint·시트가 모두 이것만 본다 (0.3s 힌트 타이머 + 구매 직후 갱신). 새로 드러나는 발판은 pop+링, 잠긴 구역 게이트도 그때 처음 보인다 */
+function refreshVis(fx){const vp=visiblePads();if(fx&&visInit)for(const pd of vp)if(!visSet.has(pd.id)){const g=padG.get(pd.id);if(g){g.visible=true;pop(g,1.4,.5);ringFx(pd.x,pd.y)}if(pd.zone){const a=zoneG[pd.zone].arch;if(a&&!a.visible){a.visible=true;pop(a,.3,.6)}}}
+  visList=vp;visSet=new Set(vp.map(p=>p.id));visInit=true;return vp}
+const menuBuyable=()=>PADS.some(pd=>pd.menu&&padLv(pd.id)<pd.max&&pd.req(S)&&S.bells>=pd.cost(padLv(pd.id)));
+function nextPad(){const pd=visList[0];if(!pd)return null;const lv=padLv(pd.id),cost=pd.cost(lv),prog=S.padProg[pd.id]||0;return{pd,lv,cost,prog,rem:cost-prog}}
+function hint(){const c=S.p.carry,s=S,u=playerG.userData;let t='',tg=null;const ice=c.length&&c[0]==='ice',bot=c.length&&c[0]==='bottle';
+  if(ice&&(c.length>=carryMax()||s.bottles>0||u.unload||!s.spots.some((v,i)=>v<=0&&spotOpen(i)))){t='제빙기에 얼음을 넣어요';tg=STN.melter} /* 가득 찼거나·붓기 시작했거나·밭이 비었을 때만 제빙기로 */
+  else if(bot&&u.loading&&s.bottles>0&&c.length<carryMax()){t='병입기에서 물병을 더 받아요';tg=STN.bottler}
   else if(bot&&s.shelf<shelfCap()){t='카운터에 물병을 올려요';tg={x:STN.counter.x,y:STN.counter.y-30}}
   else if(bot){if(padLv('cashier')){t='선반이 꽉 찼어요 · 손님이 사가면 올려요';tg={x:STN.counter.x,y:STN.counter.y-30}}else{t='선반이 꽉 찼어요 · 계산대 옆에 서서 팔아요';tg=STN.register}}
   else if(s.cash>0&&(!padLv('cashier')||s.cash>bottlePrice()*4)){t='계산대의 벨을 주워요';tg=STN.register}
@@ -853,6 +876,7 @@ function hint(){const c=S.p.carry,s=S;let t='',tg=null;const ice=c.length&&c[0]=
   else if(s.penTip>=bottlePrice()*4){t='토끼 우리에 떨어진 벨을 주워요';tg=PEN_TIP}
   else{const np=nextPad();
     if(np&&s.sold>=1&&s.bells>=np.rem*.5){t=np.pd.zone?`게이트 발판에 서서 구역을 열어요: ${np.pd.n}`:`노란 발판에 서서: ${np.pd.n}`;tg=np.pd}
+    else if(!np&&menuBuyable()){t='업그레이드 버튼을 눌러요';tg=null}
     else if(!padLv('drill')&&(s.meltQ===0||ice)){t=ice?'얼음을 더 주워요':'얼음을 주워요 (가까이 가면 자동)';const i=s.spots.findIndex((v,i)=>v<=0&&spotOpen(i));tg=i>=0?{x:ICE_SPOTS[i][0],y:ICE_SPOTS[i][1]}:null}
     else if(s.meltQ>0||s.water>=10){t='물병이 만들어지는 중…';tg=STN.bottler}}
   $('#hint').textContent=t;hintTarget=tg}
@@ -873,7 +897,7 @@ function blocked(x,y){if(x<14||x>W-14||y<30||y>H-16)return true;for(const k in S
 /* ================= 업데이트 ================= */
 let walking=false,animT=0,vel=[0,0],hintT=0,saveT=0,puffT=0;
 function update(dt){const p=S.p,v=inputVec();walking=false;const ox=p.x,oy=p.y;
-  if(v){const sp=165*dt;const nx=p.x+v[0]*sp,ny=p.y+v[1]*sp;if(!blocked(nx,p.y))p.x=nx;if(!blocked(p.x,ny))p.y=ny;p.dir=v;walking=true;animT+=dt;puffT-=dt;if(puffT<=0){puffT=.14;puff(p.x-v[0]*6,p.y-v[1]*6)}}
+  if(v){const sp=(165+18*padLv('spd'))*dt;const nx=p.x+v[0]*sp,ny=p.y+v[1]*sp;if(!blocked(nx,p.y))p.x=nx;if(!blocked(p.x,ny))p.y=ny;p.dir=v;walking=true;animT+=dt;puffT-=dt;if(puffT<=0){puffT=.14;puff(p.x-v[0]*6,p.y-v[1]*6)}}
   vel=[(p.x-ox)/Math.max(dt,.001),(p.y-oy)/Math.max(dt,.001)];
   // 시계·낮밤·러시
   S.clock+=dt;const d=Math.floor(S.clock/DAY_LEN)+1;if(d!==S.day){S.day=d;S.qc.dayRev=0;toast(`☀️ ${d}일째 아침이에요`)}
@@ -883,26 +907,31 @@ function update(dt){const p=S.p,v=inputVec();walking=false;const ox=p.x,oy=p.y;
   floats.forEach(f=>f.t+=dt);floats=floats.filter(f=>f.t<1.1);
   // 카메라: 이동 방향으로 살짝 앞서 보며 부드럽게 따라감
   const vh=viewH();cam.lead=lerp(cam.lead,clamp(vel[1]*.22,-50,50),Math.min(1,dt*3));const lo=vh*.5-80,hi=H-vh*.5+50;const ty=p.y+cam.lead+vh*.04;cam.y=lerp(cam.y,lo>hi?(lo+hi)/2:clamp(ty,lo,hi),Math.min(1,dt*5));cam.x=200;updateCamera();
-  hintT+=dt;if(hintT>.3){hintT=0;hint();questTick();renderHud();if(rush>0)$('#rushN').textContent=Math.ceil(rush);if($('#sheet').classList.contains('on'))renderSheet()}
+  hintT+=dt;if(hintT>.3){hintT=0;refreshVis(true);hint();questTick();renderHud();if(rush>0)$('#rushN').textContent=Math.ceil(rush);if($('#sheet').classList.contains('on'))renderSheet()}
   saveT+=dt;if(saveT>3){saveT=0;save()}}
 const hudPrev={};
 function setN(id,v){const e=$(id);const s=String(v);if(hudPrev[id]!==s){hudPrev[id]=s;e.textContent=s;if(hudPrev[id+'_']!==undefined)punch(e)}hudPrev[id+'_']=s}
 function renderHud(){setN('#bellsN',Math.floor(Math.max(0,S.bells-hudLag)));setN('#shelfN',`${S.shelf}/${shelfCap()}`);setN('#waterN',Math.floor(S.water));
   const q=QUESTS[S.quest],np=nextPad();let upTxt='';
   if(np){const have=np.prog+Math.min(S.bells,np.rem);upTxt=`<i class="ic up"></i>${np.pd.sn}${np.pd.max>1?' Lv.'+(np.lv+1):''} <i class="ic bell"></i>${Math.floor(have)}/${np.cost}`;$('#banner').classList.toggle('ok',S.bells>=np.rem)}
-  else{const nx=PADS.find(pd=>padLv(pd.id)<pd.max);upTxt=nx?`<i class="ic lock"></i>${nx.sn}: ${nx.rq} 후`:'모든 시설 완료!';$('#banner').classList.remove('ok')}
+  else{const nx=PADS.find(pd=>!pd.menu&&padLv(pd.id)<pd.max);upTxt=nx?`<i class="ic lock"></i>${nx.sn}: ${nx.rq} 후`:'모든 시설 완료!';$('#banner').classList.remove('ok')}
   if(q){const v=Math.min(q.v(S),q.g);$('#bt').innerHTML=`<i class="ic flag"></i>${q.t}`;$('#bp').style.width=Math.min(100,v/q.g*100)+'%';$('#bq').textContent=`${v} / ${q.g}`;$('#bs').innerHTML=`<i class="ic chest"></i>+${q.r} · ${upTxt}`;
     $('#qtxt').textContent=q.t;$('#qbf').style.width=Math.min(100,v/q.g*100)+'%';$('#qn').textContent=`${v}/${q.g}`;$('#qchip').classList.remove('done')}
   else{$('#bt').innerHTML='<i class="ic crown"></i>모든 목표 달성!';$('#bp').style.width='100%';$('#bq').textContent='';$('#bs').innerHTML=PADS.every(p=>padLv(p.id)>=p.max)?'🚀 업그레이드 시트에서 새 기지로 이주할 수 있어요':upTxt;$('#qtxt').textContent='모든 목표 달성!';$('#qbf').style.width='100%';$('#qn').textContent='👑';$('#qchip').classList.add('done')}
-  $('#upBtn').classList.toggle('has',PADS.some(pd=>padLv(pd.id)<pd.max&&pd.req(S)&&S.bells>=pd.cost(padLv(pd.id))-(S.padProg[pd.id]||0))||DECOS.some(d=>!S.deco[d.id]&&S.bells>=d.c&&S.sold>=8))}
+  $('#upBtn').classList.toggle('has',menuBuyable())}
 /* ================= 업그레이드 시트 (탭: 업그레이드 / 장식 / 목표) ================= */
 let sheetTab='up';
 function renderSheet(){const rows=$('#rows');let html='';
-  if(sheetTab==='up'){const order=PADS.map(pd=>{const lv=padLv(pd.id),max=lv>=pd.max,ok=pd.req(S);return{pd,lv,max,ok,k:max?2:ok?0:1}}).sort((a,b)=>a.k-b.k);
-    for(const {pd,lv,max,ok} of order){const cost=max?0:pd.cost(lv),rem=cost-(S.padProg[pd.id]||0),can=!max&&ok&&S.bells>=rem;
+  if(sheetTab==='up'){/* 상단 고정: 플레이어 3스탯(용량·이동 속도·수익) — 월드 발판 없음 */
+    html+='<div class="stats">';for(const pd of PADS){if(!pd.menu)continue;const lv=padLv(pd.id),max=lv>=pd.max,ok=pd.req(S),cost=max?0:pd.cost(lv),can=!max&&ok&&S.bells>=cost;
+      const pips=`<div class="pips">${Array.from({length:pd.max},(_,i)=>`<i class="${i<lv?'on':''}"></i>`).join('')}</div>`;
+      const btn=max?`<button class="buy max" disabled>MAX</button>`:!ok?`<button class="buy" disabled><i class="ic lock"></i>${pd.rq}</button>`:`<button class="buy" data-id="${pd.id}" ${can?'':'disabled'}><i class="ic bell"></i>${cost}</button>`;
+      html+=`<div class="row stat${!ok?' lock':''}${max?' done':''}"><div class="ico">${pd.ic}</div><div class="info"><div class="nm2">${pd.n}${!max?`<span class="lv">Lv.${lv+1}</span>`:''}</div>${pips}</div>${btn}</div>`}html+='</div>';
+    const order=PADS.filter(pd=>!pd.menu).map(pd=>{const lv=padLv(pd.id),max=lv>=pd.max,ok=pd.req(S),vis=visSet.has(pd.id);return{pd,lv,max,ok,vis,k:max?3:vis?0:ok?1:2}}).sort((a,b)=>a.k-b.k);
+    for(const {pd,lv,max,ok,vis} of order){const cost=max?0:pd.cost(lv),rem=cost-(S.padProg[pd.id]||0),can=!max&&ok&&S.bells>=rem;
       const pips=pd.max>1?`<div class="pips">${Array.from({length:pd.max},(_,i)=>`<i class="${i<lv?'on':''}"></i>`).join('')}</div>`:'';
       const btn=max?`<button class="buy max" disabled>MAX</button>`:!ok?`<button class="buy" disabled><i class="ic lock"></i>${pd.rq}</button>`:`<button class="buy" data-id="${pd.id}" ${can?'':'disabled'}><i class="ic bell"></i>${Math.ceil(rem)}</button>`;
-      html+=`<div class="row${!ok?' lock':''}${max?' done':''}"><div class="ico">${pd.ic}</div><div class="info"><div class="nm2">${pd.n}${pd.max>1&&!max?`<span class="lv">Lv.${lv+1}</span>`:''}${pd.zone?`<span class="lv">구역</span>`:''}</div><div class="ds">${pd.d}</div>${pips}</div>${btn}</div>`}}
+      html+=`<div class="row${!ok?' lock':''}${max?' done':''}${vis?' cur':''}"><div class="ico">${pd.ic}</div><div class="info"><div class="nm2">${pd.n}${pd.max>1&&!max?`<span class="lv">Lv.${lv+1}</span>`:''}${pd.zone?`<span class="lv">구역</span>`:''}</div><div class="ds">${pd.d}</div>${pips}</div>${btn}</div>`}}
   else if(sheetTab==='deco'){for(const d of DECOS){const got=!!S.deco[d.id],can=!got&&S.bells>=d.c;const btn=got?`<button class="buy got" disabled>✓ 적용됨</button>`:`<button class="buy" data-deco="${d.id}" ${can?'':'disabled'}><i class="ic bell"></i>${d.c}</button>`;
       html+=`<div class="row${got?' done':''}"><div class="deco-sw" style="background:${d.sw}">${d.ic}</div><div class="info"><div class="nm2">${d.n}</div><div class="ds">${d.d}</div></div>${btn}</div>`}}
   else{QUESTS.forEach((q,i)=>{const done=i<S.quest,cur=i===S.quest;if(i<S.quest-2||i>S.quest+3)return;const v=Math.min(q.v(S),q.g);
@@ -950,18 +979,19 @@ function render(t){const rdt=Math.min(.05,(t-lastR)/1000||0);lastR=t;const dt=1/
   // 먼지 토끼
   for(const h of hoppers){const an=h.g.userData.anim;const hop=h.moving?Math.abs(Math.sin(h.hop))*9:0;h.g.position.copy(W2T(h.x,h.y,hop));syncShadow(h.g,h.x,h.y,hop);turnTo(h.g,yawOf(h.dir),dt);tickSq(h.g,rdt);an.body.scale.y=.9*(h.moving?1+Math.cos(h.hop*2)*.08:1+Math.sin(t/400+an.ph)*.04);an.ears.forEach((e,i)=>e.rotation.z=(i?-1:1)*(.1+Math.sin(t/350+an.ph)*.12))}
   // 기계 상태 (살아있는 파츠)
-  {const m=stnG.melter;syncStack(m.userData.q,Array(Math.min(S.meltQ,5)).fill('ice'),'i'+Math.min(S.meltQ,5));setBar(m.userData.bar,S.meltQ>0?S.meltT/meltTime():0);m.userData.core.material.emissiveIntensity=S.meltQ>0?.9+Math.sin(t/110)*.5:.15;tickSq(m,rdt);
-    const b=stnG.bottler,bw=S.water>=10&&S.bottles<BOTTLE_CAP;syncStack(b.userData.out,Array(S.bottles).fill('bottle'),'o'+S.bottles,i=>[-22+(i%3)*15,Math.floor(i/3)*ITEM_H.bottle,0]);setBar(b.userData.bar,bw?S.botT/bottleTime():0);b.userData.flag.rotation.y=Math.sin(t/300)*.25;if(bw)beltTex.offset.x-=rdt*1.4;b.userData.bb.visible=bw;if(bw)b.userData.bb.position.x=lerp(32,2,S.botT/bottleTime());tickSq(b,rdt);
+  {const m=stnG.melter;syncStack(m.userData.q,Array(Math.min(S.meltQ,10)).fill('ice'),'i'+Math.min(S.meltQ,10),i=>[-6+(i%2)*14,Math.floor(i/2)*ITEM_H.ice,0]);setBar(m.userData.bar,S.meltQ>0?S.meltT/meltTime():0);m.userData.core.material.emissiveIntensity=S.meltQ>0?.9+Math.sin(t/110)*.5:.15;tickSq(m,rdt);
+    const b=stnG.bottler,bw=S.water>=10&&S.bottles<BOTTLE_CAP;syncStack(b.userData.out,Array(S.bottles).fill('bottle'),'o'+S.bottles,i=>[0,Math.floor(i/6)*ITEM_H.bottle,(i%6)*10-25]);setBar(b.userData.bar,bw?S.botT/bottleTime():0);b.userData.flag.rotation.y=Math.sin(t/300)*.25;if(bw)beltTex.offset.x-=rdt*1.4;b.userData.bb.visible=bw;if(bw)b.userData.bb.position.x=lerp(44,30,S.botT/bottleTime());tickSq(b,rdt);
     const cu=stnG.counter.userData;cu.flag.rotation.y=Math.sin(t/280+1)*.3;cu.awn.rotation.x=Math.sin(t/900)*.035;
-    syncStack(cu.shelf,Array(S.shelf).fill('bottle'),'s'+S.shelf,i=>[-84+(i%12)*15,0,-8+Math.floor(i/12)*14]);
+    syncStack(cu.shelf,Array(S.shelf).fill('bottle'),'s'+S.shelf,i=>[-84+(i%12)*15,0,-10+Math.floor(i/12)*12]);
     const n=S.cash>0?Math.min(12,Math.ceil(S.cash/12)):0;syncStack(stnG.register.userData.cash,Array(n).fill('bill'),'c'+n,i=>[(i%2)*17-8.5,Math.floor(i/2)*3.2,Math.sin(i*3)*1.5]);stnG.register.userData.scr.material.emissiveIntensity=.35+Math.sin(t/260)*.2+(S.cash>0?.35:0);
     if(stnG.drill.visible){const u=stnG.drill.userData;u.drill.rotation.y+=.3;u.drill.position.y=28+Math.sin(t/120)*4;u.beacon.material.emissiveIntensity=.6+Math.sin(t/200)*.5}
     landerG.userData.beacon.material.emissiveIntensity=.6+Math.sin(t/300)*.5;if(landerG.userData.flag)landerG.userData.flag.rotation.y=Math.sin(t/260)*.35;if(dishG)dishG.rotation.y=t/1800;
     const pt=penG.userData.tip;syncStack(pt,Array(S.penTip>0?Math.min(4,Math.ceil(S.penTip/15)):0).fill('coin'),'p'+Math.min(4,Math.ceil(S.penTip/15)),i=>[(i%2)*9-4.5,i>1?2:0,Math.floor(i/2)*9-4.5])}
   // 얼음
-  iceG.forEach((g,i)=>{g.visible=spotOpen(i);g.userData.m.position.y=Math.sin(t/500+i)*.6});
+  iceG.forEach((g,i)=>{g.visible=spotOpen(i);const m=g.userData.m;m.position.y=Math.sin(t/500+i)*.6;g.updateMatrix();m.updateMatrix();
+    PILE_L.forEach(([dx,dy,dz,ry],k)=>{if(g.visible){dummy.position.set(dx,1.2+dy,dz);dummy.rotation.set(0,ry,0);dummy.scale.setScalar(1);dummy.updateMatrix();dummy.matrix.premultiply(m.matrix).premultiply(g.matrix)}else dummy.matrix.makeScale(0,0,0);icePile.setMatrixAt(i*PILE_L.length+k,dummy.matrix)})});icePile.instanceMatrix.needsUpdate=true;
   // 발판
-  for(const [id,g] of padG){const {pd,ring,fill}=g.userData;const lv=padLv(id),vis=pd.req(S)&&lv<pd.max;g.visible=vis;if(!vis)continue;const cost=pd.cost(lv),prog=S.padProg[id]||0;const fs=Math.max(.001,Math.sqrt(prog/cost));fill.scale.set(fs,1,fs);const ok=S.bells>=cost-prog;ring.material=mat(ok?COL.gold:COL.cream,ok?{emissive:0xffd34d,emissiveIntensity:.3}:{});ring.scale.setScalar(ok?1+Math.sin(t/250)*.04:1)}
+  for(const [id,g] of padG){const {pd,ring,fill}=g.userData;const lv=padLv(id),vis=visSet.has(id);g.visible=vis;if(!vis)continue;const cost=pd.cost(lv),prog=S.padProg[id]||0;const fs=Math.max(.001,Math.sqrt(prog/cost));fill.scale.set(fs,1,fs);const ok=S.bells>=cost-prog;ring.material=mat(ok?COL.gold:COL.cream,ok?{emissive:0xffd34d,emissiveIntensity:.3}:{});ring.scale.setScalar(ok?1+Math.sin(t/250)*.04:1)}
   // 힌트 화살표
   if(hintTarget){const p=S.p,dx=hintTarget.x-p.x,dy=hintTarget.y-p.y,L=Math.hypot(dx,dy);arrowG.visible=L>70;targetRing.visible=true;
     if(L>70){arrowG.position.copy(W2T(p.x+dx/L*30,p.y+dy/L*30,30+Math.sin(t/150)*3));arrowG.rotation.y=Math.atan2(dx,dy)}
@@ -970,6 +1000,7 @@ function render(t){const rdt=Math.min(.05,(t-lastR)/1000||0);lastR=t;const dt=1/
   lab('rc-melt','rc',`<i class="ic ice"></i>${S.meltQ}<span style="opacity:.35">|</span><i class="ic drop"></i>${Math.floor(S.water)}`,STN.melter.x-8,STN.melter.y,100+bob,true);
   lab('rc-bot','rc'+(S.bottles>=BOTTLE_CAP?' full':''),cnt('bottle',S.bottles,BOTTLE_CAP),STN.bottler.x-10,STN.bottler.y,92+bob,true);
   lab('rc-shelf','rc'+(S.shelf>=shelfCap()?' full':''),cnt('bottle',S.shelf,shelfCap()),STN.counter.x-40,STN.counter.y,122+bob,true);
+  if(S.p.carry.length){const c=S.p.carry;lab('rc-carry','rc'+(c.length>=carryMax()?' full':''),`<i class="ic ${c[0]}"></i>${c.length}`,S.p.x,S.p.y,Math.max(72,34+c.length*ITEM_H[c[0]]+14),true)} /* 들고 있는 개수 칩: 등 뒤 탑 꼭대기 높이 */
   if(S.cash>0)lab('rc-cash','rc cash',`<i class="ic cash"></i>${S.cash}`,STN.register.x+36,STN.register.y+4,20+cashHeight()+bob,true);
   if(S.penTip>0&&padLv('pen'))lab('rc-pen','rc cash',`<i class="ic bell"></i>${S.penTip}`,PEN_TIP.x,PEN_TIP.y,26+bob,true);
   for(const [id,g] of padG){if(!g.visible)continue;const pd=g.userData.pd,lv=padLv(id),cost=pd.cost(lv),prog=S.padProg[id]||0,ok=S.bells>=cost-prog;
@@ -983,9 +1014,9 @@ function render(t){const rdt=Math.min(.05,(t-lastR)/1000||0);lastR=t;const dt=1/
 /* ================= 루프 ================= */
 let last=0;function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if(!$('#intro').classList.contains('on')){const n=window.dbg.steps||1;for(let i=0;i<n;i++){if(window.dbg.hook)window.dbg.hook();update(dt)}}else updateCamera();render(t);requestAnimationFrame(loop)}
 /* ================= 시작 ================= */
-function restoreBots(){for(const g of botG)rmChar(g);botG.length=0;bots=[];if(padLv('cashier'))spawnBot('cashier');if(padLv('runner'))spawnBot('runner',true);if(padLv('runner2'))spawnBot('runner',true);
+function restoreBots(){refreshVis(false);for(const g of botG)rmChar(g);botG.length=0;bots=[];if(padLv('cashier'))spawnBot('cashier');if(padLv('runner'))spawnBot('runner',true);if(padLv('runner2'))spawnBot('runner',true);
   stnG.drill.visible=padLv('drill')>0;domeG.visible=padLv('dome')>0;penG.visible=padLv('pen')>0;if(padLv('pen'))spawnHoppers();else{for(const h of hoppers)rmChar(h.g);hoppers.length=0}
-  for(const k in ZONES){const zg=zoneG[k];const open=zoneOpen(k);zg.g.visible=open;zg.g.scale.setScalar(1);if(zg.arch)zg.arch.userData.lock.visible=!open}
+  for(const k in ZONES){const zg=zoneG[k];const open=zoneOpen(k);zg.g.visible=open;zg.g.scale.setScalar(1);if(zg.arch){zg.arch.userData.lock.visible=!open;zg.arch.visible=open||visSet.has(zg.z.pad);zg.arch.scale.setScalar(1)}}
   ICE_SPOTS.forEach((_,i)=>{iceG[i].scale.setScalar(S.spots[i]>0?.001:1);iceG[i].visible=spotOpen(i)});syncLamps()}
 if(blocked(S.p.x,S.p.y)){const f=fresh().p;S.p.x=f.x;S.p.y=f.y;S.p.dir=[0,1]} // 옛 배치의 저장 위치가 새 건물 안이면 갇히므로 시작 지점으로
 if(S.qinit){delete S.qinit;let i=0;while(i<QUESTS.length&&QUESTS[i].v(S)>=QUESTS[i].g)i++;S.quest=i} // 목표가 없던 옛 저장: 이미 이룬 목표는 건너뛴다
@@ -1003,6 +1034,7 @@ window.dbg={onPad,restoreBots,save,buyPad,buyDeco,unlockZone,openSheet,setTab,re
   spawnCust:(vip,want=1)=>{const c={id:uid++,x:QUEUE_X,y:QUEUE_Y0,st:'queue',want,col:CUST_COLS[0],acc:0,vip:!!vip,wait:0,t:0,dir:[0,-1],tx:QUEUE_X,ty:QUEUE_Y0};custs.push(c);return c},
   canopyMap:()=>stnG.counter.userData.canopy.material.map===stripeTex2?'blue':'orange',calls:()=>renderer.info.render.calls,chestOpen:()=>$('#chestM').classList.contains('on')};
 window.PADS=PADS;window.STN=STN;window.ICE_SPOTS=ICE_SPOTS;window.ZONES=ZONES;window.padLv=padLv;window.carryMax=carryMax;window.spotOpen=spotOpen;window.QUESTS=QUESTS;window.DECOS=DECOS;
+window.CARRY=CARRY;window.ORDER=ORDER;window.visiblePads=visiblePads;window.visSet=()=>visSet;window.shelfCap=shelfCap;window.ITEM_H=ITEM_H;
 requestAnimationFrame(loop);
 </script>
 </body>

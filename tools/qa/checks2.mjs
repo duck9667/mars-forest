@@ -29,7 +29,7 @@ await p.waitForTimeout(600);await p.screenshot({path:'chk_night.png'});
 // 6) 러시: 타이머 강제 → 배너 on → 20초 뒤 종료 카운트
 await p.evaluate(()=>{S.clock=0;dbg.applyDay();dbg.startRush();dbg.steps=20});await p.waitForTimeout(1200);
 const r1=await p.evaluate(()=>({rush:dbg.rush(),on:document.getElementById('rush').classList.contains('on')}));
-await p.evaluate(()=>{dbg.steps=400});await p.waitForTimeout(4000);
+await p.evaluate(()=>{dbg.steps=100});await p.waitForTimeout(4000); // 100스텝(프레임당 5게임초): 20초 러시는 4프레임에 끝나고, 다음 러시(240초)는 4초 안에 못 온다 (400스텝이면 빠른 머신에서 두 번째 러시까지 돌아 cnt=2)
 const r2=await p.evaluate(()=>{dbg.steps=1;return{rush:dbg.rush(),on:document.getElementById('rush').classList.contains('on'),cnt:S.qc.rush}});
 ok('rush hour starts and ends',r1.rush>0&&r1.on&&r2.rush===0&&!r2.on&&r2.cnt===1,JSON.stringify({r1,r2}));
 // 7) 저장 왕복: 새 필드
