@@ -1,9 +1,9 @@
-// 자동 플레이: node bot.mjs <out.png> [wallSecs] [steps] — 루프 완주(판매·발판 구매) 검증. 조향은 게임 스텝마다 hook으로. 데드존 5 (> 스텝 보폭 8.25/2, 발판 위 진동 방지), 보물상자 모달은 자동으로 닫음.
+// 자동 플레이: node bot.mjs <out.png> [wallSecs] [steps] — 루프 완주(판매·발판 구매) 검증. 조향은 게임 스텝마다 hook으로. 데드존 5 (> 스텝 보폭 8.25/2, 발판 위 진동 방지). 보물상자는 비차단 팝이라 닫을 것이 없다.
 import { openPage, BASE } from './lib.mjs';
 const secs=+(process.argv[3]||120),steps=+(process.argv[4]||8);
 const {b,p,logs}=await openPage({dpr:1});
 await p.evaluate(()=>document.getElementById('start').click());
-await p.evaluate((steps)=>{dbg.renderer.shadowMap.enabled=false;dbg.steps=steps;window.__gt=0;dbg.hook=()=>{window.__gt+=1/60;{const m=document.getElementById('chestM');if(m&&m.classList.contains('on'))document.getElementById('chestOk').click()}const p=S.p,c=p.carry;let tg=null;
+await p.evaluate((steps)=>{dbg.renderer.shadowMap.enabled=false;dbg.steps=steps;window.__gt=0;dbg.hook=()=>{window.__gt+=1/60;const p=S.p,c=p.carry;let tg=null;
   const ice=c.length&&c[0]==='ice',bot=c.length&&c[0]==='bottle';
   if(ice&&c.length>=carryMax())window.__ul=1;if(bot&&(c.length>=carryMax()||S.bottles===0))window.__dl=1;if(!c.length)window.__ul=window.__dl=0; // 가득 차면 다 비울 때까지 제빙기에, 병은 가득 차거나 트레이가 빌 때까지 받는다
   const pad=visiblePads().find(pd=>S.bells>=pd.cost(padLv(pd.id))-(S.padProg[pd.id]||0)); // 월드에 노출된 발판(최대 2개)만 설 수 있다

@@ -5,7 +5,7 @@ const out=[];const ok=(name,c,extra='')=>out.push((c?'PASS ':'FAIL ')+name+(extr
 const {b,p,logs}=await openPage();
 await p.goto(BASE+'/README.md');await p.evaluate(()=>{const s={bells:1234,sold:40,custs:30,pads:{hand:2,cashier:1,runner:1,drill:1,dome:1},padProg:{hand:50,price:20,bottler:30},p:{x:200,y:430,dir:[0,1],carry:[]},water:20,bottles:2,shelf:5,cash:36,meltQ:3,meltT:0,botT:0,spots:[0,0,5,0,0,0],savedAt:Date.now()-40*60*1000,muted:false,spawnT:3};localStorage.setItem('mars-bottle-v1',JSON.stringify(s))});
 await p.goto(BASE+'/app/index.html',{waitUntil:'load'});await p.waitForTimeout(800);
-const m=await p.evaluate(()=>({spots:S.spots.length,ice2:S.pads.ice2,drillVis:dbg.renderer&&true,sold:S.sold,bells:Math.floor(S.bells),padProgB:S.padProg.bottler,intro:document.querySelector('#intro h1').textContent,zoneIce2:ZONES.ice2&&true,bots:bots.length}));
+const m=await p.evaluate(()=>({spots:S.spots.length,ice2:S.pads.ice2,drillVis:dbg.renderer&&true,sold:S.sold,bells:Math.floor(S.bells),padProgB:S.padProg.bottler,intro:document.querySelector('#introSub').textContent,zoneIce2:ZONES.ice2&&true,bots:bots.length}));
 ok('migrate spots 6->12',m.spots===12,JSON.stringify(m));ok('migrate refunds menu padProg (hand 50 + price 20, bottler kept)',m.bells===1234+70&&m.padProgB===30,JSON.stringify({bells:m.bells,padProgB:m.padProgB}));ok('migrate drill->ice2',m.ice2===1);ok('bots restored',m.bots===2);ok('intro resume title',m.intro==='다시 오셨군요');
 await p.evaluate(()=>{S.savedAt=Date.now()-40*60*1000;document.getElementById('start').click()});await p.waitForTimeout(400);
 const off=await p.evaluate(()=>({on:document.getElementById('offline').classList.contains('on'),amt:document.getElementById('offamt').textContent,txt:document.getElementById('offtxt').textContent,bells:Math.floor(S.bells)}));
@@ -25,8 +25,8 @@ const clicked=await p.evaluate(()=>{const b=document.querySelector('.buy[data-id
 await p.waitForTimeout(300);const after=await p.evaluate(()=>padLv('hand'));ok('sheet buy hand',clicked&&after===before+1,`${before}->${after}`);
 await p.screenshot({path:'out/chk_sheet.png'});
 await p.evaluate(()=>document.getElementById('sheetClose').click());
-// 4) 벨 부족 시 구매 실패 + 토스트
-const fail=await p.evaluate(()=>{S.bells=0;const r=dbg.buyPad('ads');return{r,toast:document.getElementById('toast').textContent}});ok('buy fails w/o bells',fail.r===false&&fail.toast==='벨이 부족해요',JSON.stringify(fail));
+// 4) 벨 부족 시 구매 실패 + HUD 벨 흔들림 (v4: 문장 토스트 없음)
+const fail=await p.evaluate(()=>{S.bells=0;const r=dbg.buyPad('ads');return{r,shake:document.getElementById('bells').classList.contains('shakeX'),toast:document.getElementById('toast').textContent}});ok('buy fails w/o bells (bells shake, no toast)',fail.r===false&&fail.shake&&!/벨이 부족/.test(fail.toast),JSON.stringify(fail));
 // 5) 저장 왕복: save -> reload -> 같은 값
 await p.evaluate(()=>{S.bells=777;dbg.save()});await p.reload({waitUntil:'load'});await p.waitForTimeout(800);
 const rt=await p.evaluate(()=>({bells:Math.floor(S.bells),pen:padLv('pen'),hand:padLv('hand'),hoppers:document.querySelectorAll('#labels>div').length>=0}));ok('save roundtrip',rt.bells===777&&rt.pen===1,JSON.stringify(rt));

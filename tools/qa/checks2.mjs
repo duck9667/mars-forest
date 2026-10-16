@@ -3,11 +3,11 @@ import { openPage, BASE } from './lib.mjs';
 const out=[];const ok=(name,c,extra='')=>out.push((c?'PASS ':'FAIL ')+name+(extra?' '+extra:''));
 const {b,p,logs}=await openPage();
 await p.evaluate(()=>document.getElementById('start').click());await p.waitForTimeout(300);
-// 1) 목표: 물병 1개 팔기 → 상자 모달 + 보상
-const q1=await p.evaluate(()=>{const b0=S.bells;S.sold=1;dbg.questTick();return{quest:S.quest,bells:S.bells-b0,chest:dbg.chestOpen(),txt:document.getElementById('chestTxt').textContent}});
-ok('quest 1 complete + chest',q1.quest===1&&q1.bells===30&&q1.chest,JSON.stringify(q1));
-await p.waitForTimeout(1200);await p.screenshot({path:'chk_chest.png'});
-const q2=await p.evaluate(()=>{document.getElementById('chestOk').click();S.sold=0;dbg.questTick();return{chest:dbg.chestOpen(),quest:S.quest}});ok('chest closes, no re-trigger',!q2.chest&&q2.quest===1,JSON.stringify(q2));
+// 1) 목표: 물병 1개 팔기 → 비차단 상자 팝(#chestPop.on) + 보상, 모달·버튼 없음
+const q1=await p.evaluate(()=>{const b0=S.bells;S.sold=1;dbg.questTick();return{quest:S.quest,bells:S.bells-b0,chest:dbg.chestOpen(),amt:document.getElementById('chestAmt').textContent,modal:!!document.querySelector('.modal.on'),ic:document.getElementById('chestIc').textContent}});
+ok('quest 1 complete + chest pop (non-blocking)',q1.quest===1&&q1.bells===30&&q1.chest&&!q1.modal&&q1.amt==='+30',JSON.stringify(q1));
+await p.waitForTimeout(600);await p.screenshot({path:'out/chk_chest.png'});await p.waitForTimeout(1200);
+const q2=await p.evaluate(()=>{S.sold=0;dbg.questTick();return{chest:dbg.chestOpen(),quest:S.quest}});ok('chest pop ends by itself, no re-trigger',!q2.chest&&q2.quest===1,JSON.stringify(q2));
 // 2) 콤보: 삐걱 + 선반 재고 + 손님 3명 → 2초 안에 3판매
 await p.evaluate(()=>{S.pads.cashier=1;dbg.restoreBots();S.shelf=12;S.sold=0;S.quest=99;S.spawnT=999;for(let i=0;i<3;i++)dbg.spawnCust(false,1);dbg.steps=30});
 await p.waitForTimeout(2500);
@@ -18,14 +18,14 @@ await p.evaluate(()=>{dbg.steps=1;S.clock+=10;S.cash=0;S.sold=25;S.spawnT=999;cu
 await p.waitForTimeout(1800);
 const vp=await p.evaluate(()=>({vip:S.qc.vip,cash:S.cash,sold:S.sold,lab:[...document.querySelectorAll('#labels .nm.vip')].length}));
 ok('VIP pays x3 + tip (12*2*3+24=96)',vp.vip===1&&vp.cash===96,JSON.stringify(vp));
-await p.screenshot({path:'chk_vip.png'});
+await p.screenshot({path:'out/chk_vip.png'});
 // 4) 장식 구매 → S.deco + 차양 텍스처 교체
 const dc=await p.evaluate(()=>{dbg.steps=1;S.bells=1000;const r=dbg.buyDeco('awning');return{r,deco:S.deco.awning,map:dbg.canopyMap(),bells:S.bells,again:dbg.buyDeco('awning')}});
 ok('deco awning bought + applied',dc.r===true&&dc.deco===1&&dc.map==='blue'&&dc.bells===850&&dc.again===false,JSON.stringify(dc));
 // 5) 낮밤: 시계를 밤으로 → 해 색·반구광 변화, 바닥 가시성(반구광 세기) 유지
 const dn=await p.evaluate(()=>{S.clock=0;dbg.applyDay();const noon=dbg.sun.color.getHex(),ni=dbg.sun.intensity;S.clock=175;dbg.applyDay();return{noon:noon.toString(16),night:dbg.sun.color.getHex().toString(16),nf:dbg.night(),hemi:dbg.hemi.intensity,sunI:dbg.sun.intensity,noonI:ni}});
 ok('day/night tint changes',dn.noon!==dn.night&&dn.nf>.9&&dn.hemi>=1.1&&dn.sunI<dn.noonI,JSON.stringify(dn));
-await p.waitForTimeout(600);await p.screenshot({path:'chk_night.png'});
+await p.waitForTimeout(600);await p.screenshot({path:'out/chk_night.png'});
 // 6) 러시: 타이머 강제 → 배너 on → 20초 뒤 종료 카운트
 await p.evaluate(()=>{S.clock=0;dbg.applyDay();dbg.startRush();dbg.steps=20});await p.waitForTimeout(1200);
 const r1=await p.evaluate(()=>({rush:dbg.rush(),on:document.getElementById('rush').classList.contains('on')}));
@@ -39,14 +39,14 @@ ok('save roundtrip new fields',rt.quest===11&&rt.comboMax===4&&rt.dayBest===321&
 // 8) 옛 저장(목표 없음) → 이미 이룬 목표는 건너뜀
 await p.goto(BASE+'/README.md');await p.evaluate(()=>{const s={bells:1234,sold:40,custs:30,pads:{hand:2,cashier:1,runner:1,drill:1,dome:1},padProg:{},p:{x:200,y:430,dir:[0,1],carry:[]},water:20,bottles:2,shelf:5,cash:36,meltQ:3,meltT:0,botT:0,spots:[0,0,5,0,0,0],savedAt:Date.now(),muted:false,spawnT:3};localStorage.setItem('mars-bottle-v1',JSON.stringify(s))});
 await p.goto(BASE+'/app/index.html',{waitUntil:'load'});await p.waitForTimeout(800);
-const mg=await p.evaluate(()=>({quest:S.quest,qc:typeof S.qc.streak,deco:typeof S.deco.tile,t:QUESTS[S.quest].t}));ok('old save fast-forwards satisfied quests',mg.quest===6&&mg.qc==='number'&&mg.deco==='number',JSON.stringify(mg));
-// 9) 시트 탭 렌더
-await p.evaluate(()=>{document.getElementById('start').click();dbg.openSheet('deco')});await p.waitForTimeout(400);
-const sh=await p.evaluate(()=>({deco:document.querySelectorAll('.buy[data-deco]').length,tabOn:document.querySelector('.tab.on').dataset.tab}));
-await p.screenshot({path:'chk_deco.png'});
+const mg=await p.evaluate(()=>({quest:S.quest,qc:typeof S.qc.streak,deco:typeof S.deco.tile,t:QUESTS[S.quest].t}));ok('old save fast-forwards satisfied quests (12-quest list: 7th = ads Lv.2)',mg.quest===7&&mg.qc==='number'&&mg.deco==='number',JSON.stringify(mg));
+// 9) 시트 탭 렌더 (장식 탭은 판매 60부터 보인다)
+await p.evaluate(()=>{document.getElementById('start').click();S.sold=60;dbg.openSheet('deco')});await p.waitForTimeout(400);
+const sh=await p.evaluate(()=>({deco:document.querySelectorAll('.buy[data-deco]').length,tabOn:document.querySelector('.tab.on').dataset.tab,decoTabVisible:!document.getElementById('tabDeco').classList.contains('hide')}));
+await p.screenshot({path:'out/chk_deco.png'});
 await p.evaluate(()=>dbg.setTab('quest'));await p.waitForTimeout(300);const sq=await p.evaluate(()=>({rows:document.querySelectorAll('#rows .row').length,cur:document.querySelectorAll('#rows .row.cur').length}));
-await p.screenshot({path:'chk_quest.png'});
-ok('sheet tabs deco/quest render',sh.deco===6&&sh.tabOn==='deco'&&sq.cur===1&&sq.rows>=6,JSON.stringify({sh,sq}));
+await p.screenshot({path:'out/chk_quest.png'});
+ok('sheet tabs deco/quest render',sh.deco===6&&sh.tabOn==='deco'&&sh.decoTabVisible&&sq.cur===1&&sq.rows>=6,JSON.stringify({sh,sq}));
 // 10) 이주(프레스티지): 모든 발판 MAX → 목표 탭에 이주 행 → 실행하면 시설 초기화·장식 유지·가격 ×1.5
 await p.evaluate(()=>{PADS.forEach(pd=>S.pads[pd.id]=pd.max);S.deco.awning=1;S.bells=50;dbg.applyDeco();dbg.setTab('quest')});await p.waitForTimeout(300);
 const pr=await p.evaluate(()=>{const row=document.querySelector('[data-prestige]');const p0=12;row.click();row.click();return{row:!!row,prestige:S.prestige,pads:Object.keys(S.pads).length,deco:S.deco.awning,map:dbg.canopyMap(),bells:S.bells,price:(()=>{return Math.round((12+0)*1.5)})(),sheet:document.getElementById('sheet').classList.contains('on')}});
