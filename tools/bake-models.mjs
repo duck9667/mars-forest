@@ -14,6 +14,14 @@ const LIST=[
   {name:'trees',file:'grass-trees.glb'},{name:'treesTall',file:'grass-trees-tall.glb'},{name:'fountain',file:'pavement-fountain.glb'},
   {name:'barrel',file:'barrel.glb',q:[0,0,0.7071068,0.7071068]}, // 누워 있는 통을 세운다 (z축 +90°)
   {name:'rockA',file:'formation-rock.glb'},{name:'rockB',file:'formation-large-rock.glb'},{name:'rockC',file:'formation-stone.glb'},{name:'rockD',file:'formation-large-stone.glb'},
+  // Kenney Space Kit (CC0): 건물·착륙선·소품
+  {name:'hangar',file:'hangar_smallA.glb'},{name:'hangarRound',file:'hangar_roundA.glb'},
+  {name:'tankBig',file:'machine_barrelLarge.glb'},{name:'gen',file:'machine_generator.glb'},{name:'genBig',file:'machine_generatorLarge.glb'},
+  {name:'pipe',file:'pipe_straight.glb'},{name:'chimney',file:'chimney_detailed.glb'},
+  {name:'rFins',file:'rocket_finsA.glb'},{name:'rFuel',file:'rocket_fuelA.glb'},{name:'rSides',file:'rocket_sidesA.glb'},{name:'rTop',file:'rocket_topA.glb'},
+  {name:'tower',file:'structure_detailed.glb'},{name:'barrels',file:'barrels.glb'},
+  {name:'pad',file:'platform_large.glb'},{name:'airlock',file:'corridor_end.glb'},
+  {name:'dish',file:'satelliteDish.glb'},{name:'rover',file:'rover.glb'},
 ];
 /* ---------- PNG (8bit RGB/RGBA, 비인터레이스) ---------- */
 function png(buf){if(buf.readUInt32BE(0)!==0x89504e47)throw new Error('not png');let p=8,w=0,h=0,ct=0,idat=[];
