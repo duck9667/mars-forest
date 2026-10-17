@@ -8,7 +8,7 @@ await p.goto(BASE+'/app/index.html',{waitUntil:'load'});await p.waitForTimeout(8
 const m=await p.evaluate(()=>({spots:S.spots.length,ice2:S.pads.ice2,drillVis:dbg.renderer&&true,sold:S.sold,bells:Math.floor(S.bells),padProgB:S.padProg.bottler,intro:document.querySelector('#introSub').textContent,zoneIce2:ZONES.ice2&&true,bots:bots.length}));
 ok('migrate spots 6->12',m.spots===12,JSON.stringify(m));ok('migrate refunds menu padProg (hand 50 + price 20, bottler kept)',m.bells===1234+70&&m.padProgB===30,JSON.stringify({bells:m.bells,padProgB:m.padProgB}));ok('migrate drill->ice2',m.ice2===1);ok('bots restored',m.bots===2);ok('intro resume title',m.intro==='다시 오셨군요');
 await p.evaluate(()=>{S.savedAt=Date.now()-40*60*1000;document.getElementById('start').click()});await p.waitForTimeout(400);
-const off=await p.evaluate(()=>({on:document.getElementById('offline').classList.contains('on'),amt:document.getElementById('offamt').textContent,txt:document.getElementById('offtxt').textContent,bells:Math.floor(S.bells)}));
+const off=await p.evaluate(()=>({on:document.getElementById('offline').classList.contains('on'),amt:document.getElementById('offamt').textContent,bells:Math.floor(S.bells)}));
 ok('offline modal shown',off.on,JSON.stringify(off));await p.screenshot({path:'out/chk_offline.png'});
 await p.evaluate(()=>document.getElementById('offok').click());
 // 2) 게이트 해제 팝 (pen): buyPad 후 0.25초 시점 스케일<1, 1초 후 1

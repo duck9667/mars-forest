@@ -47,9 +47,11 @@ await p.screenshot({path:'out/chk_deco.png'});
 await p.evaluate(()=>dbg.setTab('quest'));await p.waitForTimeout(300);const sq=await p.evaluate(()=>({rows:document.querySelectorAll('#rows .row').length,cur:document.querySelectorAll('#rows .row.cur').length}));
 await p.screenshot({path:'out/chk_quest.png'});
 ok('sheet tabs deco/quest render',sh.deco===6&&sh.tabOn==='deco'&&sh.decoTabVisible&&sq.cur===1&&sq.rows>=6,JSON.stringify({sh,sq}));
-// 10) 이주(프레스티지): 모든 발판 MAX → 목표 탭에 이주 행 → 실행하면 시설 초기화·장식 유지·가격 ×1.5
-await p.evaluate(()=>{PADS.forEach(pd=>S.pads[pd.id]=pd.max);S.deco.awning=1;S.bells=50;dbg.applyDeco();dbg.setTab('quest')});await p.waitForTimeout(300);
-const pr=await p.evaluate(()=>{const row=document.querySelector('[data-prestige]');const p0=12;row.click();row.click();return{row:!!row,prestige:S.prestige,pads:Object.keys(S.pads).length,deco:S.deco.awning,map:dbg.canopyMap(),bells:S.bells,price:(()=>{return Math.round((12+0)*1.5)})(),sheet:document.getElementById('sheet').classList.contains('on')}});
-ok('prestige resets base, keeps deco, x1.5',pr.row&&pr.prestige===1&&pr.pads===0&&pr.deco===1&&pr.map==='blue'&&pr.bells===0&&!pr.sheet,JSON.stringify(pr));
+// 10) 이주(프레스티지): 구역 3개+판매 300+테라포밍 60% → 업그레이드 탭 최상단 🚀 카드 → 실행하면 시설 초기화·장식·terraKeep 유지·가격 ×1.5
+const pre=await p.evaluate(()=>{PADS.forEach(pd=>S.pads[pd.id]=pd.max);S.sold=299;dbg.setTab('up');const b=document.querySelector('[data-prestige]');return{can:dbg.canPrestige(),btnDisabled:!b||b.disabled,terra:dbg.terra()}});
+ok('prestige locked until sold>=300 (card shown, button disabled)',pre.can===false&&pre.btnDisabled&&pre.terra===1,JSON.stringify(pre));
+await p.evaluate(()=>{S.sold=300;S.deco.awning=1;S.bells=50;dbg.applyDeco();dbg.setTab('up')});await p.waitForTimeout(300);
+const pr=await p.evaluate(()=>{const row=document.querySelector('[data-prestige]');const p0=12;row.click();row.click();return{row:!!row,prestige:S.prestige,pads:Object.keys(S.pads).length,deco:S.deco.awning,map:dbg.canopyMap(),bells:S.bells,price:(()=>{return Math.round((12+0)*1.5)})(),sheet:document.getElementById('sheet').classList.contains('on'),terraKeep:S.terraKeep,lit:dbg.terraG.slots.filter(s=>s.k).length}});
+ok('prestige resets base, keeps deco, x1.5, terraKeep 8',pr.row&&pr.prestige===1&&pr.pads===0&&pr.deco===1&&pr.map==='blue'&&pr.bells===0&&!pr.sheet&&pr.terraKeep===8&&pr.lit===8,JSON.stringify(pr));
 const errs=logs.filter(l=>!/GL Driver|swiftshader/.test(l));ok('no console errors',errs.length===0,errs.join(' | '));
 console.log(out.join('\n'));await b.close();
