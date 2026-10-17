@@ -8,11 +8,11 @@
 import fs from 'node:fs';import path from 'node:path';import zlib from 'node:zlib';import {fileURLToPath} from 'node:url';
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const SRC=path.join(ROOT,'assets','models');
-// 구울 모델 목록. parts:true 면 메시 노드마다 "이름.노드명"으로 따로 굽고 피벗(노드의 루트 기준 위치)을 함께 적는다 (팔다리 애니메이션용).
+// 구울 모델 목록. q:[x,y,z,w] 면 그 쿼터니언으로 먼저 돌린다. parts:true 면 메시 노드마다 "이름.노드명"으로 따로 굽고 피벗(노드의 루트 기준 위치)을 함께 적는다 (팔다리 애니메이션용).
 const LIST=[
   {name:'coin',file:'coin.glb'},
   {name:'trees',file:'grass-trees.glb'},{name:'treesTall',file:'grass-trees-tall.glb'},{name:'fountain',file:'pavement-fountain.glb'},
-  {name:'barrel',file:'barrel.glb'},
+  {name:'barrel',file:'barrel.glb',q:[0,0,0.7071068,0.7071068]}, // 누워 있는 통을 세운다 (z축 +90°)
   {name:'rockA',file:'formation-rock.glb'},{name:'rockB',file:'formation-large-rock.glb'},{name:'rockC',file:'formation-stone.glb'},{name:'rockD',file:'formation-large-stone.glb'},
   // Kenney Space Kit (CC0): 건물·착륙선·소품
   {name:'hangar',file:'hangar_smallA.glb'},{name:'hangarRound',file:'hangar_roundA.glb'},
@@ -31,16 +31,17 @@ function png(buf){if(buf.readUInt32BE(0)!==0x89504e47)throw new Error('not png')
     for(let i=0;i<stride;i++){const a=i>=bpp?cur[i-bpp]:0,b=prev[i],c=i>=bpp?prev[i-bpp]:0;let v=line[i];if(f===1)v+=a;else if(f===2)v+=b;else if(f===3)v+=(a+b)>>1;else if(f===4){const pp=a+b-c,pa=Math.abs(pp-a),pb=Math.abs(pp-b),pc=Math.abs(pp-c);v+=pa<=pb&&pa<=pc?a:pb<=pc?b:c}cur[i]=v&255}prev=cur}
   return {w,h,bpp,data:out}}
 /* ---------- GLB ---------- */
-function glb(file){const b=fs.readFileSync(file);if(b.readUInt32LE(0)!==0x46546c67)throw new Error('not glb: '+file);const jl=b.readUInt32LE(12);const json=JSON.parse(b.toString('utf8',20,20+jl));let bin=null;let p=20+jl;if(p<b.length){const bl=b.readUInt32LE(p);bin=b.subarray(p+8,p+8+bl)}return {json,bin,dir:path.dirname(file)}}
+function glb(file){const b=fs.readFileSync(file);if(b.readUInt32LE(0)!==0x46546c67)throw new Error('not glb: '+file);const jl=b.readUInt32LE(12);const json=JSON.parse(b.toString('utf8',20,20+jl));if(json.extensionsRequired?.length)throw new Error(file+': 필수 확장 미지원 '+json.extensionsRequired.join(','));let bin=null;let p=20+jl;if(p<b.length){const bl=b.readUInt32LE(p);bin=b.subarray(p+8,p+8+bl)}return {json,bin,dir:path.dirname(file)}}
 function accessor(g,i){const a=g.json.accessors[i],bv=g.json.bufferViews[a.bufferView];const n={SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT4:16}[a.type];const T={5126:Float32Array,5123:Uint16Array,5125:Uint32Array,5121:Uint8Array,5122:Int16Array,5120:Int8Array}[a.componentType];const bytes=T.BYTES_PER_ELEMENT;const off=(bv.byteOffset||0)+(a.byteOffset||0);const stride=bv.byteStride||n*bytes;const out=new (T===Float32Array?Float32Array:Uint32Array)(a.count*n);
-  for(let k=0;k<a.count;k++){const base=g.bin.byteOffset+off+k*stride;for(let c=0;c<n;c++){out[k*n+c]=T===Float32Array?g.bin.buffer.slice(0).byteLength&&new DataView(g.bin.buffer,base+c*bytes,bytes).getFloat32(0,true):new DataView(g.bin.buffer,base+c*bytes,bytes)[bytes===1?'getUint8':bytes===2?'getUint16':'getUint32'](0,true)}}
+  if(a.sparse||a.normalized)throw new Error('accessor: sparse/normalized 미지원');const dv=new DataView(g.bin.buffer,g.bin.byteOffset,g.bin.byteLength);const get={5126:'getFloat32',5123:'getUint16',5125:'getUint32',5121:'getUint8',5122:'getInt16',5120:'getInt8'}[a.componentType];
+  for(let k=0;k<a.count;k++){const base=off+k*stride;for(let c=0;c<n;c++)out[k*n+c]=dv[get](base+c*bytes,true)}
   return {data:out,n,count:a.count}}
 const m4=(()=>{const mul=(a,b)=>{const o=new Array(16).fill(0);for(let r=0;r<4;r++)for(let c=0;c<4;c++)for(let k=0;k<4;k++)o[c*4+r]+=a[k*4+r]*b[c*4+k];return o};
   const trs=(t=[0,0,0],q=[0,0,0,1],s=[1,1,1])=>{const [x,y,z,w]=q;const xx=x*x,yy=y*y,zz=z*z,xy=x*y,xz=x*z,yz=y*z,wx=w*x,wy=w*y,wz=w*z;return [(1-2*(yy+zz))*s[0],2*(xy+wz)*s[0],2*(xz-wy)*s[0],0, 2*(xy-wz)*s[1],(1-2*(xx+zz))*s[1],2*(yz+wx)*s[1],0, 2*(xz+wy)*s[2],2*(yz-wx)*s[2],(1-2*(xx+yy))*s[2],0, t[0],t[1],t[2],1]};
   const ap=(m,x,y,z)=>[m[0]*x+m[4]*y+m[8]*z+m[12],m[1]*x+m[5]*y+m[9]*z+m[13],m[2]*x+m[6]*y+m[10]*z+m[14]];return {mul,trs,ap,I:[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]}})();
 const lin2srgb=v=>Math.round(255*(v<=.0031308?v*12.92:1.055*Math.pow(v,1/2.4)-.055));
 const texCache=new Map();
-function texOf(g,mat){const t=mat?.pbrMetallicRoughness?.baseColorTexture;if(!t)return null;const img=g.json.images[g.json.textures[t.index].source];const key=g.dir+'|'+(img.uri||img.bufferView);if(texCache.has(key))return texCache.get(key);let buf;if(img.uri){buf=fs.readFileSync(path.join(g.dir,decodeURIComponent(img.uri)))}else{const bv=g.json.bufferViews[img.bufferView];buf=Buffer.from(g.bin.subarray(bv.byteOffset||0,(bv.byteOffset||0)+bv.byteLength))}const p=png(buf);texCache.set(key,p);return p}
+function texOf(g,mat){const t=mat?.pbrMetallicRoughness?.baseColorTexture;if(!t)return null;if(t.texCoord||t.extensions)console.warn('  경고: baseColorTexture 의 texCoord/extensions 는 무시함 ('+(mat.name||'')+')');const img=g.json.images[g.json.textures[t.index].source];const key=g.dir+'|'+(img.uri||img.bufferView);if(texCache.has(key))return texCache.get(key);let buf;if(img.uri){buf=fs.readFileSync(path.join(g.dir,decodeURIComponent(img.uri)))}else{const bv=g.json.bufferViews[img.bufferView];buf=Buffer.from(g.bin.subarray(bv.byteOffset||0,(bv.byteOffset||0)+bv.byteLength))}const p=png(buf);texCache.set(key,p);return p}
 function sample(tex,u,v){u-=Math.floor(u);v-=Math.floor(v);const x=Math.min(tex.w-1,Math.floor(u*tex.w)),y=Math.min(tex.h-1,Math.floor(v*tex.h));const o=(y*tex.w+x)*tex.bpp;return (tex.data[o]<<16)|(tex.data[o+1]<<8)|tex.data[o+2]}
 function matColor(mat){const f=mat?.pbrMetallicRoughness?.baseColorFactor||[1,1,1,1];return (lin2srgb(f[0])<<16)|(lin2srgb(f[1])<<8)|lin2srgb(f[2])}
 // 모델 → 삼각형 목록 [{p:[x,y,z]x3, c:hex x3}] (노드 변환 적용). parts면 메시 노드별로 나눈다.
@@ -58,6 +59,7 @@ const palette=[],palIdx=new Map();const colorIndex=c=>{if(palIdx.has(c))return p
 const chunks=[];let offset=0;const index={};const stats=[];
 for(const m of LIST){const g=glb(path.join(SRC,m.file));const sets=triangles(g,!!m.parts);
   for(const key in sets){const {tris,piv}=sets[key];if(!tris.length)continue;const name=key?`${m.name}.${key}`:m.name;
+    if(m.q){const R=m4.trs([0,0,0],m.q,[1,1,1]);for(const t of tris)for(const v of t)v.p=m4.ap(R,v.p[0],v.p[1],v.p[2])} // 선택: 사전 회전(쿼터니언)
     const bbox=()=>{mn=[1e9,1e9,1e9];mx=[-1e9,-1e9,-1e9];for(const t of tris)for(const v of t)for(let k=0;k<3;k++){mn[k]=Math.min(mn[k],v.p[k]);mx[k]=Math.max(mx[k],v.p[k])}};let mn,mx;bbox();
     if(!m.parts){const cx=(mn[0]+mx[0])/2,cz=(mn[2]+mx[2])/2,y0=mn[1];for(const t of tris)for(const v of t){v.p[0]-=cx;v.p[1]-=y0;v.p[2]-=cz}bbox()} // 통모델은 바닥 중심을 원점으로
     const ext=Math.max(mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2])||1,s=ext/65535;const q=(v,k)=>Math.max(0,Math.min(65535,Math.round((v-mn[k])/s)));
