@@ -4,7 +4,7 @@
 
 ```bash
 cd tools/qa && npm install && npx playwright install chromium   # 한 번만
-npm run check    # checks.mjs 12항목 + checks2.mjs 12항목 → PASS/FAIL 출력 (각 1~3분)
+npm run check    # checks.mjs 17항목 + checks2.mjs 13항목 → PASS/FAIL 출력 (각 1~3분)
 npm run bot      # 자동 플레이 150초: 판매·발판 구매 루프, 손님 이탈 0·콘솔 에러 0 이어야 함
 npm run shots    # 시작·중반·휴게 돔 스크린샷 → out/*.png
 node shot.mjs out/x.png setups/top.js 2500   # 임의 상태: setups/*.js 는 페이지 안에서 실행되는 한 조각 JS
