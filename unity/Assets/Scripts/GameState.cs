@@ -1,0 +1,82 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+// 명세 §10.1 GameState: SaveData 래핑 + 파생값 + 이벤트. 자동저장 3초, 백그라운드 전환 시 저장.
+public class GameState : MonoBehaviour
+{
+    public static GameState I;
+    public SaveData S;
+
+    public event Action OnBellsChanged;
+    public event Action<string, int> OnPadLevel;
+    public event Action OnSold;
+
+    // 비행 중 아이템(등짐 도착 전)·선반 도착 전 병 수
+    public int pend; public string pendK = "";
+    public int shelfPend;
+    public bool collectingCash;
+
+    float saveT;
+    public static readonly HashSet<string> ACTIVE_IDS = new HashSet<string>();
+
+    void Awake()
+    {
+        I = this;
+        foreach (var p in Pads.ALL) if (p.active) ACTIVE_IDS.Add(p.id);
+        S = SaveSystem.Load();
+        if (S.spawnT <= 0) S.spawnT = GameConfig.FIRST_SPAWN;
+    }
+
+    void Update()
+    {
+        saveT += Time.unscaledDeltaTime;
+        if (saveT >= SaveSystem.AUTOSAVE) { saveT = 0; Save(); }
+    }
+
+    void OnApplicationPause(bool pause) { if (pause) Save(); }
+    void OnApplicationQuit() { Save(); }
+    public void Save() { SaveSystem.Save(S); }
+
+    // ---- 발판 ----
+    PadEntry Entry(string id, bool create)
+    {
+        foreach (var e in S.pads) if (e.id == id) return e;
+        if (!create) return null;
+        var n = new PadEntry { id = id }; S.pads.Add(n); return n;
+    }
+    public int PadLv(string id) { var e = Entry(id, false); return e == null ? 0 : e.lv; }
+    public float PadProg(string id) { var e = Entry(id, false); return e == null ? 0 : e.prog; }
+    public void SetPadProg(string id, float v) { Entry(id, true).prog = v; }
+    public void SetPadLv(string id, int lv)
+    {
+        var e = Entry(id, true); e.lv = lv; e.prog = 0;
+        OnPadLevel?.Invoke(id, lv);
+        Save();
+    }
+    public float PadCost(string id) => Pads.Get(id).Cost(PadLv(id));
+    public float PadRemain(string id) => PadCost(id) - PadProg(id);
+    public bool PadReq(string id) => Pads.Get(id).req(this);
+    public bool PadMaxed(string id) => PadLv(id) >= Pads.Get(id).max;
+
+    // ---- 파생값 (§1.2) ----
+    public int CarryMax => GameConfig.CARRY[Mathf.Min(6, PadLv("hand"))] + 3 * Mathf.Min(2, S.prestige);
+    public int ShelfCap => 8 + PadLv("shelf") * 7;
+    public int BottlePrice => Mathf.RoundToInt((12 + PadLv("price") * 6) * Mathf.Pow(1.5f, S.prestige));
+    public float MeltTime => 1.6f / (1 + PadLv("melter") * 0.35f);
+    public float BottleTime => 1.6f / (1 + PadLv("bottler") * 0.35f);
+    public float BaseGap => Mathf.Max(2f, 6.5f - PadLv("ads") * 0.9f);
+    public float Speed => GameConfig.BASE_SPEED + GameConfig.SPEED_PER_LV * PadLv("spd");
+    public bool HasCashier => PadLv("cashier") >= 1;
+
+    public int Carry => S.p.carry.Count;
+    public string CarryTop => S.p.carry.Count == 0 ? "" : S.p.carry[S.p.carry.Count - 1];
+    public bool CanCarry(string kind) => Carry + pend < CarryMax && (Carry == 0 || CarryTop == kind) && (pend == 0 || pendK == kind);
+
+    public void AddBells(float n)
+    {
+        S.bells += n;
+        OnBellsChanged?.Invoke();
+    }
+    public void NotifySold() { OnSold?.Invoke(); }
+}
