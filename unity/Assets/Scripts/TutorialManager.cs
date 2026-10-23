@@ -41,7 +41,7 @@ public class TutorialManager : MonoBehaviour
         // 단계 조건 (3은 Player에서 선반 올릴 때)
         if (S.tut == 0)
         {
-            bool anyOpen = false; for (int i = 0; i < GameConfig.BASE_SPOTS; i++) if (Stations.I.SpotOpen(i)) anyOpen = true;
+            bool anyOpen = false; for (int i = 0; i < Stations.I.SpotCount; i++) if (Stations.I.SpotOpen(i)) anyOpen = true;
             if (G.Carry >= G.CarryMax || (!anyOpen && G.Carry > 0 && G.pend == 0)) Advance(1);
         }
         else if (S.tut == 1)

@@ -15,6 +15,7 @@ public class PadManager : MonoBehaviour
     }
     public readonly Dictionary<string, PadView> views = new Dictionary<string, PadView>();
     public HashSet<string> visSet = new HashSet<string>();
+    public List<string> visOrder = new List<string>();   // ORDER 순서 보존(봇·시트 정렬용)
     float visT; public float lastCompleteT = -10;
     public System.Action OnChanged;
 
@@ -73,7 +74,7 @@ public class PadManager : MonoBehaviour
             else if (!show && v.shown) { v.root.gameObject.SetActive(false); v.label.Show(false); }
             v.shown = show;
         }
-        visSet = ns;
+        visSet = ns; visOrder = next;
         OnChanged?.Invoke();
     }
 

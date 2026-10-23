@@ -162,7 +162,7 @@ public class Player : MonoBehaviour
         if (G.CanCarry("ice"))
         {
             int best = -1; float bd = GameConfig.R_ICE;
-            for (int i = 0; i < GameConfig.BASE_SPOTS; i++)
+            for (int i = 0; i < st.SpotCount; i++)
             {
                 if (!st.SpotOpen(i)) continue;
                 float d = Vector2.Distance(pos, WorldMap.ICE_SPOTS[i]);

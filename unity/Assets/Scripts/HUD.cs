@@ -11,6 +11,7 @@ public class HUD : MonoBehaviour
     GameState G => GameState.I;
     public Canvas canvas; public RectTransform bellsRt; Text bellsText; Image flash; Button upBtn; Text upText; Image upDot; RectTransform upRt;
     float lastBells = -1; Coroutine punch;
+    Text comboText, rushText; RectTransform comboRt, rushRt; int lastCombo;
 
     public static class UI
     {
@@ -67,6 +68,12 @@ public class HUD : MonoBehaviour
         upRt = upBtn.GetComponent<RectTransform>(); UI.Anchor(upRt, new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(260, 72));
         upText = upBtn.GetComponentInChildren<Text>();
         upDot = UI.Panel(upBtn.transform, "dot", GameConfig.Hex("ff5a5a")); UI.Anchor(upDot.rectTransform, new Vector2(1, 1), new Vector2(-6, -6), new Vector2(18, 18)); upDot.sprite = FloatingJoystick.CircleSprite(); upDot.raycastTarget = false;
+        // 콤보 배지(벨 아래) · 러시 배지(상단 중앙 아래)
+        // 상단 배치: 1행 벨(좌)·소리(우) / 2행 목표 칩(중앙, QuestManager) / 3행 콤보(좌)·러시(중앙)
+        var cb = UI.Panel(transform, "combo", GameConfig.GOLD); comboRt = cb.rectTransform; UI.Anchor(comboRt, new Vector2(0, 1), new Vector2(18, -200), new Vector2(120, 40)); cb.raycastTarget = false;
+        comboText = UI.Label(cb.transform, "", 24, GameConfig.NAVY); cb.gameObject.SetActive(false);
+        var rb = UI.Panel(transform, "rush", GameConfig.Hex("e03c3c")); rushRt = rb.rectTransform; UI.Anchor(rushRt, new Vector2(0.5f, 1), new Vector2(40, -200), new Vector2(200, 44)); rb.raycastTarget = false;
+        rushText = UI.Label(rb.transform, "", 24, Color.white); rb.gameObject.SetActive(false);
         // 플래시
         flash = UI.Panel(transform, "flash", new Color(1, 1, 1, 0)); flash.raycastTarget = false;
         var frt = flash.rectTransform; frt.anchorMin = Vector2.zero; frt.anchorMax = Vector2.one; frt.offsetMin = frt.offsetMax = Vector2.zero;
@@ -102,6 +109,21 @@ public class HUD : MonoBehaviour
         float el = 0;
         while (el < 0.25f) { el += Time.deltaTime; float k = el / 0.25f; rt.localScale = Vector3.one * (1 + Mathf.Sin(Mathf.PI * k) * 0.22f); yield return null; }
         rt.localScale = Vector3.one;
+    }
+
+    // §1.3 콤보 배지 ×n (3~5) + 상승음
+    public void SetCombo(int n)
+    {
+        bool show = n >= 3;
+        comboRt.gameObject.SetActive(show);
+        if (show) { comboText.text = "콤보 ×" + Mathf.Min(n, 5); if (n != lastCombo) { StartCoroutine(Punch(comboRt)); AudioManager.I.PlayHz("coin", 900 * Mathf.Pow(1.12f, Mathf.Min(n, 5)), 1100, 0.6f); } }
+        lastCombo = n;
+    }
+    // §5.3 러시 카운트다운
+    public void SetRush(float sec)
+    {
+        rushRt.gameObject.SetActive(sec > 0);
+        if (sec > 0) { rushText.text = "러시! " + Mathf.CeilToInt(sec); rushRt.localScale = Vector3.one * (1 + Mathf.Sin(Time.time * 12f) * 0.04f); }
     }
 
     public void Flash(float a) { StartCoroutine(CoFlash(a)); }

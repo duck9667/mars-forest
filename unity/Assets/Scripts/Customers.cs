@@ -7,7 +7,7 @@ public class Customer
 {
     public enum St { WalkIn, Queue, Leave, Gone }
     public St st = St.WalkIn;
-    public Vector2 pos; public int want; public float wait, pay; public bool angry, bought;
+    public Vector2 pos; public int want; public float wait, pay; public bool angry, bought, vip;
     public Transform view, body, head, hold; public WorldLabels.Label bubble;
     public float jumpT = -1;
 }
@@ -18,8 +18,15 @@ public class CustomerSystem : MonoBehaviour
     GameState G => GameState.I;
     SaveData S => G.S;
     public readonly List<Customer> list = new List<Customer>();
+    // §1.3 콤보 · §5.3 러시
+    public int combo; float lastSaleT = -10f;
+    public float rush;            // 남은 러시 초(0이면 평상시)
+    public const float RUSH_EVERY = 240f, RUSH_LEN = 20f;
 
     void Awake() { I = this; }
+
+    public int QueueCap => rush > 0 ? Mathf.FloorToInt((1000f - WorldMap.QUEUE_Y0) / WorldMap.QUEUE_GAP) + 1 : GameConfig.QUEUE_MAX + (G.PadLv("ads") >= 2 ? 2 : 0);
+    float SpawnGap => G.BaseGap / (rush > 0 ? 3f : 1f);
 
     int Waiting() { int n = 0; foreach (var c in list) if (c.st == Customer.St.WalkIn || c.st == Customer.St.Queue) n++; return n; }
     int QueueIndex(Customer c) { int n = 0; foreach (var o in list) { if (o == c) return n; if (o.st == Customer.St.WalkIn || o.st == Customer.St.Queue) n++; } return n; }
@@ -29,12 +36,21 @@ public class CustomerSystem : MonoBehaviour
     void Update()
     {
         float dt = Mathf.Min(Time.deltaTime, GameConfig.DT_MAX);
+        // 러시 (§5.3): 삐걱 고용 후 240s 누적마다 20s. 간격 ÷3, 줄 상한 10
+        if (rush > 0) { rush -= dt; if (rush <= 0) { rush = 0; HUD.I?.SetRush(0); } else HUD.I?.SetRush(rush); }
+        else if (G.HasCashier && S.tut >= 3)
+        {
+            S.rushT += dt;
+            if (S.rushT >= RUSH_EVERY) { S.rushT = 0; rush = RUSH_LEN; HUD.I?.SetRush(rush); JuiceFX.I.Shake(4); AudioManager.I.Play("no", 1.6f, 0.8f); AudioManager.I.Play("ding", 0.6f, 0.8f); }
+        }
+        // 콤보는 직전 판매 후 2초 지나면 끊김
+        if (combo > 0 && Time.time - lastSaleT > 2f) { combo = 0; HUD.I?.SetCombo(0); }
         // 스폰 (§5.2)
         S.spawnT -= dt;
         if (S.spawnT <= 0)
         {
-            if (Waiting() < GameConfig.QUEUE_MAX) Spawn();
-            S.spawnT = S.tut < 3 ? GameConfig.TUT_GAP : G.BaseGap * Random.Range(0.7f, 1.3f);
+            if (Waiting() < QueueCap) Spawn();
+            S.spawnT = S.tut < 3 ? GameConfig.TUT_GAP : SpawnGap * Random.Range(0.7f, 1.3f);
         }
         for (int i = list.Count - 1; i >= 0; i--)
         {
@@ -48,7 +64,9 @@ public class CustomerSystem : MonoBehaviour
     {
         S.custN++;
         var c = new Customer { pos = WorldMap.ENTRY };
-        c.want = S.tut < 3 ? 1 : 1 + (Random.value < 0.3f ? 1 : 0) + (Random.value < 0.1f ? 1 : 0);
+        int ads = G.PadLv("ads");
+        c.vip = S.tut >= 3 && S.sold >= 40 && S.custN % 10 == 0;   // 10번째 손님마다 VIP
+        c.want = S.tut < 3 ? 1 : c.vip ? Random.Range(2, 4) : 1 + (Random.value < 0.3f + 0.06f * ads ? 1 : 0) + (Random.value < 0.1f + 0.05f * ads ? 1 : 0);
         BuildView(c);
         list.Add(c);
     }
@@ -59,16 +77,21 @@ public class CustomerSystem : MonoBehaviour
         c.view = new GameObject("cust").transform; c.view.SetParent(transform, false); c.view.position = WorldMap.W2U(c.pos);
         Prim.BlobShadow(c.view, 22);
         c.body = new GameObject("body").transform; c.body.SetParent(c.view, false);
-        var col = GameConfig.CUST_COLS[Random.Range(0, GameConfig.CUST_COLS.Length)];
+        var col = c.vip ? GameConfig.GOLD : GameConfig.CUST_COLS[Random.Range(0, GameConfig.CUST_COLS.Length)];
         Prim.Capsule(c.body, "torso", new Vector3(0, 16 * k, 0), 14, 24, col);
         c.head = Prim.Sphere(c.body, "head", new Vector3(0, 33 * k, 0), 14, GameConfig.Hex("ffe0c2")).transform;
-        int acc = Random.Range(0, 6);
+        int acc = c.vip ? 9 : Random.Range(0, 6);
+        if (c.vip)
+        {
+            var crown = Prim.Cyl(c.head, "crown", new Vector3(0, 8 * k, 0), 11, 5, GameConfig.GOLD);
+            for (int i = 0; i < 4; i++) Prim.Box(crown.transform, "tip", new Vector3(Mathf.Cos(i * Mathf.PI / 2) * 4.5f * k, 3.5f * k, Mathf.Sin(i * Mathf.PI / 2) * 4.5f * k), new Vector3(2.5f, 3, 2.5f), GameConfig.GOLD);
+        }
         if (acc == 0) Prim.Box(c.head, "hat", new Vector3(0, 7 * k, 0), new Vector3(14, 4, 14), GameConfig.Hex("3b3a52"));
         else if (acc == 1) Prim.Box(c.body, "bag", new Vector3(0, 18 * k, -8 * k), new Vector3(10, 12, 5), GameConfig.Hex("8a5a3c"));
         else if (acc == 2) Prim.Cyl(c.head, "ant", new Vector3(0, 10 * k, 0), 1.5f, 10, GameConfig.Hex("3b3a52"));
         else if (acc == 3) Prim.Box(c.body, "scarf", new Vector3(0, 26 * k, 0), new Vector3(16, 4, 16), GameConfig.Hex("f05a5a"));
-        c.hold = new GameObject("hold").transform; c.hold.SetParent(c.body, false); c.hold.localPosition = new Vector3(0, 56 * k, 0);
-        c.bubble = WorldLabels.I.Add(() => c.head.position + Vector3.up * 1.0f, "병 ×" + c.want, 20, GameConfig.NAVY, Vector2.zero, true);
+        c.hold = new GameObject("hold").transform; c.hold.SetParent(c.body, false); c.hold.localPosition = new Vector3(0, (c.vip ? 66 : 56) * k, 0);
+        c.bubble = WorldLabels.I.Add(() => c.head.position + Vector3.up * (c.vip ? 1.3f : 1.0f), (c.vip ? "VIP 병 ×" : "병 ×") + c.want, 20, GameConfig.NAVY, Vector2.zero, true, c.vip ? GameConfig.GOLD : null);
         c.bubble.Show(false);
     }
 
@@ -154,8 +177,17 @@ public class CustomerSystem : MonoBehaviour
     {
         int want = c.want;
         S.shelf -= want;
-        int earn = G.BottlePrice * want;
+        int price = G.BottlePrice;
+        float earnF = price * want;
+        if (c.vip) earnF = earnF * 3 + price * 2;                       // VIP ×3 + 팁
+        combo = Time.time - lastSaleT < 2f ? combo + 1 : 1; lastSaleT = Time.time;
+        if (combo >= 3) earnF *= 1 + 0.1f * Mathf.Min(combo, 5);        // 콤보 최대 +50%
+        int earn = Mathf.RoundToInt(earnF);
         S.cash += earn; S.sold += want; S.custs++;
+        HUD.I?.SetCombo(combo);
+        bool big = c.vip || want >= 3 || combo >= 3;
+        if (big) { JuiceFX.I.Confetti(c.head.position + Vector3.up * 1.2f, c.vip ? 36 : 18); JuiceFX.I.Shake(c.vip ? 4 : 2); }
+        if (c.vip) AudioManager.I.Play("up", 1.3f);
         c.bought = true; c.jumpT = 0; c.pay = 0;
         c.bubble.Show(false);
         for (int i = 0; i < want; i++)
@@ -167,9 +199,8 @@ public class CustomerSystem : MonoBehaviour
             }, 0.3f, 30f);
         }
         AudioManager.I.Play("sell");
-        WorldLabels.I.Float(c.head.position + Vector3.up * 1.5f, "+" + earn, true, want >= 3);
+        WorldLabels.I.Float(c.head.position + Vector3.up * 1.5f, "+" + earn + (combo >= 3 ? "  ×" + Mathf.Min(combo, 5) : ""), true, big);
         JuiceFX.I.Squash(Stations.I.registerView, 0.4f);
-        if (want >= 3) JuiceFX.I.Shake(2);
         G.NotifySold();
     }
 }

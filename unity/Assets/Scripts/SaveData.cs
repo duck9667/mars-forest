@@ -22,6 +22,7 @@ public class SaveData
     public bool muted = false;
     public float spawnT = GameConfig.FIRST_SPAWN;
     public float clock = 0; public int day = 1;
+    public float rushT = 0;
     public int quest = 0, prestige = 0, custN = 0, lost = 0;
     public int tut = 0, handShown = 0, qv = 2;
 }

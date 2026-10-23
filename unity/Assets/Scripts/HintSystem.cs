@@ -34,14 +34,14 @@ public class HintSystem : MonoBehaviour
     Vector2 Pick()
     {
         var st = WorldMap.STN; int price = G.BottlePrice; string top = G.CarryTop;
-        bool anyOpen = false; for (int i = 0; i < GameConfig.BASE_SPOTS; i++) if (Stations.I.SpotOpen(i)) anyOpen = true;
+        bool anyOpen = false; for (int i = 0; i < Stations.I.SpotCount; i++) if (Stations.I.SpotOpen(i)) anyOpen = true;
         // 타깃 점은 상호작용 반경 안쪽(스테이션 남쪽 가장자리 + 18)
         Vector2 P(string k) { var s = st[k]; targetKey = k; return new Vector2(s.x, s.y + s.h / 2 + 18); }
         Vector2 Cnt() { targetKey = "counter"; return new Vector2(st["counter"].x, st["counter"].y - st["counter"].h / 2 - 14); }
         Vector2 Ice()
         {
             int best = -1; float bd = float.MaxValue;
-            for (int i = 0; i < GameConfig.BASE_SPOTS; i++) if (Stations.I.SpotOpen(i)) { float d = Vector2.Distance(Player.I.pos, WorldMap.ICE_SPOTS[i]); if (d < bd) { bd = d; best = i; } }
+            for (int i = 0; i < Stations.I.SpotCount; i++) if (Stations.I.SpotOpen(i)) { float d = Vector2.Distance(Player.I.pos, WorldMap.ICE_SPOTS[i]); if (d < bd) { bd = d; best = i; } }
             targetKey = "ice:" + best; return WorldMap.ICE_SPOTS[best];
         }
         bool iceFull = G.Carry + G.pend >= G.CarryMax;

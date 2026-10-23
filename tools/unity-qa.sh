@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Unity Phase 1 QA: macOS 빌드 → 자동 플레이 봇으로 실행 → 스크린샷 수집 → 저장 상태 요약
 # 사용: tools/unity-qa.sh [에디터 버전]   (기본 6000.0.85f1)
+#   SKIP_BUILD=1  빌드 생략 / QA_OUT=<dir> 출력 폴더 / QA_ARGS="-rich -shots 2,30,60,120" 플레이어 추가 인자
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VER="${1:-6000.0.85f1}"
@@ -19,7 +20,8 @@ fi
 echo "== 실행 (자동 플레이, 스크린샷 → $OUT)"
 rm -f "$OUT"/shot_*.png
 BIN="$(ls "$APP/Contents/MacOS/"* | head -1)"   # 실행 파일명 = 제품명(화성 물병 가게)
-"$BIN" -wipe -autoplay -shot "$OUT" -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -logFile "$OUT/player.log" || true
+# shellcheck disable=SC2086
+"$BIN" -wipe -autoplay -shot "$OUT" ${QA_ARGS:-} -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -logFile "$OUT/player.log" || true
 echo "== 결과"
 grep -E "screenshot|QA done|Exception|error" "$OUT/player.log" | cut -c1-400 || true
 ls -la "$OUT"/shot_*.png 2>/dev/null || echo "스크린샷 없음"

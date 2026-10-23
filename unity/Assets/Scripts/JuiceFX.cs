@@ -74,6 +74,39 @@ public class JuiceFX : MonoBehaviour
         Destroy(go);
     }
 
+    // 색종이: 작은 네모 n개가 튀어 올랐다 떨어짐 (판매 18/36, 구역 32, 장식 20)
+    static readonly Color[] CONFETTI = { GameConfig.GOLD, GameConfig.Hex("ff6b6b"), GameConfig.Hex("5ed6c8"), GameConfig.Hex("8a5cd6"), GameConfig.Hex("5cc45e"), Color.white };
+    public void Confetti(Vector3 pos, int n) { for (int i = 0; i < n; i++) StartCoroutine(CoConfetti(pos, CONFETTI[i % CONFETTI.Length])); }
+    IEnumerator CoConfetti(Vector3 pos, Color c)
+    {
+        var go = Prim.Box(transform, "confetti", pos, new Vector3(4, 0.8f, 3), c); Prim.NoShadow(go);
+        Vector3 v = new Vector3(Random.Range(-90f, 90f), Random.Range(160f, 300f), Random.Range(-90f, 90f)) * GameConfig.K;
+        Vector3 spin = Random.insideUnitSphere * 540f; float g = 300f * GameConfig.K, el = 0, life = Random.Range(1.1f, 1.6f); Vector3 p = pos;
+        while (el < life)
+        {
+            float dt = Time.deltaTime; el += dt; v.y -= g * dt; v.x *= 0.995f; v.z *= 0.995f; p += v * dt;
+            if (p.y < pos.y - 1.4f) { p.y = pos.y - 1.4f; v = Vector3.zero; }
+            go.transform.position = p; go.transform.Rotate(spin * dt); yield return null;
+        }
+        Destroy(go);
+    }
+
+    // 먼지: 반투명 구가 퍼지며 사라짐 (발걸음·구역 모서리·드릴)
+    public void Dust(Vector3 pos, int n) { for (int i = 0; i < n; i++) StartCoroutine(CoDust(pos)); }
+    IEnumerator CoDust(Vector3 pos)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Sphere); Destroy(go.GetComponent<Collider>()); go.transform.SetParent(transform, false);
+        var c = GameConfig.Hex("e0b48a"); c.a = 0.55f; var mat = Mats.Trans(c); go.GetComponent<Renderer>().sharedMaterial = mat; Prim.NoShadow(go);
+        Vector3 v = new Vector3(Random.Range(-40f, 40f), Random.Range(10f, 30f), Random.Range(-40f, 40f)) * GameConfig.K; Vector3 p = pos; float el = 0;
+        while (el < 0.5f)
+        {
+            float dt = Time.deltaTime; el += dt; float k = el / 0.5f; p += v * dt;
+            go.transform.position = p; go.transform.localScale = Vector3.one * (6 + 14 * k) * GameConfig.K;
+            var cc = c; cc.a = 0.55f * (1 - k); mat.color = cc; yield return null;
+        }
+        Destroy(go);
+    }
+
     public void Shake(float a) { if (CameraRig.I) CameraRig.I.Shake(a); }
     public void Flash(float a) { if (HUD.I) HUD.I.Flash(a); }
     public void Vibrate(int ms)

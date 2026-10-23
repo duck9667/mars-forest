@@ -26,10 +26,16 @@ public static class Bootstrap
         new GameObject("Flyer").AddComponent<ArcFlyer>();
         new GameObject("World").AddComponent<World>();
         new GameObject("Stations").AddComponent<Stations>();
+        new GameObject("Zones").AddComponent<ZoneManager>();
         new GameObject("Player").AddComponent<Player>();
         new GameObject("Pads").AddComponent<PadManager>();
         new GameObject("Customers").AddComponent<CustomerSystem>();
         new GameObject("Cashier").AddComponent<CashierBot>();
+        new GameObject("Runners").AddComponent<RunnerSystem>();
+        new GameObject("Drill").AddComponent<DrillStation>();
+        new GameObject("AdsSign").AddComponent<AdsSign>();
+        new GameObject("DayNight").AddComponent<DayNight>();
+        new GameObject("Quests").AddComponent<QuestManager>();
         new GameObject("Tutorial").AddComponent<TutorialManager>();
         new GameObject("Hint").AddComponent<HintSystem>();
         new GameObject("Dev").AddComponent<DevTools>();
