@@ -82,17 +82,18 @@ public class World : MonoBehaviour
     void Lights()
     {
         var sun = new GameObject("sun").AddComponent<Light>();
-        sun.type = LightType.Directional; sun.color = GameConfig.Hex("fff0dc"); sun.intensity = 1.9f;
+        // 원본 1.9는 ACES 톤매핑 전제. 톤매핑 없는 Phase 1은 과노출을 피하려고 낮춘다.
+        sun.type = LightType.Directional; sun.color = GameConfig.Hex("fff0dc"); sun.intensity = 1.15f;
         sun.transform.rotation = Quaternion.LookRotation(-new Vector3(-0.75f, 0.8f, -0.55f).normalized, Vector3.up);
         sun.shadows = LightShadows.Soft; sun.shadowBias = 0.02f; sun.shadowNormalBias = 0.6f;
         var fill = new GameObject("fill").AddComponent<Light>();
-        fill.type = LightType.Directional; fill.color = GameConfig.Hex("9fc6ff"); fill.intensity = 0.25f; fill.shadows = LightShadows.None;
+        fill.type = LightType.Directional; fill.color = GameConfig.Hex("9fc6ff"); fill.intensity = 0.2f; fill.shadows = LightShadows.None;
         fill.transform.rotation = Quaternion.LookRotation(-new Vector3(600, 500, 400).normalized, Vector3.up);
         RenderSettings.skybox = null;
         RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-        RenderSettings.ambientSkyColor = GameConfig.Hex("fff1e2") * 1.05f;
-        RenderSettings.ambientEquatorColor = Color.Lerp(GameConfig.Hex("fff1e2"), GameConfig.Hex("a8482a"), 0.5f) * 1.05f;
-        RenderSettings.ambientGroundColor = GameConfig.Hex("a8482a") * 1.05f;
+        RenderSettings.ambientSkyColor = GameConfig.Hex("fff1e2") * 0.55f;
+        RenderSettings.ambientEquatorColor = Color.Lerp(GameConfig.Hex("fff1e2"), GameConfig.Hex("a8482a"), 0.5f) * 0.55f;
+        RenderSettings.ambientGroundColor = GameConfig.Hex("a8482a") * 0.55f;
         QualitySettings.shadowDistance = 200f; // 직교 카메라 거리 90 + 월드 반경
         QualitySettings.shadowResolution = ShadowResolution.High;
     }

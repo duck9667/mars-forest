@@ -68,7 +68,7 @@ public class CustomerSystem : MonoBehaviour
         else if (acc == 2) Prim.Cyl(c.head, "ant", new Vector3(0, 10 * k, 0), 1.5f, 10, GameConfig.Hex("3b3a52"));
         else if (acc == 3) Prim.Box(c.body, "scarf", new Vector3(0, 26 * k, 0), new Vector3(16, 4, 16), GameConfig.Hex("f05a5a"));
         c.hold = new GameObject("hold").transform; c.hold.SetParent(c.body, false); c.hold.localPosition = new Vector3(0, 56 * k, 0);
-        c.bubble = WorldLabels.I.Add(() => c.head.position + Vector3.up * 1.1f, "병 ×" + c.want, 24, GameConfig.NAVY, Vector2.zero, true);
+        c.bubble = WorldLabels.I.Add(() => c.head.position + Vector3.up * 1.0f, "병 ×" + c.want, 20, GameConfig.NAVY, Vector2.zero, true);
         c.bubble.Show(false);
     }
 

@@ -35,11 +35,19 @@ public class HintSystem : MonoBehaviour
     {
         var st = WorldMap.STN; int price = G.BottlePrice; string top = G.CarryTop;
         bool anyOpen = false; for (int i = 0; i < GameConfig.BASE_SPOTS; i++) if (Stations.I.SpotOpen(i)) anyOpen = true;
-        Vector2 P(string k) { var s = st[k]; targetKey = k; return new Vector2(s.x, s.y + s.h / 2 + 30); }
-        if (top == "ice" && (G.Carry >= G.CarryMax || !anyOpen)) return P("melter");
-        if (top == "ice" && G.pend == 0 && S.tut >= 1) return P("melter");
-        if (top == "bottle" && S.shelf < G.ShelfCap) { targetKey = "counter"; return new Vector2(st["counter"].x, st["counter"].y - 40); }
-        if (top == "bottle") { return G.HasCashier ? Cnt() : P("register"); }
+        // 타깃 점은 상호작용 반경 안쪽(스테이션 남쪽 가장자리 + 18)
+        Vector2 P(string k) { var s = st[k]; targetKey = k; return new Vector2(s.x, s.y + s.h / 2 + 18); }
+        Vector2 Cnt() { targetKey = "counter"; return new Vector2(st["counter"].x, st["counter"].y - st["counter"].h / 2 - 14); }
+        Vector2 Ice()
+        {
+            int best = -1; float bd = float.MaxValue;
+            for (int i = 0; i < GameConfig.BASE_SPOTS; i++) if (Stations.I.SpotOpen(i)) { float d = Vector2.Distance(Player.I.pos, WorldMap.ICE_SPOTS[i]); if (d < bd) { bd = d; best = i; } }
+            targetKey = "ice:" + best; return WorldMap.ICE_SPOTS[best];
+        }
+        bool iceFull = G.Carry + G.pend >= G.CarryMax;
+        if (top == "ice" || G.pendK == "ice") return (iceFull || !anyOpen) ? P("melter") : Ice();   // 얼음 가득/밭 비었음→제빙기, 아니면 계속 줍기
+        if (top == "bottle" && S.shelf + G.shelfPend < G.ShelfCap) return Cnt();
+        if (top == "bottle") return G.HasCashier ? Cnt() : P("register");
         if (S.cash > 0 && (!G.HasCashier || S.cash > price * 4)) return P("register");
         if (S.bottles > 0 && G.Carry == 0) return P("bottler");
         if (CustomerSystem.I.AnyWaitingToPay() && !G.HasCashier) return P("register");
@@ -49,21 +57,10 @@ public class HintSystem : MonoBehaviour
             var v = PadManager.I.NearestVisible(Player.I.pos);
             if (v != null && S.bells >= G.PadRemain(v.def.id) * 0.5f) { targetKey = "pad:" + v.def.id; return v.def.pos; }
         }
-        if (S.meltQ == 0 && anyOpen && G.Carry == 0)
-        {
-            int best = -1; float bd = float.MaxValue;
-            for (int i = 0; i < GameConfig.BASE_SPOTS; i++) if (Stations.I.SpotOpen(i)) { float d = Vector2.Distance(Player.I.pos, WorldMap.ICE_SPOTS[i]); if (d < bd) { bd = d; best = i; } }
-            targetKey = "ice:" + best; return WorldMap.ICE_SPOTS[best];
-        }
+        if (S.meltQ == 0 && anyOpen && G.Carry == 0) return Ice();
         if (S.bottles > 0) return P("bottler");
-        if (anyOpen && G.Carry < G.CarryMax)
-        {
-            int best = -1; float bd = float.MaxValue;
-            for (int i = 0; i < GameConfig.BASE_SPOTS; i++) if (Stations.I.SpotOpen(i)) { float d = Vector2.Distance(Player.I.pos, WorldMap.ICE_SPOTS[i]); if (d < bd) { bd = d; best = i; } }
-            targetKey = "ice:" + best; return WorldMap.ICE_SPOTS[best];
-        }
+        if (anyOpen && G.Carry < G.CarryMax) return Ice();
         return P("bottler");
-        Vector2 Cnt() { targetKey = "counter"; return new Vector2(st["counter"].x, st["counter"].y - 40); }
     }
 
     void Update()

@@ -29,9 +29,9 @@ public static class ProjectSetup
         if (!File.Exists(SCENE))
         {
             Directory.CreateDirectory("Assets/Scenes");
-            var s = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            // 배치 모드의 기본 씬은 저장 안 된 Untitled라 Additive가 불가 → Single로 교체 생성
+            var s = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             EditorSceneManager.SaveScene(s, SCENE);
-            EditorSceneManager.CloseScene(s, true);
         }
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(SCENE, true) };
 

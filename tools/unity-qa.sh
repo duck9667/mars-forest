@@ -18,7 +18,8 @@ fi
 
 echo "== 실행 (자동 플레이, 스크린샷 → $OUT)"
 rm -f "$OUT"/shot_*.png
-"$APP/Contents/MacOS/MarsBottle" -wipe -autoplay -shot "$OUT" -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -logFile "$OUT/player.log" || true
+BIN="$(ls "$APP/Contents/MacOS/"* | head -1)"   # 실행 파일명 = 제품명(화성 물병 가게)
+"$BIN" -wipe -autoplay -shot "$OUT" -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -logFile "$OUT/player.log" || true
 echo "== 결과"
 grep -E "screenshot|QA done|Exception|error" "$OUT/player.log" | cut -c1-400 || true
 ls -la "$OUT"/shot_*.png 2>/dev/null || echo "스크린샷 없음"

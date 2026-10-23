@@ -15,7 +15,7 @@ public class TutorialManager : MonoBehaviour
 
     void Start()
     {
-        bubble = WorldLabels.I.Add(() => Player.I.view.position + Vector3.up * 2.6f, "", 26, GameConfig.NAVY, new Vector2(0, 30), true);
+        bubble = WorldLabels.I.Add(() => Player.I.view.position + Vector3.up * 4.4f, "", 26, GameConfig.NAVY, new Vector2(0, 36), true);
         // 드래그 손 포인터 (UI)
         hand = HUD.UI.Panel(HUD.I.transform, "hand", new Color(1, 1, 1, 0.9f)); hand.sprite = FloatingJoystick.CircleSprite(); hand.raycastTarget = false;
         HUD.UI.Anchor(hand.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, -220), new Vector2(56, 56));

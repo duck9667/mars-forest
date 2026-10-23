@@ -32,28 +32,28 @@ public class Stations : MonoBehaviour
             var g = new GameObject("spot" + i); g.transform.SetParent(root, false); g.transform.position = WorldMap.W2U(sp);
             Prim.Cyl(g.transform, "frost", new Vector3(0, 0.02f, 0), 46, 0.6f, GameConfig.Hex("eaf6ff"));
             var pile = new GameObject("pile"); pile.transform.SetParent(g.transform, false);
-            Prim.Box(pile.transform, "a", new Vector3(0, 1.4f * GameConfig.K, 0), new Vector3(18, 2.8f, 13), GameConfig.ICE);
-            Prim.Box(pile.transform, "b", new Vector3(1.5f * GameConfig.K, 4.2f * GameConfig.K, -1f * GameConfig.K), new Vector3(16, 2.8f, 12), GameConfig.ICE);
-            Prim.Box(pile.transform, "c", new Vector3(-1f * GameConfig.K, 7f * GameConfig.K, 1f * GameConfig.K), new Vector3(14, 2.8f, 11), GameConfig.Hex("e4f6ff"));
+            Prim.Box(pile.transform, "a", new Vector3(0, 1.8f * GameConfig.K, 0), new Vector3(26, 3.6f, 18), GameConfig.Hex("a9dcf5"));
+            Prim.Box(pile.transform, "b", new Vector3(2f * GameConfig.K, 5.4f * GameConfig.K, -1.5f * GameConfig.K), new Vector3(22, 3.6f, 16), GameConfig.ICE);
+            Prim.Box(pile.transform, "c", new Vector3(-1.5f * GameConfig.K, 9f * GameConfig.K, 1.5f * GameConfig.K), new Vector3(18, 3.6f, 13), GameConfig.Hex("e4f6ff"));
             spotViews[i] = pile.transform; spotShown[i] = true;
         }
         // 제빙기
         var m = WorldMap.STN["melter"];
         melterView = Machine("melter", m, GameConfig.Hex("7f98b8"), 50).transform;
-        meltCore = Prim.Sphere(melterView, "core", WorldMap.W2U(m.x + 24, m.y - 4, 36), 16, GameConfig.Hex("9fe0ff"));
+        meltCore = Prim.Sphere(melterView, "core", WorldMap.W2U(m.x + 24, m.y - 4, 56), 16, GameConfig.Hex("9fe0ff"));
         Prim.NoShadow(meltCore);
-        meltAnchor = new GameObject("meltQ").transform; meltAnchor.SetParent(melterView, false); meltAnchor.position = WorldMap.W2U(m.x - 22, m.y + 2, 50);
-        meltLbl = WorldLabels.I.Add(() => WorldMap.W2U(m.x - 22, m.y - 10, 70), "", 22, Color.white, Vector2.zero);
-        waterLbl = WorldLabels.I.Add(() => WorldMap.W2U(m.x + 24, m.y - 10, 70), "", 22, GameConfig.Hex("bfe9ff"), Vector2.zero);
+        meltAnchor = new GameObject("meltQ").transform; meltAnchor.SetParent(melterView, false); meltAnchor.position = WorldMap.W2U(m.x - 22, m.y + 2, 52);
+        meltLbl = WorldLabels.I.Add(() => WorldMap.W2U(m.x - 30, m.y - 16, 70), "", 20, Color.white, Vector2.zero);
+        waterLbl = WorldLabels.I.Add(() => WorldMap.W2U(m.x + 30, m.y - 16, 70), "", 20, GameConfig.Hex("bfe9ff"), Vector2.zero);
         // 병입기
         var b = WorldMap.STN["bottler"];
         bottlerView = Machine("bottler", b, GameConfig.Hex("8fb0a0"), 50).transform;
-        trayAnchor = new GameObject("tray").transform; trayAnchor.SetParent(bottlerView, false); trayAnchor.position = WorldMap.W2U(b.x, b.y, 50);
+        trayAnchor = new GameObject("tray").transform; trayAnchor.SetParent(bottlerView, false); trayAnchor.position = WorldMap.W2U(b.x, b.y, 52);
         trayLbl = WorldLabels.I.Add(() => WorldMap.W2U(b.x, b.y - 14, 72), "", 22, Color.white, Vector2.zero);
         // 카운터(선반)
         var c = WorldMap.STN["counter"];
         counterView = Machine("counter", c, GameConfig.Hex("d89a62"), 40).transform;
-        shelfAnchor = new GameObject("shelf").transform; shelfAnchor.SetParent(counterView, false); shelfAnchor.position = WorldMap.W2U(c.x, c.y, 40);
+        shelfAnchor = new GameObject("shelf").transform; shelfAnchor.SetParent(counterView, false); shelfAnchor.position = WorldMap.W2U(c.x, c.y, 42);
         shelfLbl = WorldLabels.I.Add(() => WorldMap.W2U(c.x - 80, c.y - 10, 62), "", 22, Color.white, Vector2.zero);
         // 계산대(지폐)
         var r = WorldMap.STN["register"];
@@ -67,7 +67,8 @@ public class Stations : MonoBehaviour
     {
         var g = new GameObject(name); g.transform.SetParent(transform, false);
         Prim.Box(g.transform, "body", WorldMap.W2U(s.x, s.y, hL / 2), new Vector3(s.w, hL, s.h), col);
-        Prim.Box(g.transform, "trim", WorldMap.W2U(s.x, s.y, hL + 1.5f), new Vector3(s.w + 4, 3, s.h + 4), GameConfig.Hex("3a3f5a"));
+        // 윗판은 몸체보다 밝은 톤으로 살짝 안쪽에(몸체 색이 테두리로 보이게)
+        Prim.Box(g.transform, "top", WorldMap.W2U(s.x, s.y, hL + 1f), new Vector3(s.w - 8, 2, s.h - 8), Color.Lerp(col, Color.white, 0.3f));
         return g;
     }
 

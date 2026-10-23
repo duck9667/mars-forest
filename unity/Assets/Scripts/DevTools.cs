@@ -41,14 +41,26 @@ public class DevTools : MonoBehaviour
         Application.Quit();
     }
 
-    // 힌트 타깃으로 걷고, 발판이면 멈춰서 납입, 아니면 근접 반경 안에서 잠깐 머문다
-    float holdT;
+    // 힌트 타깃으로 걷고, 발판이면 멈춰서 납입, 아니면 근접 반경 안에서 잠깐 머문다.
+    // 스테이션 AABB 모서리에 끼면(0.3초간 제자리) 수직 방향으로 0.6초 비켜 간다.
+    float holdT, stuckT, escapeT; Vector2 lastPos, escapeDir;
     void Bot()
     {
         var h = HintSystem.I; var pl = Player.I; if (h == null || pl == null) return;
         Vector2 d = h.target - pl.pos; float dist = d.magnitude;
-        float stop = h.targetKey.StartsWith("pad:") ? 12f : h.targetKey.StartsWith("ice:") ? 18f : 24f;
-        if (dist > stop) { FloatingJoystick.Override = d.normalized; holdT = 0; }
+        float stop = h.targetKey.StartsWith("pad:") ? 12f : h.targetKey.StartsWith("ice:") ? 18f : 12f;
+        if (escapeT > 0) { escapeT -= Time.deltaTime; FloatingJoystick.Override = escapeDir; lastPos = pl.pos; return; }
+        if (dist > stop)
+        {
+            FloatingJoystick.Override = d.normalized; holdT = 0;
+            if (Vector2.Distance(pl.pos, lastPos) < 0.5f) { stuckT += Time.deltaTime; } else stuckT = 0;
+            lastPos = pl.pos;
+            if (stuckT > 0.3f)
+            {
+                stuckT = 0; escapeT = 0.6f;
+                Vector2 n = new Vector2(-d.y, d.x).normalized; escapeDir = Random.value < 0.5f ? n : -n;
+            }
+        }
         else
         {
             FloatingJoystick.Override = Vector2.zero; holdT += Time.deltaTime;
