@@ -39,6 +39,13 @@ public static class GameConfig
     public const float CUST_WALK = 110f, CUST_LEAVE = 120f;
     public const float CUST_WARN = 25f, CUST_PATIENCE = 40f;
 
+    // 뽀삐·드릴 (§5.1)
+    public const float RUNNER_BASE_SPEED = 95f, RUNNER_SPEED_PER_LV = 25f;
+    public const int RUNNER_CAP = 8;
+    public const float RUNNER_LOAD_T = 0.18f, RUNNER_UNLOAD_T = 0.15f, RUNNER_DEPART_T = 1.5f;
+    public const float DRILL_PERIOD = 2.0f, DRILL_GAP = 0.15f, DRILL_FLY_T = 0.9f, DRILL_LIFT = 140f;
+    public const int MELT_CAP = 40;   // 드릴에만 적용
+
     // 발판 납입 (§3.2)
     public const float PAD_MIN_TAKE = 3f, PAD_RATE = 0.6f, PAD_COIN_GAP = 0.05f;
     public const float VIS_REFRESH = 0.3f;
@@ -94,18 +101,18 @@ public static class Pads
         new PadDef{ id="price",   name="프리미엄 라벨", icon="🏷", pos=new Vector2(134,598), cost=l=>200f*Mathf.Pow(1.9f,l),  max=5, req=g=>g.S.sold>=10, reqText="판매 10", menu=true, active=true },
         new PadDef{ id="cashier", name="삐걱 고용",    icon="🤖", pos=new Vector2(360,598), cost=l=>150f,                   max=1, req=g=>g.S.sold>=3, reqText="판매 3", active=true },
         new PadDef{ id="bottler", name="병입기 속도",  icon="🧴", pos=new Vector2(290,372), cost=l=>80f*Mathf.Pow(1.7f,l),   max=6, req=g=>g.S.sold>=3, reqText="판매 3", active=true },
-        // 원본 req는 ice2>=1. Phase 1은 ice2(구역)가 없으므로 bottler>=1로 대체한다. Phase 2에서 ice2를 켜며 원복.
-        new PadDef{ id="melter",  name="제빙기 속도",  icon="❄", pos=new Vector2(290,192), cost=l=>70f*Mathf.Pow(1.7f,l),   max=6, req=g=>g.PadLv("bottler")>=1, reqText="병입기 Lv.1", active=true },
-        new PadDef{ id="shelf",   name="선반 칸",      icon="🧊", pos=new Vector2(134,452), cost=l=>120f*Mathf.Pow(1.8f,l),  max=4, req=g=>g.PadLv("bottler")>=1, reqText="병입기 Lv.1", active=true },
-        // ---- Phase 2+ (정의만 유지, active=false) ----
-        new PadDef{ id="ice2",    name="얼음밭 확장",  icon="🧊", pos=new Vector2(126,220), cost=l=>120f,  max=1, req=g=>g.PadLv("bottler")>=1, reqText="병입기 Lv.1", zone=true },
-        new PadDef{ id="runner",  name="뽀삐 고용",    icon="🛒", pos=new Vector2(282,598), cost=l=>350f,  max=1, req=g=>g.S.sold>=20, reqText="판매 20" },
-        new PadDef{ id="ads",     name="간판",         icon="📣", pos=new Vector2(50,598),  cost=l=>150f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("runner")>=1, reqText="뽀삐" },
-        new PadDef{ id="drill",   name="얼음 드릴",    icon="⛏", pos=new Vector2(62,166),  cost=l=>600f,  max=1, req=g=>g.PadLv("runner")>=1 && g.PadLv("ice2")>=1, reqText="뽀삐·얼음밭" },
+        new PadDef{ id="melter",  name="제빙기 속도",  icon="❄", pos=new Vector2(290,192), cost=l=>70f*Mathf.Pow(1.7f,l),   max=6, req=g=>g.PadLv("ice2")>=1, reqText="얼음밭 확장", active=true },
+        new PadDef{ id="shelf",   name="선반 칸",      icon="🧊", pos=new Vector2(134,452), cost=l=>120f*Mathf.Pow(1.8f,l),  max=4, req=g=>g.PadLv("ice2")>=1, reqText="얼음밭 확장", active=true },
+        // ---- Phase 2 ----
+        new PadDef{ id="ice2",    name="얼음밭 확장",  icon="🧊", pos=new Vector2(126,220), cost=l=>120f,  max=1, req=g=>g.PadLv("bottler")>=1, reqText="병입기 Lv.1", zone=true, active=true },
+        new PadDef{ id="runner",  name="뽀삐 고용",    icon="🛒", pos=new Vector2(282,598), cost=l=>350f,  max=1, req=g=>g.S.sold>=20, reqText="판매 20", active=true },
+        new PadDef{ id="ads",     name="간판",         icon="📣", pos=new Vector2(50,598),  cost=l=>150f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("runner")>=1, reqText="뽀삐", active=true },
+        new PadDef{ id="drill",   name="얼음 드릴",    icon="⛏", pos=new Vector2(62,166),  cost=l=>600f,  max=1, req=g=>g.PadLv("runner")>=1 && g.PadLv("ice2")>=1, reqText="뽀삐·얼음밭", active=true },
+        new PadDef{ id="runspd",  name="뽀삐 속도",    icon="💨", pos=new Vector2(282,662), cost=l=>250f*Mathf.Pow(1.8f,l), max=4, req=g=>g.PadLv("runner")>=1, reqText="뽀삐", active=true },
+        new PadDef{ id="runner2", name="뽀삐 한 명 더", icon="🛒", pos=new Vector2(360,662), cost=l=>1200f, max=1, req=g=>g.PadLv("drill")>=1, reqText="드릴", active=true },
+        // ---- Phase 3 (정의만 유지, active=false) ----
         new PadDef{ id="pen",     name="먼지 토끼 우리", icon="🐰", pos=new Vector2(330,720), cost=l=>400f, max=1, req=g=>g.PadLv("drill")>=1, reqText="드릴", zone=true },
         new PadDef{ id="dome",    name="휴게 돔",      icon="🏠", pos=new Vector2(106,720), cost=l=>700f,  max=1, req=g=>g.PadLv("pen")>=1, reqText="우리", zone=true },
-        new PadDef{ id="runspd",  name="뽀삐 속도",    icon="💨", pos=new Vector2(282,662), cost=l=>250f*Mathf.Pow(1.8f,l), max=4, req=g=>g.PadLv("runner")>=1, reqText="뽀삐" },
-        new PadDef{ id="runner2", name="뽀삐 한 명 더", icon="🛒", pos=new Vector2(360,662), cost=l=>1200f, max=1, req=g=>g.PadLv("drill")>=1, reqText="드릴" },
     };
 
     // §3.1 노출 순서. n번째 등장 = 그 id의 Lv n 차례.

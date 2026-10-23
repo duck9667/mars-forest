@@ -20,17 +20,19 @@ public class World : MonoBehaviour
         Rail(186, 570, 676); Rail(246, 570, 676);
         // 착륙장 원 r58 (입구)
         Prim.Cyl(transform, "pad", WorldMap.W2U(WorldMap.ENTRY, 0.3f), 116, 0.6f, GameConfig.Hex("9a5a3c"));
-        // 바위: 고정 시드
+        // 바위: 고정 시드 (모델 파이프라인이 붙으면 WorldDress가 교체)
+        var rocks = new GameObject("rocks").transform; rocks.SetParent(transform, false);
         var rnd = new System.Random(11);
         for (int i = 0; i < 26; i++)
         {
             float x = (float)rnd.NextDouble() * 520 - 60, y = (float)rnd.NextDouble() * 1100 - 30;
             if (x > 0 && x < 400 && y > 30 && y < 1024) { i--; continue; }
             float s = 10 + (float)rnd.NextDouble() * 22;
-            var r = Prim.Sphere(transform, "rock", WorldMap.W2U(x, y, s * 0.3f), s, GameConfig.Hex("b3683e"));
+            var r = Prim.Sphere(rocks, "rock", WorldMap.W2U(x, y, s * 0.3f), s, GameConfig.Hex("b3683e"));
             r.transform.localScale = new Vector3(s, s * 0.7f, s * 0.85f) * k;
         }
         Lights();
+        WorldDress.Dress(transform, rocks);
     }
 
     void Fence(WorldMap.Zone z)

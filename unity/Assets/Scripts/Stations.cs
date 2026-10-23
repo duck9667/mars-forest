@@ -7,9 +7,11 @@ public class Stations : MonoBehaviour
     GameState G => GameState.I;
 
     public Transform meltAnchor, trayAnchor, shelfAnchor, cashAnchor;
-    public Transform melterView, bottlerView, counterView, registerView;
-    Transform[] spotViews = new Transform[GameConfig.BASE_SPOTS];
-    bool[] spotShown = new bool[GameConfig.BASE_SPOTS];
+    public Transform melterView, bottlerView, counterView, registerView, drillView;
+    public const int ALL_SPOTS = 12;
+    Transform[] spotViews = new Transform[ALL_SPOTS];
+    Transform[] spotRoots = new Transform[ALL_SPOTS];
+    bool[] spotShown = new bool[ALL_SPOTS];
     GameObject meltCore;
     WorldLabels.Label meltLbl, waterLbl, trayLbl, shelfLbl, cashLbl;
     int lastMeltQ = -1, lastBottles = -1, lastShelf = -1, lastCash = -1;
@@ -25,11 +27,12 @@ public class Stations : MonoBehaviour
     void Build()
     {
         var root = transform;
-        // 얼음 더미: 납작한 얼음판 3장 + 바닥 서리 원판
-        for (int i = 0; i < GameConfig.BASE_SPOTS; i++)
+        // 얼음 더미: 납작한 얼음판 3장 + 바닥 서리 원판. 8~11은 ice2 구역(열리기 전엔 숨김)
+        for (int i = 0; i < ALL_SPOTS; i++)
         {
             var sp = WorldMap.ICE_SPOTS[i];
             var g = new GameObject("spot" + i); g.transform.SetParent(root, false); g.transform.position = WorldMap.W2U(sp);
+            spotRoots[i] = g.transform;
             Prim.Cyl(g.transform, "frost", new Vector3(0, 0.02f, 0), 46, 0.6f, GameConfig.Hex("eaf6ff"));
             var pile = new GameObject("pile"); pile.transform.SetParent(g.transform, false);
             Prim.Box(pile.transform, "a", new Vector3(0, 1.8f * GameConfig.K, 0), new Vector3(26, 3.6f, 18), GameConfig.Hex("a9dcf5"));
@@ -61,6 +64,21 @@ public class Stations : MonoBehaviour
         Prim.Box(registerView, "screen", WorldMap.W2U(r.x, r.y + 6, 34), new Vector3(24, 14, 3), GameConfig.Hex("c9f0ff"));
         cashAnchor = new GameObject("cash").transform; cashAnchor.SetParent(registerView, false); cashAnchor.position = WorldMap.W2U(r.x + WorldMap.REG_SPOT.x, r.y + WorldMap.REG_SPOT.y, 0);
         cashLbl = WorldLabels.I.Add(() => cashAnchor.position + Vector3.up * 1.2f, "", 24, GameConfig.GOLD, Vector2.zero);
+        // 얼음 드릴 (설치 전 숨김)
+        var d = WorldMap.STN["drill"];
+        drillView = Machine("drill", d, GameConfig.Hex("a67c52"), 70).transform;
+        RefreshZoneGated();
+        // Kenney 모델 입히기 (StationDress가 플레이스홀더 "body"/"top"을 숨기고 모델을 붙인다)
+        StationDress.Dress(this);
+    }
+
+    // ice2 구역·드릴 설치 상태를 시각에 반영 (ZoneManager·PadManager가 호출)
+    public void RefreshZoneGated()
+    {
+        bool ice2 = G.PadLv("ice2") >= 1;
+        for (int i = GameConfig.BASE_SPOTS; i < ALL_SPOTS; i++) spotRoots[i].gameObject.SetActive(ice2);
+        WorldMap.drillInstalled = G.PadLv("drill") >= 1;
+        drillView.gameObject.SetActive(WorldMap.drillInstalled);
     }
 
     GameObject Machine(string name, WorldMap.Stn s, Color col, float hL)
@@ -73,13 +91,14 @@ public class Stations : MonoBehaviour
     }
 
     public Vector3 SpotWorld(int i) => WorldMap.W2U(WorldMap.ICE_SPOTS[i], 6);
-    public bool SpotOpen(int i) => i < GameConfig.BASE_SPOTS && G.S.spots[i] <= 0;
+    public int SpotCount => G.PadLv("ice2") >= 1 ? ALL_SPOTS : GameConfig.BASE_SPOTS;
+    public bool SpotOpen(int i) => i < SpotCount && G.S.spots[i] <= 0;
 
     void Update()
     {
         var S = G.S; float dt = Mathf.Min(Time.deltaTime, GameConfig.DT_MAX);
         // 얼음 리스폰
-        for (int i = 0; i < GameConfig.BASE_SPOTS; i++)
+        for (int i = 0; i < SpotCount; i++)
         {
             if (S.spots[i] > 0) S.spots[i] -= dt;
             bool open = S.spots[i] <= 0;

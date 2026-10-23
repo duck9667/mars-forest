@@ -12,7 +12,12 @@ public static class WorldMap
         { "bottler",  new Stn{ key="bottler",  x=322, y=304, w=96,  h=64 } },
         { "counter",  new Stn{ key="counter",  x=178, y=504, w=220, h=36 } },
         { "register", new Stn{ key="register", x=316, y=504, w=40,  h=40 } },
+        { "drill",    new Stn{ key="drill",    x=62,  y=104, w=80,  h=60 } }, // 설치 전 숨김·충돌 없음
     };
+    public static bool drillInstalled;   // 드릴 발판 Lv1 이후 true (충돌·표시)
+    // 러너 적재/하역점, 삐걱 자리 (§4.2)
+    public static Vector2 RunnerLoad => new Vector2(STN["bottler"].x - 58, STN["bottler"].y + 8);
+    public static Vector2 RunnerUnload => new Vector2(STN["counter"].x - 30, STN["counter"].y - 40);
     public static readonly Vector2 REG_SPOT = new Vector2(36, 4); // 계산대 기준 지폐 자리 오프셋
 
     public static readonly Vector2[] ICE_SPOTS =
@@ -28,10 +33,12 @@ public static class WorldMap
     public static readonly Vector2 PLAYER_START = new Vector2(200, 450);
     public static Vector2 CashierSpot => new Vector2(STN["register"].x + 2, STN["register"].y - 34);
 
-    public struct Zone { public string key; public float x0, y0, x1, y1; public Color floor; public string sides; public bool open; }
+    // open=false인 구역은 pad(발판 id) Lv≥1일 때 열린다
+    public struct Zone { public string key; public float x0, y0, x1, y1; public Color floor; public string sides; public bool open; public string pad; }
     public static readonly Zone[] ZONES =
     {
         new Zone{ key="ice",    x0=16,  y0=196, x1=236, y1=404, floor=GameConfig.Hex("e6d8c6"), sides="NESW", open=true },
+        new Zone{ key="ice2",   x0=16,  y0=46,  x1=236, y1=196, floor=GameConfig.Hex("e6d8c6"), sides="NEW",  open=false, pad="ice2" },
         new Zone{ key="melt",   x0=256, y0=46,  x1=380, y1=224, floor=GameConfig.Hex("d9b298"), sides="NESW", open=true },
         new Zone{ key="bottle", x0=256, y0=224, x1=380, y1=404, floor=GameConfig.Hex("d9b298"), sides="ESW",  open=true },
         new Zone{ key="shop",   x0=16,  y0=420, x1=380, y1=560, floor=GameConfig.Hex("efcfa9"), sides="EW",   open=true },
@@ -62,12 +69,15 @@ public static class WorldMap
         return Mathf.Abs(p.x - s.x) < s.w / 2 + r && Mathf.Abs(p.y - s.y) < s.h / 2 + r;
     }
 
-    // §2 blocked(): 경계 + STN AABB(+10 x / +8 y). Phase 1은 울타리 충돌 없음.
+    // §2 blocked(): 경계 + STN AABB(+10 x / +8 y). 울타리는 충돌 없음(넘어다님). 드릴은 설치 후만.
     public static bool Blocked(float x, float y)
     {
         if (x < 14 || x > 386 || y < 30 || y > 1024) return true;
         foreach (var s in STN.Values)
+        {
+            if (s.key == "drill" && !drillInstalled) continue;
             if (Mathf.Abs(x - s.x) < s.w / 2 + 10 && Mathf.Abs(y - s.y) < s.h / 2 + 8) return true;
+        }
         return false;
     }
 
