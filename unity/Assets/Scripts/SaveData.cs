@@ -30,7 +30,8 @@ public class SaveData
 public static class SaveSystem
 {
     public const float AUTOSAVE = 3f;
-    static string Path => System.IO.Path.Combine(Application.persistentDataPath, "save.json");
+    // -save <이름> 으로 저장 파일을 분리할 수 있다(QA 앱 여러 개가 같은 persistentDataPath를 쓰므로)
+    static string Path => System.IO.Path.Combine(Application.persistentDataPath, "save" + (string.IsNullOrEmpty(DevArgs.Get("-save")) ? "" : "-" + DevArgs.Get("-save")) + ".json");
 
     public static SaveData Load()
     {
