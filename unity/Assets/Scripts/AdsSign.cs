@@ -4,7 +4,7 @@ using UnityEngine;
 public class AdsSign : MonoBehaviour
 {
     GameState G => GameState.I;
-    Transform root, board; WorldLabels.Label label; float t;
+    Transform root, board; float t;
 
     void Start()
     {
@@ -23,14 +23,14 @@ public class AdsSign : MonoBehaviour
             Prim.Box(root, "post", new Vector3(0, 20 * k, 0), new Vector3(4, 40, 4), GameConfig.Hex("8a5a3c"));
             board = Prim.Box(root, "board", new Vector3(0, 44 * k, 0), new Vector3(34, 22, 3), GameConfig.Hex("fff4dc")).transform;
             Prim.Box(board, "rim", Vector3.zero, new Vector3(36, 24, 2), GameConfig.NAVY);
-            label = WorldLabels.I.Add(() => board.position, "", 18, GameConfig.NAVY, Vector2.zero);
             root.rotation = Quaternion.LookRotation(new Vector3(0, 0, -1), Vector3.up); // 입구(남쪽) 향함
         }
         root.gameObject.SetActive(true);
         float s = 1 + 0.18f * (lv - 1);
         board.localScale = new Vector3(34 * s, 22 * s, 3) * k;
         board.localPosition = new Vector3(0, (44 + 11 * (s - 1)) * k, 0);
-        label.Set("물병 가게 Lv." + lv);
+        // 라벨은 발판 가격표와 겹쳐서 생략. 레벨은 판 크기·색으로
+        board.GetComponent<Renderer>().sharedMaterial = Mats.Solid(Color.Lerp(GameConfig.Hex("fff4dc"), GameConfig.GOLD, (lv - 1) / 4f));
         if (fx) { JuiceFX.I.Pop(root, 0.001f, 0.6f); JuiceFX.I.Ring(root.position, GameConfig.GOLD, 30); }
     }
 

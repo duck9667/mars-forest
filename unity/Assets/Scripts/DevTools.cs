@@ -24,8 +24,9 @@ public class DevTools : MonoBehaviour
             for (int i = 0; i < parts.Length; i++) float.TryParse(parts[i], out arr[i]);
             SHOTS = arr;
         }
-        // -rich: 검증용 시작 자금
+        // -rich: 검증용 시작 자금 2000, -bells N: 지정 금액
         if (DevArgs.Has("-rich")) G.AddBells(2000);
+        var bells = DevArgs.Get("-bells"); if (!string.IsNullOrEmpty(bells) && float.TryParse(bells, out var bv)) G.AddBells(bv);
     }
 
     int frames; float fpsT, diagT;

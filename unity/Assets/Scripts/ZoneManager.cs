@@ -54,7 +54,7 @@ public class ZoneManager : MonoBehaviour
         Color em = GameConfig.Hex("ffd27a") * (night * 1.6f);
         foreach (var l in lamps)
         {
-            l.light.intensity = night * 2.2f;
+            l.light.intensity = night * 1.6f;
             if (night > 0.05f) { l.mat.EnableKeyword("_EMISSION"); l.mat.SetColor("_EmissionColor", em); } else l.mat.DisableKeyword("_EMISSION");
         }
     }
