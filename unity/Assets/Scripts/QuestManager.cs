@@ -78,6 +78,8 @@ public class QuestManager : MonoBehaviour
         float dt = Time.deltaTime;
         if (chestT > 0) { chestT -= dt; return; }
         tickT += dt; if (tickT < 0.3f) return; tickT = 0;
+        // 이번 Phase에 없는 발판(pen·dome 등)을 요구하는 목표는 보상 없이 건너뛴다 (Phase 3에서 활성화되면 그대로 살아남)
+        while (Current != null && Current.key != "sold" && !GameState.ACTIVE_IDS.Contains(Current.key)) S.quest++;
         Refresh();
         var q = Current; if (q == null) return;
         if (Value(q) < q.goal) { holdT = 0; return; }
