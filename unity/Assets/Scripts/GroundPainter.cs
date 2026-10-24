@@ -432,8 +432,13 @@ public class GroundPainter
         return go;
     }
 
+    // §6.4 테라포밍 땅색 훅: 지면 재질(TerraformManager가 terra에 따라 color를 곱한다). 씬을 다시 조립하면 새 재질로 바뀐다
+    public static Material GroundMaterial;
     public static GameObject GroundQuad(Transform parent)
-        => Quad(parent, "ground", WorldMap.W2U(200f, 520f, 0f), GW, GH, TexMat(PaintGround(), false));
+    {
+        GroundMaterial = TexMat(PaintGround(), false);
+        return Quad(parent, "ground", WorldMap.W2U(200f, 520f, 0f), GW, GH, GroundMaterial);
+    }
 
     public static GameObject FloorQuad(Transform parent, WorldMap.Zone z, float hL)
         => Quad(parent, "floor", WorldMap.W2U((z.x0 + z.x1) / 2f, (z.y0 + z.y1) / 2f, hL), z.x1 - z.x0, z.y1 - z.y0, TexMat(PaintFloor(z), false));
