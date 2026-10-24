@@ -21,8 +21,36 @@ public static class BuildScript
     public static void BuildIOS()
     {
         ProjectSetup.Ensure();
-        var r = BuildPipeline.BuildPlayer(SCENES, "Builds/iOS", BuildTarget.iOS, BuildOptions.None);
-        Report(r);
+        // 수동 서명(Xcode 계정 없이 이미 받아 둔 프로파일로): IOS_PROFILE_UUID·IOS_BUNDLE_ID 환경 변수가 있으면 앱 타깃에만 적용.
+        // 빌드 뒤 원래 설정으로 되돌린다(Unity가 기본값을 다른 표현으로 다시 써서 ProjectSettings.asset에 diff가 남으면 git checkout으로 되돌릴 것).
+        string uuid = Environment.GetEnvironmentVariable("IOS_PROFILE_UUID"), bundle = Environment.GetEnvironmentVariable("IOS_BUNDLE_ID");
+        bool manual = !string.IsNullOrEmpty(uuid);
+        bool prevAuto = PlayerSettings.iOS.appleEnableAutomaticSigning; string prevId = PlayerSettings.iOS.iOSManualProvisioningProfileID;
+        var prevType = PlayerSettings.iOS.iOSManualProvisioningProfileType;
+        string prevTeam = PlayerSettings.iOS.appleDeveloperTeamID; string prevBundle = PlayerSettings.GetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS);
+        try
+        {
+            if (manual)
+            {
+                PlayerSettings.iOS.appleEnableAutomaticSigning = false;
+                PlayerSettings.iOS.iOSManualProvisioningProfileID = uuid;
+                PlayerSettings.iOS.iOSManualProvisioningProfileType = ProvisioningProfileType.Development;
+                PlayerSettings.iOS.appleDeveloperTeamID = Environment.GetEnvironmentVariable("IOS_TEAM") ?? "SXH247VWQA";
+                if (!string.IsNullOrEmpty(bundle)) PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS, bundle);
+            }
+            var r = BuildPipeline.BuildPlayer(SCENES, "Builds/iOS", BuildTarget.iOS, BuildOptions.None);
+            Report(r);
+        }
+        finally
+        {
+            if (manual)
+            {
+                PlayerSettings.iOS.appleEnableAutomaticSigning = prevAuto; PlayerSettings.iOS.iOSManualProvisioningProfileID = prevId;
+                PlayerSettings.iOS.iOSManualProvisioningProfileType = prevType;
+                PlayerSettings.iOS.appleDeveloperTeamID = prevTeam; PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS, prevBundle);
+                AssetDatabase.SaveAssets();
+            }
+        }
     }
 
     static void Report(BuildReport r)
