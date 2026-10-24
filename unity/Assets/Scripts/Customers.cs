@@ -2,14 +2,16 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// §5.2 손님: 입장 → 줄 → (맨 앞) 결제 → 병 머리 위로 → 점프 → 퇴장. Phase 1: VIP·러시·좌석 제외.
+// §5.2 손님: 입장 → 줄 → (맨 앞) 결제 → 병 머리 위로 → 점프 → (휴게 돔 빈 좌석이 있으면 착석 → 팁) → 퇴장.
 public class Customer
 {
-    public enum St { WalkIn, Queue, Leave, Gone }
+    public enum St { WalkIn, Queue, ToSeat, Sit, Leave, Gone }
     public St st = St.WalkIn;
     public Vector2 pos; public int want; public float wait, pay; public bool angry, bought, vip;
     public Transform view, body, head, hold; public WorldLabels.Label bubble;
     public float jumpT = -1;
+    // §5.2 휴게 돔: 예약 좌석(-1 없음)·경유점 큐(seatPath/leavePath)·착석 남은 시간·올라앉기 진행·앉은 지 경과
+    public int seat = -1; public List<Vector2> wp; public float sitT, sitK, sitAge; public Vector2 sitFrom, sitTo; public bool sitZz;
 }
 
 public class CustomerSystem : MonoBehaviour
@@ -88,6 +90,7 @@ public class CustomerSystem : MonoBehaviour
 
     void Remove(Customer c)
     {
+        if (c.seat >= 0) { DomeSystem.I?.ReleaseSeat(c.seat); c.seat = -1; }
         if (c.bubble != null) WorldLabels.I.Remove(c.bubble);
         if (c.view != null) Destroy(c.view.gameObject);
     }
@@ -147,16 +150,98 @@ public class CustomerSystem : MonoBehaviour
                         // 점프 0.5s(높이 22) 후 퇴장
                         c.jumpT += dt; float j = Mathf.Clamp01(c.jumpT / 0.5f);
                         c.body.localPosition = new Vector3(0, Mathf.Sin(Mathf.PI * j) * 22 * k, 0);
-                        if (j >= 1) { c.body.localPosition = Vector3.zero; c.st = Customer.St.Leave; }
+                        if (j >= 1) { c.body.localPosition = Vector3.zero; AfterPurchase(c); }
                     }
                     break;
                 }
+            case Customer.St.ToSeat:
+                if (FollowPath(c, GameConfig.CUST_WALK, dt)) SitDown(c);
+                else Bob(c, true);
+                break;
+            case Customer.St.Sit:
+                TickSit(c, dt);
+                break;
             case Customer.St.Leave:
-                if (MoveTo(c, WorldMap.ENTRY, GameConfig.CUST_LEAVE, dt)) c.st = Customer.St.Gone;
+                if (c.wp != null && c.wp.Count > 0) { if (FollowPath(c, GameConfig.CUST_LEAVE, dt)) c.st = Customer.St.Gone; }   // 돔에서 나가는 손님: leavePath
+                else if (MoveTo(c, WorldMap.ENTRY, GameConfig.CUST_LEAVE, dt)) c.st = Customer.St.Gone;
                 Bob(c, true);
                 break;
         }
         c.view.position = WorldMap.W2U(c.pos);
+    }
+
+    // §5.2 휴게 돔: 결제·점프가 끝나면 빈 좌석을 예약해 seatPath로 걸어가고, 없으면 기존대로 퇴장
+    void AfterPurchase(Customer c)
+    {
+        var dome = DomeSystem.I;
+        if (dome != null && dome.TryReserveSeat(out int s)) { c.seat = s; c.wp = dome.SeatPath(s, c.pos); c.st = Customer.St.ToSeat; }
+        else c.st = Customer.St.Leave;
+    }
+
+    // 경유점 큐를 앞에서부터 따라 걷는다. 다 지나면 true
+    static bool FollowPath(Customer c, float speed, float dt)
+    {
+        if (c.wp == null || c.wp.Count == 0) return true;
+        if (MoveTo(c, c.wp[0], speed, dt)) c.wp.RemoveAt(0);
+        return c.wp.Count == 0;
+    }
+
+    // 좌석 앞(s.y+10) 도착 → 뒤로 폴짝 올라앉기 시작. 5~8초 앉는다(원본 sitT=5+rand*3). 하트 말풍선 → 잠시 뒤 zz
+    void SitDown(Customer c)
+    {
+        var dome = DomeSystem.I;
+        c.st = Customer.St.Sit; c.sitT = Random.Range(5f, 8f); c.sitK = 0; c.sitAge = 0; c.sitZz = false;
+        c.sitFrom = c.pos; c.sitTo = dome != null ? dome.SitPoint(c.seat) : c.pos;
+        c.bubble.SetStyle(c.vip ? UIKit.Vip : UIKit.Bubble); if (c.bubble.bg != null) c.bubble.bg.color = Color.white;   // 결제 진행 금색 틴트 되돌림
+        c.bubble.SetIcon2(null); c.bubble.SetIcon("heart"); c.bubble.Set("");
+        c.bubble.Show(true); c.bubble.rt.localScale = Vector3.one * 0.3f;   // 크기는 TickSit이 직접 키운다
+        AudioManager.I.Play("pop", 1.4f, 0.35f);
+    }
+
+    // 앉아 있기: 0.32s 동안 뒤로 폴짝(높이 8) 올라앉으며 남쪽(카메라) 보기, 다리는 앞으로 뻗어 발장구, 팔은 무릎 위,
+    // 숨쉬기·두리번. 시간이 다 되면 팁 round(price*0.5)을 좌석에 남기고 leavePath로 퇴장(CUST_LEAVE)
+    void TickSit(Customer c, float dt)
+    {
+        float k = GameConfig.K, t = Time.time;
+        var rig = c.body.GetComponent<CharRig>(); float ph = rig ? rig.ph : 0f;
+        bool wasUp = c.sitK < 1f;
+        c.sitK = Mathf.Min(1f, c.sitK + dt / 0.32f); c.sitAge += dt;
+        float e = 1f - (1f - c.sitK) * (1f - c.sitK);
+        c.pos = Vector2.Lerp(c.sitFrom, c.sitTo, e);
+        bool seated = c.sitK >= 1f;
+        float hop = Mathf.Sin(Mathf.PI * c.sitK) * 8f, breath = seated ? Mathf.Sin(t * 2.2f + ph) * 0.5f : 0f;
+        c.body.localPosition = new Vector3(0, (1f + hop + breath) * k, 0);   // 엉덩이(다리 피벗 11)를 좌판 윗면(11) 위로 +1
+        c.view.rotation = Quaternion.Slerp(c.view.rotation, Quaternion.LookRotation(Vector3.back, Vector3.up), Mathf.Min(1f, dt * 12f));
+        if (wasUp && seated) DomeSystem.I?.OnSit(c.seat);   // 엉덩이가 닿는 순간 한 번
+        if (rig != null)
+        {
+            float a = Mathf.Min(1f, dt * 12f), kick = seated ? Mathf.Sin(t * 3.4f + ph) * 12f : 0f;
+            if (rig.legL) rig.legL.localRotation = Quaternion.Slerp(rig.legL.localRotation, Quaternion.Euler(-80f + kick, 0, 0), a);
+            if (rig.legR) rig.legR.localRotation = Quaternion.Slerp(rig.legR.localRotation, Quaternion.Euler(-80f - kick, 0, 0), a);
+            if (rig.armL) rig.armL.localRotation = Quaternion.Slerp(rig.armL.localRotation, Quaternion.Euler(-35f, 0, -8f), a);
+            if (rig.armR) rig.armR.localRotation = Quaternion.Slerp(rig.armR.localRotation, Quaternion.Euler(-35f, 0, 8f), a);
+            if (rig.head && seated) rig.head.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.3f + ph) * 4f, Mathf.Sin(t * 0.6f + ph) * 22f, 0);
+        }
+        // 말풍선: 하트 팝(0.3→1) → 1.2s 뒤 작은 zz(0.78, 숨쉬듯) — 좌석 6개가 다 차도 돔을 덮지 않게
+        if (!c.sitZz && c.sitAge > 1.2f) { c.sitZz = true; c.bubble.SetIcon("zz"); }
+        float bk = c.sitZz ? Mathf.Clamp01((c.sitAge - 1.2f) / 0.3f) : Mathf.Clamp01(c.sitAge / 0.35f);
+        float bs = c.sitZz ? Mathf.LerpUnclamped(0.45f, 0.78f, JuiceFX.EaseOutBack(bk)) + Mathf.Sin(t * 2.5f + ph) * 0.03f : Mathf.LerpUnclamped(0.3f, 1f, JuiceFX.EaseOutBack(bk));
+        c.bubble.rt.localScale = Vector3.one * bs;
+        c.bubble.offset = new Vector2(0, Mathf.Sin(t * 2.5f + ph) * 3f * WorldLabels.Scale);
+        c.sitT -= dt;
+        if (c.sitT <= 0)
+        {
+            var dome = DomeSystem.I;
+            if (dome != null)
+            {
+                dome.LeaveTip(c.seat, Mathf.FloorToInt(G.BottlePrice * 0.5f + 0.5f));   // JS Math.round와 같은 반올림
+                dome.ReleaseSeat(c.seat);
+                c.wp = dome.LeavePath(c.seat);
+            }
+            c.seat = -1; c.st = Customer.St.Leave;
+            c.bubble.Show(false); c.bubble.offset = Vector2.zero; c.bubble.rt.localScale = Vector3.one;
+            if (rig != null && rig.head) rig.head.localRotation = Quaternion.identity;
+        }
     }
 
     // 걷기 bob + 팔다리 스윙(위상은 개체마다 다름), 정지 시 호흡. 결제 점프 중(Queue)엔 Tick 이 몸 높이를 잡으므로 건드리지 않는다
