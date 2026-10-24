@@ -51,6 +51,9 @@ public class DevTools : MonoBehaviour
         // -start x,y: 플레이어 시작 위치(스크린샷용). Player.Start 전에 저장값을 바꿔 둔다
         var st = DevArgs.Get("-start");
         if (!string.IsNullOrEmpty(st)) { var xy = st.Split(','); if (xy.Length == 2 && float.TryParse(xy[0], out var sx) && float.TryParse(xy[1], out var sy)) { G.S.p.x = sx; G.S.p.y = sy; if (Player.I != null) Player.I.pos = new Vector2(sx, sy); } }
+        // -intro: 새 게임 인트로 강제 · -story id: 그 무전 카드 바로 띄우기(본 적 있어도)
+        if (DevArgs.Has("-intro")) StoryManager.I?.DevIntro();
+        StoryManager.I?.DevStory(DevArgs.Get("-story"));
     }
 
     int frames; float fpsT, diagT;

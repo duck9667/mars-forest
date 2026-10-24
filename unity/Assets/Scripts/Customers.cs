@@ -8,11 +8,18 @@ public class Customer
 {
     public enum St { WalkIn, Queue, ToSeat, Sit, Leave, Gone }
     public St st = St.WalkIn;
+    public string name;   // 정착민 이름(성+이름, 거주 구역 패널·지도에서 씀. 말풍선엔 안 씀)
     public Vector2 pos; public string kind = "bottle"; public int want; public float wait, pay; public bool angry, bought, vip, switched;   // switched: 원하는 칸이 비어 다른 종류로 한 번 바꿨음
     public Transform view, body, head, hold; public WorldLabels.Label bubble;
     public float jumpT = -1;
     // §5.2 휴게 돔: 예약 좌석(-1 없음)·경유점 큐(seatPath/leavePath)·착석 남은 시간·올라앉기 진행·앉은 지 경과
     public int seat = -1; public List<Vector2> wp; public float sitT, sitK, sitAge; public Vector2 sitFrom, sitTo; public bool sitZz;
+
+    // 한국식 짧은 이름: 성 16 × 이름 30
+    static readonly string[] SURNAMES = { "김", "이", "박", "최", "정", "강", "조", "윤", "장", "임", "한", "오", "서", "신", "권", "황" };
+    static readonly string[] GIVEN = { "하늘", "민준", "서연", "지우", "도윤", "수아", "예준", "하린", "시우", "지호", "유나", "은우", "서진", "다온", "로아",
+                                       "태오", "나래", "보람", "슬기", "한결", "이안", "소율", "주원", "채원", "윤서", "건우", "아린", "도담", "새봄", "별이" };
+    public static string RandomName() => SURNAMES[Random.Range(0, SURNAMES.Length)] + GIVEN[Random.Range(0, GIVEN.Length)];
 }
 
 public class CustomerSystem : MonoBehaviour
@@ -66,7 +73,7 @@ public class CustomerSystem : MonoBehaviour
     void Spawn()
     {
         S.custN++;
-        var c = new Customer { pos = WorldMap.ENTRY };
+        var c = new Customer { pos = WorldMap.ENTRY, name = Customer.RandomName() };
         int ads = G.PadLv("ads");
         c.vip = S.tut >= 3 && S.sold >= 40 && S.custN % 10 == 0;   // 10번째 손님마다 VIP
         c.want = S.tut < 3 ? 1 : c.vip ? Random.Range(2, 4) : 1 + (Random.value < 0.3f + 0.06f * ads ? 1 : 0) + (Random.value < 0.1f + 0.05f * ads ? 1 : 0);
