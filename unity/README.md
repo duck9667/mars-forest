@@ -16,25 +16,25 @@
 |---|---|
 | `GameConfig` · `WorldMap` | 상수·발판 정의·ORDER·좌표(논리 400×1040 → `W2U`, k=0.05) (§0~4) |
 | `SaveData` · `GameState` | 저장(JSON, `persistentDataPath/save.json`)·파생값·이벤트 (§8) |
-| `Player` · `FloatingJoystick` | 이동·충돌·걷기 애니·등짐 스택 흔들림·§1.1 상호작용 순서 (§2) |
-| `Stations` | 얼음 더미 8 · 제빙기 · 병입기 · 카운터(선반) · 계산대(지폐) (§1) |
+| `Player` · `FloatingJoystick` | 이동(서브스텝 충돌)·걷기 애니·등 뒤 블록 탑(`Items.CarryBlock`, 스프링 흔들림, 가득일 때만 MAX)·§1.1 상호작용 순서 (§2). 두 번째 손가락이 닿으면 조이스틱 취소(핀치 우선) |
+| `Stations` | 얼음 더미 8 · 해빙기(얼음을 녹여 물로) · 병입기 · 카운터(선반) · 계산대(지폐) (§1) |
 | `PadManager` | 발판 노출 규칙·정지 납입·완료·시트 일시불 (§3) |
-| `ZoneManager` | 구역 바닥·울타리(둘레 순서 부품), 잠긴 구역 윤곽·자물쇠 아치, 해제 연출 (§4.3) |
+| `ZoneManager` | 구역 바닥·울타리(둘레 순서 부품), 잠긴 구역 윤곽·자물쇠 아치, 해제 연출 (§4.3). 열린 구역 울타리는 `WorldMap.FenceBlocked`로 실제로 막힘(게이트 틈만 통과, ice·ice2 E변 게이트 추가) |
 | `CustomerSystem` · `CashierBot` | 손님 줄·결제·인내·VIP·콤보·러시, 삐걱 자동 결제 (§1.3·§5) |
 | `RunnerSystem` · `DrillStation` · `AdsSign` | 뽀삐 상태기계(적재→하역), 드릴 2초마다 얼음 2장, 간판 입간판 (§5.1) |
-| `QuestManager` | 목표 12개 순차, HUD 칩(누르면 시트 목표 탭), 상자 팝·보상, qskip (§6.1) |
+| `QuestManager` | 목표 12개 순차, 업그레이드 시트 목표 탭에서만 표시(상단 칩 없음), 달성 즉시 보상·저장, qskip (§6.1) |
 | `PenSystem` · `DomeSystem` | 먼지 토끼 우리(토끼·소품·팁 적립·수거), 휴게 돔(조립·좌석 예약·경로·팁·수거) (§5.1·§5.2) |
 | `DecoManager` · `ShopDecor` | 장식 6종 구매·매장 시각물(차양·네온·선인장·줄전구·깃발·체크 바닥) (§3.4) |
 | `PrestigeManager` · `TerraformManager` · `OfflineEarnings` | 이주(초기화·보너스·로켓 연출·Bootstrap.Restart), 테라포밍(terra·45 슬롯·점등), 부재 수익 모달 (§5.4·§6.3·§6.4) |
 | `StationDress` · `WorldDress` · `ModelLib` | Kenney GLB 모델 배치·팔레트 교체, 자체 GLB 파서 (§9) |
 | `PostFX` · `HullOutline` · `Resources/Shaders` | 포스트 외곽선(깊이 2차 미분)·ACES·비네트·블룸·그림자 품질, VIP용 hull 외곽선 헬퍼 (§7.2) |
-| `GroundPainter` · `DustFX` | 코드로 그린 지면 텍스처(균열·크레이터·바퀴 자국·점선 길·착륙장 H)·구역 바닥·잠긴 구역 점선, 먼지 입자·돌풍·회오리 (§7.4) |
+| `GroundPainter` · `DustFX` | 코드로 그린 지면 텍스처(잔무늬 최소·넓은 명암·기지 밖 비네트)·구역 바닥·잠긴 구역 점선, 가장자리 먼지 36개·약한 돌풍·회오리 1개 (§7.4). 맵 바깥은 `WorldDress`의 지층 메사 16덩어리 |
 | `CharacterKit` | 원본 bPerson/bTraveler/bRobot 치비 조립(플레이어·손님·삐걱·뽀삐+손수레) |
 | `UIKit` · `Resources/Fonts/Jua-Regular.ttf` | 9-slice 베벨 패널·아이콘 34종·말풍선·버튼·핍, Jua(OFL) 글꼴 |
-| `HUD` · `UpgradeSheet` · `WorldLabels` | 벨·업그레이드 버튼·시트, 월드→스크린 라벨 |
+| `HUD` · `UpgradeSheet` · `WorldLabels` | 벨·N일째·톱니(소리/진동 토글)·콤보/러시 배지·업그레이드 버튼·시트, 월드→스크린 라벨(말풍선은 맨 앞 손님만) |
 | `TutorialManager` · `HintSystem` | 말풍선 3단계·손 포인터, 바닥 화살표·타깃 링 (§6.2) |
-| `ArcFlyer` · `JuiceFX` · `CameraRig` · `AudioManager` | 아크 비행·스쿼시·팝·링·동전·흔들림, 직교 추적 카메라, 합성 효과음 (§7) |
-| `DevTools` | `-wipe` 저장 초기화, `-autoplay` 힌트 추종 봇(격자 경로·5초마다 diag 로그·좌석 팁 수거), `-shot <dir>` 스크린샷 후 종료(소리 꺼짐), `-shots 2,10,…`, `-rich`/`-bells N`, `-pads id=lv,…`, `-sold N`, `-tut N`, `-shelf N`, `-start x,y`, `-save 이름`(저장 파일 분리), F5 초기화, F6 +500벨. 기능별: `-pentip N`·`-pent S`(우리), `-decos all`·`-decobuy id,…`·`-clock N`(장식), `-sheettab upgrade|deco|quest`(시트), `-offline 초`(부재 수익), `-prestigeAt 초`(이주). 검증 인자는 실행당 1회(Restart 뒤 유지) |
+| `ArcFlyer` · `JuiceFX` · `CameraRig` · `AudioManager` | 아크 비행·스쿼시·팝·링·동전·흔들림, 직교 추적 카메라(핀치·휠 확대 1~2.2배, 저장), 합성 효과음, `Haptics`(iOS `MarsHaptics.mm`, 설정에서 끔) (§7) |
+| `DevTools` | `-wipe` 저장 초기화, `-autoplay` 힌트 추종 봇(격자 경로·5초마다 diag 로그·좌석 팁 수거), `-shot <dir>` 스크린샷 후 종료(소리 꺼짐), `-shots 2,10,…`, `-rich`/`-bells N`, `-pads id=lv,…`, `-sold N`, `-tut N`, `-shelf N`, `-start x,y`, `-save 이름`(저장 파일 분리), F5 초기화, F6 +500벨. 기능별: `-pentip N`·`-pent S`(우리), `-decos all`·`-decobuy id,…`·`-clock N`(장식), `-sheettab upgrade|deco|quest`(시트), `-offline 초`(부재 수익), `-prestigeAt 초`(이주), `-zoom f`(카메라 확대), `-settings s`(설정 창 열기), `-carry N`(등짐 N개 채우기). 검증 인자는 실행당 1회(Restart 뒤 유지) |
 | `Editor/ProjectSetup` · `Editor/BuildScript` | 재질 에셋(셰이더 포함용)·빈 씬·플레이어 설정, 배치 빌드 |
 
 ## 빌드·QA
