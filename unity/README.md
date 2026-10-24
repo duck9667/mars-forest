@@ -23,6 +23,8 @@
 | `CustomerSystem` · `CashierBot` | 손님 줄·결제·인내·VIP·콤보·러시, 삐걱 자동 결제 (§1.3·§5) |
 | `RunnerSystem` · `DrillStation` · `AdsSign` | 뽀삐 상태기계(적재→하역), 드릴 2초마다 얼음 2장, 간판 입간판 (§5.1) |
 | `QuestManager` | 목표 12개 순차, 업그레이드 시트 목표 탭에서만 표시(상단 칩 없음), 달성 즉시 보상·저장, qskip (§6.1) |
+| `SettleStations` · `MachineKit` | 생존 기지 생산 체인(레골리스 더미·전기분해기·토양 정화기·비료 배합기·온실, docs/settlement-design.md), 기계 공통 문법(받침판→투입부→움직이는 가공부→산출 받침대, MachineAnim) |
+| `SettlementManager` · `MapScreen` | 정착 목표 5단계(물 확보→숨 쉴 공기→흙 살리기→첫 수확→정착 완료)·보상, 지도 화면(구역 상태·시설·플레이어·단계별 진행 막대), HUD "정착 n/5" 알약 |
 | `PenSystem` · `DomeSystem` | 먼지 토끼 우리(토끼·소품·팁 적립·수거), 휴게 돔(조립·좌석 예약·경로·팁·수거) (§5.1·§5.2) |
 | `DecoManager` · `ShopDecor` | 장식 6종 구매·매장 시각물(차양·네온·선인장·줄전구·깃발·체크 바닥) (§3.4) |
 | `PrestigeManager` · `TerraformManager` · `OfflineEarnings` | 이주(초기화·보너스·로켓 연출·Bootstrap.Restart), 테라포밍(terra·45 슬롯·점등), 부재 수익 모달 (§5.4·§6.3·§6.4) |
@@ -34,7 +36,7 @@
 | `HUD` · `UpgradeSheet` · `WorldLabels` | 벨·N일째·톱니(소리/진동 토글)·콤보/러시 배지·업그레이드 버튼·시트, 월드→스크린 라벨(말풍선은 맨 앞 손님만) |
 | `TutorialManager` · `HintSystem` | 말풍선 3단계·손 포인터, 바닥 화살표·타깃 링 (§6.2) |
 | `ArcFlyer` · `JuiceFX` · `CameraRig` · `AudioManager` | 아크 비행·스쿼시·팝·링·동전·흔들림, 직교 추적 카메라(핀치·휠 확대 1~2.2배, 저장), 합성 효과음, `Haptics`(iOS `MarsHaptics.mm`, 설정에서 끔) (§7) |
-| `DevTools` | `-wipe` 저장 초기화, `-autoplay` 힌트 추종 봇(격자 경로·5초마다 diag 로그·좌석 팁 수거), `-shot <dir>` 스크린샷 후 종료(소리 꺼짐), `-shots 2,10,…`, `-rich`/`-bells N`, `-pads id=lv,…`, `-sold N`, `-tut N`, `-shelf N`, `-start x,y`, `-save 이름`(저장 파일 분리), F5 초기화, F6 +500벨. 기능별: `-pentip N`·`-pent S`(우리), `-decos all`·`-decobuy id,…`·`-clock N`(장식), `-sheettab upgrade|deco|quest`(시트), `-offline 초`(부재 수익), `-prestigeAt 초`(이주), `-zoom f`(카메라 확대), `-settings s`(설정 창 열기), `-carry N`(등짐 N개 채우기). 검증 인자는 실행당 1회(Restart 뒤 유지) |
+| `DevTools` | `-wipe` 저장 초기화, `-autoplay` 힌트 추종 봇(격자 경로·5초마다 diag 로그·좌석 팁 수거), `-shot <dir>` 스크린샷 후 종료(소리 꺼짐), `-shots 2,10,…`, `-rich`/`-bells N`, `-pads id=lv,…`, `-sold N`, `-tut N`, `-shelf N`, `-start x,y`, `-save 이름`(저장 파일 분리), F5 초기화, F6 +500벨. 기능별: `-pentip N`·`-pent S`(우리), `-decos all`·`-decobuy id,…`·`-clock N`(장식), `-sheettab upgrade|deco|quest`(시트), `-offline 초`(부재 수익), `-prestigeAt 초`(이주), `-zoom f`(카메라 확대), `-settings s`(설정 창 열기), `-carry N`(등짐 N개 채우기), `-walk dx,dy`(봇 대신 한 방향으로 밀기, 0,0이면 제자리), `-shelfo2 N`·`-shelffood N`(카운터 칸 채우기), `-map [초]`·`-stage N`·`-sup 물,산소,식량[,비료[,정착민]]`(정착 목표), `-fx mask=0`(외곽선 마스크 끄기). `-shots`는 소수 시점도 받는다(1/100초 이름). 검증 인자는 실행당 1회(Restart 뒤 유지) |
 | `Editor/ProjectSetup` · `Editor/BuildScript` | 재질 에셋(셰이더 포함용)·빈 씬·플레이어 설정, 배치 빌드 |
 
 ## 빌드·QA

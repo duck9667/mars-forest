@@ -56,7 +56,7 @@ public class HintSystem : MonoBehaviour
         bool Taking(int i, int outN) => !iceFull && outN > 0 && ss.Near(i, Player.I.pos);
         if (ss != null)
         {
-            if (hk == "rego") return (iceFull || !ss.AnyRego) ? F(1) : Rego();
+            if (hk == "rego") return (iceFull || !ss.AnyRego || S.purQ + ss.qPend[1] >= GameConfig.SETTLE_Q_CAP / 2) ? F(1) : Rego();   // 정화기에 이미 많으면 더 줍지 말고 넣기
             if (hk == "soil") return F(2);
             if (hk == "fert") return Taking(2, S.mixOut + S.mixQ) ? F(2) : F(3);   // 배합 중인 것까지 기다렸다 한 번에
             if (hk == "o2") return Taking(0, S.elecOut) ? F(0) : Cnt();

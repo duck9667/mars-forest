@@ -240,7 +240,8 @@ public class Player : MonoBehaviour
     void SettleInteract()
     {
         var ss = SettleStations.I; if (ss == null) return;
-        if (G.CanCarry("rego"))
+        // 정화기 큐가 이미 상한이면 지나가다 줍지 않는다(출력이 가득 차 멈춘 동안 레골리스만 계속 쌓이는 고리 방지)
+        if (G.CanCarry("rego") && S.purQ + ss.qPend[1] < GameConfig.SETTLE_Q_CAP)
         {
             int best = ss.NearestRego(pos, SettleStations.R_REGO);
             if (best >= 0)

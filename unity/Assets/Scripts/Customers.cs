@@ -8,7 +8,7 @@ public class Customer
 {
     public enum St { WalkIn, Queue, ToSeat, Sit, Leave, Gone }
     public St st = St.WalkIn;
-    public Vector2 pos; public string kind = "bottle"; public int want; public float wait, pay; public bool angry, bought, vip;
+    public Vector2 pos; public string kind = "bottle"; public int want; public float wait, pay; public bool angry, bought, vip, switched;   // switched: 원하는 칸이 비어 다른 종류로 한 번 바꿨음
     public Transform view, body, head, hold; public WorldLabels.Label bubble;
     public float jumpT = -1;
     // §5.2 휴게 돔: 예약 좌석(-1 없음)·경유점 큐(seatPath/leavePath)·착석 남은 시간·올라앉기 진행·앉은 지 경과
@@ -85,6 +85,17 @@ public class CustomerSystem : MonoBehaviour
     }
 
     // 말풍선 글자: "물 ×2"·"산소 ×1"·"식량 ×1"(VIP는 앞에 "VIP "). 앞 낱말은 WorldLabels가 아이콘으로 바꾼다
+    // 원하는 칸이 비었으면 칸에 있는 다른 종류로 한 번만 바꾼다(없으면 그대로 기다림). 개수는 그 칸 재고 안에서
+    void SwitchKind(Customer c)
+    {
+        string best = null; int bestN = 0;
+        foreach (var k in GameState.SUPPLY_KINDS) if (k != c.kind && G.KindOpen(k) && G.ShelfOf(k) > bestN) { best = k; bestN = G.ShelfOf(k); }
+        if (best == null) return;
+        c.switched = true; c.kind = best; c.want = Mathf.Min(c.want, bestN);
+        c.bubble.Set(BubbleText(c)); c.bubble.text.color = GameConfig.NAVY;
+        JuiceFX.I.Squash(c.body, 0.6f);
+    }
+
     static string BubbleText(Customer c) => (c.vip ? "VIP " : "") + GameState.KindName(c.kind) + " ×" + c.want;
 
     void BuildView(Customer c)
@@ -141,6 +152,7 @@ public class CustomerSystem : MonoBehaviour
                     if (arrived) c.view.rotation = Quaternion.LookRotation(new Vector3(0, 0, 1), Vector3.up); // 카운터(북쪽) 보기
                     // 말풍선은 줄 맨 앞(결제 대상) 한 명만: 나머지는 숨겨 화면을 비운다(화난 느낌표도 맨 앞일 때만 보임)
                     c.bubble.Show(qi == 0 && arrived && !c.bought);
+                    if (qi == 0 && !c.bought && arrived && !c.switched && c.wait > 1.5f && G.ShelfOf(c.kind) < c.want) SwitchKind(c);
                     if (qi == 0 && !c.bought)
                     {
                         bool canPay = arrived && G.ShelfOf(c.kind) >= c.want && (G.HasCashier || WorldMap.NearStn(Player.I.pos, "register", GameConfig.R_PAY));
