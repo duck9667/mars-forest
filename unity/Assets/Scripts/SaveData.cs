@@ -33,6 +33,13 @@ public class SaveData
     public int quest = 0, prestige = 0, custN = 0, lost = 0;
     public int tut = 0, handShown = 0, qv = 3;   // qv 3: Phase 3(우리·돔 목표 활성)
     public List<int> qskip = new List<int>();    // 보상 없이 넘길 목표 번호(옛 저장 마이그레이션)
+    // ---- 생존 기지 (docs/settlement-design.md) ----
+    public int shelfO2 = 0, shelfFood = 0;               // 카운터 산소·식량 칸 (물은 shelf)
+    public float[] rspots = new float[GameConfig.REGO_SPOTS];   // 레골리스 더미 리스폰 타이머
+    public int elecQ, elecOut, purQ, purOut, mixQ, mixOut, grnQ, grnOut;   // 시설 입력 큐·출력 더미
+    public float elecT, purT, mixT, grnT;
+    public int supW, supO, supF, fertMade;               // 공급 누계(물·산소·식량)·비료 생산 누계
+    public int stage = 0;                                // 정착 목표 단계(0~5, 5=정착 완료)
 }
 
 public static class SaveSystem
@@ -74,6 +81,7 @@ public static class SaveSystem
         if (d.p == null) d.p = new PlayerSave();
         if (d.p.carry == null) d.p.carry = new List<string>();
         if (d.spots == null || d.spots.Length < 12) d.spots = new float[12];
+        if (d.rspots == null || d.rspots.Length < GameConfig.REGO_SPOTS) d.rspots = new float[GameConfig.REGO_SPOTS];
         if (d.sold >= 1) { d.tut = 3; d.handShown = 1; }
         // 드릴 충돌은 저장된 레벨로 먼저 켜고 나서 위치를 검사해야 드릴 안에 갇힌 저장본을 구제할 수 있다
         if (d.deco == null) d.deco = new DecoSave();

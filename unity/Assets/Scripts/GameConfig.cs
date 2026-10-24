@@ -7,6 +7,7 @@ public static class GameConfig
 {
     public const float K = 0.05f;              // 논리 20 = 1m
     public const float W = 400f, H = 1040f;
+    public const float Y_MIN = -390f;          // 생존 기지: 북쪽 확장(채굴장·산소동·토양 공장·온실). 세계 y = Y_MIN..H
     public const float DT_MAX = 0.05f;
 
     public static readonly int[] CARRY = { 20, 24, 28, 32, 36, 40, 48 };   // jake 요청(10/24): 처음부터 20개
@@ -67,6 +68,15 @@ public static class GameConfig
     public static readonly Color ICE = Hex("cfeeff");
     public static readonly Color BOTTLE = Hex("6fc3f0");
     public static readonly Color BILL = Hex("7ccf7a");
+    // 생존 기지 자원 (docs/settlement-design.md)
+    public static readonly Color REGO = Hex("b5532e");   // 레골리스
+    public static readonly Color SOIL = Hex("6b4a33");   // 흙
+    public static readonly Color FERT = Hex("8fae4a");   // 비료
+    public static readonly Color O2 = Hex("e9f4ff");     // 산소통
+    public static readonly Color FOOD = Hex("f2b33d");   // 식량
+    public const int SETTLE_Q_CAP = 40, SETTLE_OUT_CAP = 24;
+    public const float ELEC_T = 1.4f, PURIF_T = 1.2f, MIXER_T = 1.4f, GREEN_T = 2.0f;
+    public const int REGO_SPOTS = 8;
     public static readonly Color[] CUST_COLS = { Hex("f06a6a"), Hex("f0a24a"), Hex("f2d35b"), Hex("7fcf7a"), Hex("6fb6f0"), Hex("b48cf0"), Hex("f08cc8") };
 
     public static Color Hex(string h)
@@ -113,12 +123,17 @@ public static class Pads
         // ---- Phase 3 ----
         new PadDef{ id="pen",     name="먼지 토끼 우리", icon="🐰", pos=new Vector2(330,720), cost=l=>400f, max=1, req=g=>g.PadLv("drill")>=1, reqText="드릴", zone=true, active=true },
         new PadDef{ id="dome",    name="휴게 돔",      icon="🏠", pos=new Vector2(106,720), cost=l=>700f,  max=1, req=g=>g.PadLv("pen")>=1, reqText="우리", zone=true, active=true },
+        // ---- 생존 기지 (북쪽 확장) ----
+        new PadDef{ id="o2",      name="전기분해기",    icon="🫧", pos=new Vector2(318,28),   cost=l=>300f,  max=1, req=g=>g.PadLv("ice2")>=1, reqText="얼음밭 확장", zone=true, active=true },
+        new PadDef{ id="mine",    name="레골리스 채굴장", icon="⛏", pos=new Vector2(126,28),  cost=l=>500f,  max=1, req=g=>g.PadLv("o2")>=1, reqText="전기분해기", zone=true, active=true },
+        new PadDef{ id="soil",    name="토양 공장",     icon="🪴", pos=new Vector2(300,-150), cost=l=>700f,  max=1, req=g=>g.PadLv("mine")>=1, reqText="채굴장", zone=true, active=true },
+        new PadDef{ id="farm",    name="온실",         icon="🥔", pos=new Vector2(126,-160), cost=l=>1000f, max=1, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", zone=true, active=true },
     };
 
     // §3.1 노출 순서. n번째 등장 = 그 id의 Lv n 차례.
     public static readonly string[] ORDER =
     {
-        "cashier","bottler","ice2","melter","shelf","runner","ads","bottler","melter","ads","drill","pen","shelf","dome",
+        "cashier","bottler","ice2","melter","o2","shelf","runner","ads","bottler","mine","melter","soil","ads","drill","farm","pen","shelf","dome",
         "runspd","bottler","melter","runner2","ads","shelf","runspd","bottler","melter","runspd","ads","bottler","melter","runspd","shelf"
     };
 

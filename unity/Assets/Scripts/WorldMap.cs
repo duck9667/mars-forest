@@ -13,7 +13,14 @@ public static class WorldMap
         { "counter",  new Stn{ key="counter",  x=178, y=504, w=220, h=36 } },
         { "register", new Stn{ key="register", x=316, y=504, w=40,  h=40 } },
         { "drill",    new Stn{ key="drill",    x=62,  y=104, w=80,  h=60 } }, // 설치 전 숨김·충돌 없음
+        // 생존 기지 시설(구역이 열리기 전엔 충돌 없음, STN_ZONE)
+        { "elec",     new Stn{ key="elec",     x=322, y=-85,  w=96,  h=64 } },  // 전기분해기: 물통 → 산소통
+        { "purif",    new Stn{ key="purif",    x=322, y=-340, w=96,  h=56 } },  // 토양 정화기: 레골리스 → 흙
+        { "mixer",    new Stn{ key="mixer",    x=322, y=-252, w=96,  h=56 } },  // 비료 배합기: 흙 → 비료
+        { "green",    new Stn{ key="green",    x=126, y=-300, w=150, h=84 } },  // 온실: 비료(+물) → 식량
     };
+    public static readonly Dictionary<string, string> STN_ZONE = new Dictionary<string, string> { { "elec", "o2" }, { "purif", "soil" }, { "mixer", "soil" }, { "green", "farm" } };
+    public static bool StnActive(string key) => key == "drill" ? drillInstalled : !STN_ZONE.TryGetValue(key, out var z) || openZones.Contains(z);
     public static bool drillInstalled;   // 드릴 발판 Lv1 이후 true (충돌·표시)
     // 러너 적재/하역점, 삐걱 자리 (§4.2)
     public static Vector2 RunnerLoad => new Vector2(STN["bottler"].x - 58, STN["bottler"].y + 8);
@@ -26,6 +33,13 @@ public static class WorldMap
         new Vector2(152,318), new Vector2(44,366), new Vector2(190,350), new Vector2(112,380),
         // ice2 (Phase 2)
         new Vector2(150,86), new Vector2(204,118), new Vector2(148,158), new Vector2(206,172),
+    };
+
+    // 레골리스 더미(채굴장 구역 안)
+    public static readonly Vector2[] REGO_SPOTS =
+    {
+        new Vector2(54,-150), new Vector2(118,-136), new Vector2(190,-150), new Vector2(76,-90),
+        new Vector2(160,-84), new Vector2(206,-34), new Vector2(46,-30), new Vector2(100,-36),
     };
 
     public const float QUEUE_X = 216f, QUEUE_Y0 = 584f, QUEUE_GAP = 46f;
@@ -44,6 +58,11 @@ public static class WorldMap
         new Zone{ key="shop",   x0=16,  y0=420, x1=380, y1=560, floor=GameConfig.Hex("efcfa9"), sides="EW",   open=true },
         new Zone{ key="dome",   x0=22,  y0=740, x1=196, y1=934, floor=GameConfig.Hex("d3dbbd"), sides="NESW", open=false, pad="dome" },
         new Zone{ key="pen",    x0=276, y0=740, x1=378, y1=934, floor=GameConfig.Hex("dcb085"), sides="NESW", open=false, pad="pen" },
+        // 생존 기지(북쪽): 잠겨 있으면 단단한 땅(통행 불가, NorthBlocked)
+        new Zone{ key="mine",   x0=16,  y0=-180, x1=236, y1=10,   floor=GameConfig.Hex("d9b8a0"), sides="NESW", open=false, pad="mine" },
+        new Zone{ key="o2",     x0=256, y0=-180, x1=380, y1=10,   floor=GameConfig.Hex("cfd8e3"), sides="NESW", open=false, pad="o2" },
+        new Zone{ key="farm",   x0=16,  y0=-380, x1=236, y1=-210, floor=GameConfig.Hex("c9dbb0"), sides="NESW", open=false, pad="farm" },
+        new Zone{ key="soil",   x0=256, y0=-380, x1=380, y1=-210, floor=GameConfig.Hex("d6b08c"), sides="NESW", open=false, pad="soil" },
     };
     // 게이트(울타리 틈): 구역키, 변, 위치, 폭
     public struct Gate { public string zone; public char side; public float at, w; }
@@ -55,7 +74,27 @@ public static class WorldMap
         new Gate{ zone="dome", side='N', at=106, w=60 }, new Gate{ zone="pen", side='N', at=330, w=60 },
         // 울타리가 실제로 막으므로 얼음밭 → 가운데 통로(x 236~256) → 해빙기 W(y150)·병입기 W(y330)로 바로 이어지는 E변 게이트
         new Gate{ zone="ice", side='E', at=250, w=60 }, new Gate{ zone="ice2", side='E', at=120, w=60 },
+        // 생존 기지: ice2 북쪽 → 북쪽 길(y 10~46) → 채굴장·산소동, 가운데 길(y -210~-180) → 온실·토양 공장
+        new Gate{ zone="ice2", side='N', at=126, w=70 },
+        new Gate{ zone="mine", side='S', at=126, w=70 }, new Gate{ zone="mine", side='N', at=126, w=70 }, new Gate{ zone="mine", side='E', at=-85, w=60 },
+        new Gate{ zone="o2", side='S', at=318, w=60 }, new Gate{ zone="o2", side='N', at=300, w=60 }, new Gate{ zone="o2", side='W', at=-85, w=60 },
+        new Gate{ zone="farm", side='S', at=126, w=70 }, new Gate{ zone="farm", side='E', at=-295, w=60 },
+        new Gate{ zone="soil", side='S', at=318, w=60 }, new Gate{ zone="soil", side='W', at=-296, w=36 },
     };
+    // 북쪽(y<10)은 열린 구역 안·열린 통로만 통행. 통로(x 236~256)와 가운데 길은 옆 구역이 하나라도 열려야 한다
+    public const float NORTH_Y = 10f, MID_Y0 = -210f, MID_Y1 = -180f;
+    static bool In(Zone z, float x, float y, float m) => x >= z.x0 - m && x <= z.x1 + m && y >= z.y0 - m && y <= z.y1 + m;
+    static bool NorthBlocked(float x, float y)
+    {
+        if (y >= NORTH_Y) return false;
+        foreach (var z in ZONES) if (z.y1 <= NORTH_Y && openZones.Contains(z.key) && In(z, x, y, 6)) return false;
+        bool near = openZones.Contains("mine") || openZones.Contains("o2"), far = openZones.Contains("farm") || openZones.Contains("soil");
+        bool aisle = x > 236 && x < 256;
+        if (aisle && y >= MID_Y1) return !near;
+        if (y >= MID_Y0 && y < MID_Y1) return !far;
+        if (aisle && y < MID_Y0) return !far;
+        return true;
+    }
     // 열린 구역(울타리가 보이는 구역)만 울타리 충돌. ZoneManager가 채운다. fenceVer는 봇 격자 재생성 신호
     public static readonly HashSet<string> openZones = new HashSet<string>();
     public static int fenceVer;
@@ -122,10 +161,11 @@ public static class WorldMap
     // §2 blocked(): 경계 + STN AABB(+10 x / +8 y) + 열린 구역 울타리(게이트 틈만 통과, jake 피드백 "울타리를 왜 넘어가냐"). 드릴은 설치 후만.
     public static bool Blocked(float x, float y)
     {
-        if (x < 14 || x > 386 || y < 30 || y > 1024) return true;
+        if (x < 14 || x > 386 || y < GameConfig.Y_MIN + 6 || y > 1024) return true;
+        if (NorthBlocked(x, y)) return true;
         foreach (var s in STN.Values)
         {
-            if (s.key == "drill" && !drillInstalled) continue;
+            if (!StnActive(s.key)) continue;
             if (Mathf.Abs(x - s.x) < s.w / 2 + 10 && Mathf.Abs(y - s.y) < s.h / 2 + 8) return true;
         }
         var p = new Vector2(x, y);

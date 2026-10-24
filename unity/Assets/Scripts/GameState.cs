@@ -11,6 +11,7 @@ public class GameState : MonoBehaviour
     public event Action OnBellsChanged;
     public event Action<string, int> OnPadLevel;
     public event Action OnSold;
+    public event Action<string, int> OnSupplied;   // 정착민에게 공급(kind: bottle/o2/food, n)
 
     // 비행 중 아이템(등짐 도착 전)·선반 도착 전 병 수
     public int pend; public string pendK = "";
@@ -79,4 +80,17 @@ public class GameState : MonoBehaviour
         OnBellsChanged?.Invoke();
     }
     public void NotifySold() { OnSold?.Invoke(); }
+
+    // ---- 생존 기지: 정착민 공급 ----
+    public static readonly string[] SUPPLY_KINDS = { "bottle", "o2", "food" };
+    public static string KindName(string kind) => kind == "o2" ? "산소" : kind == "food" ? "식량" : kind == "bottle" ? "물" : kind == "rego" ? "레골리스" : kind == "soil" ? "흙" : kind == "fert" ? "비료" : kind == "ice" ? "얼음" : kind;
+    public bool KindOpen(string kind) => kind == "bottle" || (kind == "o2" && PadLv("o2") >= 1) || (kind == "food" && PadLv("farm") >= 1);
+    public int PriceOf(string kind) => kind == "o2" ? Mathf.FloorToInt(BottlePrice * 1.6f + 0.5f) : kind == "food" ? Mathf.FloorToInt(BottlePrice * 2.2f + 0.5f) : BottlePrice;
+    public int ShelfOf(string kind) => kind == "o2" ? S.shelfO2 : kind == "food" ? S.shelfFood : S.shelf;
+    public void AddShelf(string kind, int n) { if (kind == "o2") S.shelfO2 += n; else if (kind == "food") S.shelfFood += n; else S.shelf += n; }
+    public void NotifySupplied(string kind, int n)
+    {
+        if (kind == "o2") S.supO += n; else if (kind == "food") S.supF += n; else S.supW += n;
+        OnSupplied?.Invoke(kind, n);
+    }
 }

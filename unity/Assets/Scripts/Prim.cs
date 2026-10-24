@@ -126,7 +126,7 @@ public static class Prim
 // 아이템(등짐 판) 시각: 납작 판 14×2.4×10 (§2.2)
 public static class Items
 {
-    public static readonly Dictionary<string, float> ITEM_H = new Dictionary<string, float> { { "ice", 2.8f }, { "bottle", 3.0f }, { "bill", 3.2f }, { "coin", 1.8f } };
+    public static readonly Dictionary<string, float> ITEM_H = new Dictionary<string, float> { { "ice", 2.8f }, { "bottle", 3.0f }, { "bill", 3.2f }, { "coin", 1.8f }, { "rego", 3.0f }, { "soil", 3.0f }, { "fert", 3.4f }, { "o2", 3.6f }, { "food", 3.2f } };
     public static Color ColorOf(string kind)
     {
         switch (kind)
@@ -134,6 +134,11 @@ public static class Items
             case "ice": return GameConfig.ICE;
             case "bottle": return GameConfig.BOTTLE;
             case "bill": return GameConfig.BILL;
+            case "rego": return GameConfig.REGO;
+            case "soil": return GameConfig.SOIL;
+            case "fert": return GameConfig.FERT;
+            case "o2": return GameConfig.O2;
+            case "food": return GameConfig.FOOD;
             default: return GameConfig.GOLD;
         }
     }
