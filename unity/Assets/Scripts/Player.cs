@@ -35,25 +35,11 @@ public class Player : MonoBehaviour
         Prim.BlobShadow(view, 26);
         body = new GameObject("body").transform; body.SetParent(view, false);
         float k = GameConfig.K;
-        var suit = GameConfig.Hex("f4f1ea"); var dark = GameConfig.Hex("3b3a52");
-        Prim.Capsule(body, "torso", new Vector3(0, 18 * k, 0), 15, 26, suit);
-        head = Prim.Sphere(body, "head", new Vector3(0, 36 * k, 0), 15, suit).transform;
-        Prim.Box(head, "visor", new Vector3(0, 0, 6 * k), new Vector3(10, 7, 4), GameConfig.Hex("5fc8ff"));
-        Prim.Box(body, "pack", new Vector3(0, 20 * k, -9 * k), new Vector3(12, 14, 6), GameConfig.Hex("c9c3b6"));
-        armL = Limb(body, "armL", new Vector3(-10 * k, 26 * k, 0), 4.5f, 14, suit);
-        armR = Limb(body, "armR", new Vector3(10 * k, 26 * k, 0), 4.5f, 14, suit);
-        legL = Limb(body, "legL", new Vector3(-4.5f * k, 9 * k, 0), 5.5f, 11, dark);
-        legR = Limb(body, "legR", new Vector3(4.5f * k, 9 * k, 0), 5.5f, 11, dark);
+        // 우주복 치비(원본 bPerson, 키 ≈ 64). 팔다리는 피벗이 위쪽 끝이라 Animate 가 회전시킨다
+        CharacterKit.BuildPlayer(body, out head, out armL, out armR, out legL, out legR);
         stackAnchor = new GameObject("stack").transform; stackAnchor.SetParent(body, false);
         stackAnchor.localPosition = new Vector3(0, 30 * k, -17 * k);
         stackAnchor.localRotation = Quaternion.Euler(-0.1f * Mathf.Rad2Deg, 0, 0);
-    }
-    // 피벗이 위쪽 끝인 팔다리
-    static Transform Limb(Transform parent, string n, Vector3 pivot, float dL, float lenL, Color c)
-    {
-        var p = new GameObject(n).transform; p.SetParent(parent, false); p.localPosition = pivot;
-        Prim.Capsule(p, "m", new Vector3(0, -lenL / 2 * GameConfig.K, 0), dL, lenL, c);
-        return p;
     }
 
     public Vector3 StackTop() => stackAnchor.position + stackAnchor.up * (G.Carry + G.pend) * (Items.ITEM_H.TryGetValue(G.CarryTop == "" ? G.pendK : G.CarryTop, out var h) ? h : 3f) * GameConfig.K;
