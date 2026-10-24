@@ -117,7 +117,9 @@ public class PadManager : MonoBehaviour
             bool afford = S.bells >= cost - prog;
             v.ring.gameObject.SetActive(afford);
             if (afford) v.ring.localScale = Vector3.one * 34 * GameConfig.K * (1 + Mathf.Sin(Time.time * 1000f / 250f) * 0.04f);
-            v.label.Set(v.def.name + " Lv." + (G.PadLv(id) + 1));
+            // 가격표: 멀면 [아이콘]+[벨]가격만(옆 발판 가격표와 겹치지 않게 좁게), 플레이어가 가까이(100) 오면 이름·레벨까지
+            bool close = Vector2.Distance(pl.pos, v.def.pos) < 100f;
+            v.label.Set(close ? v.def.name + " Lv." + (G.PadLv(id) + 1) : "");
             v.label.SetLine2(Mathf.CeilToInt(cost - prog).ToString("N0"), "bell");
             v.label.SetStyle(afford ? UIKit.SignOk : UIKit.Sign);
         }

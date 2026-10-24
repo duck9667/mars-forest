@@ -83,6 +83,7 @@ public class CustomerSystem : MonoBehaviour
         var col = GameConfig.CUST_COLS[Random.Range(0, GameConfig.CUST_COLS.Length)];
         int acc = Random.Range(0, 6);
         CharacterKit.BuildCustomer(c.body, col, acc, c.vip, out c.head);
+        if (c.vip) HullOutline.Hull(c.body, HullOutline.GOLD, 2f);   // §5.2 VIP: 금 외곽선(0xd49000)
         c.hold = new GameObject("hold").transform; c.hold.SetParent(c.body, false); c.hold.localPosition = new Vector3(0, (c.vip ? 66 : 56) * k, 0);
         c.bubble = WorldLabels.I.Add(() => c.head.position + Vector3.up * (c.vip ? 1.3f : 1.0f), (c.vip ? "VIP 병 ×" : "병 ×") + c.want, 20, GameConfig.NAVY, Vector2.zero, true, c.vip ? GameConfig.GOLD : null);
         c.bubble.Show(false);
