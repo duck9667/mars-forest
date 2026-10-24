@@ -96,7 +96,10 @@ public class DevTools : MonoBehaviour
         // 현재 목표가 시트 스탯(hand·spd·price)이면 살 수 있을 때 시트 구매로 처리(사람은 시트에서 탭)
         var q = QuestManager.I != null ? QuestManager.I.Current : null;
         if (q != null && Pads.Get(q.key) != null && Pads.Get(q.key).menu && G.PadReq(q.key) && !G.PadMaxed(q.key) && G.S.bells >= G.PadRemain(q.key)) PadManager.I.Buy(q.key);
-        if (G.Carry == 0 && G.pend == 0 && PadManager.I != null)
+        // 돔 좌석 팁이 병값×3 이상 쌓였으면 빈손일 때 들러 수거(좌석 r34 안, 좌석 충돌 r16 밖인 앞쪽 26)
+        int seatTip = 0; int seatI = DomeSystem.I != null && G.Carry == 0 && G.pend == 0 ? DomeSystem.I.RichestSeat(out seatTip) : -1;
+        if (seatI >= 0 && seatTip >= G.BottlePrice * 3) { target = WorldMap.SEATS[seatI] + new Vector2(0, 26); key = "seat:" + seatI; }
+        else if (G.Carry == 0 && G.pend == 0 && PadManager.I != null)
         {
             // ORDER 순서(visOrder)에서 첫 번째로 살 수 있는 발판 → 진행 순서대로 밟는다
             foreach (var id in PadManager.I.visOrder)
@@ -132,15 +135,15 @@ public class DevTools : MonoBehaviour
 
     // 격자 BFS (8방향). 타깃 셀이 막혀 있으면 가장 가까운 열린 셀로.
     static readonly int[] DX = { 1, -1, 0, 0, 1, 1, -1, -1 }, DY = { 0, 0, 1, -1, 1, -1, 1, -1 };
-    int[] prev = new int[GW * GH]; bool[] blockedCell = new bool[GW * GH]; bool gridBuilt; bool gridDrill;
+    int[] prev = new int[GW * GH]; bool[] blockedCell = new bool[GW * GH]; bool gridBuilt; bool gridDrill, gridDome;
     void BuildGrid()
     {
         for (int y = 0; y < GH; y++) for (int x = 0; x < GW; x++) blockedCell[y * GW + x] = WorldMap.Blocked(x * CELL, y * CELL);
-        gridBuilt = true; gridDrill = WorldMap.drillInstalled;
+        gridBuilt = true; gridDrill = WorldMap.drillInstalled; gridDome = WorldMap.domeOpen;
     }
     void FindPath(Vector2 from, Vector2 to)
     {
-        if (!gridBuilt || gridDrill != WorldMap.drillInstalled) BuildGrid();
+        if (!gridBuilt || gridDrill != WorldMap.drillInstalled || gridDome != WorldMap.domeOpen) BuildGrid();
         path.Clear();
         int sx = Mathf.Clamp(Mathf.RoundToInt(from.x / CELL), 0, GW - 1), sy = Mathf.Clamp(Mathf.RoundToInt(from.y / CELL), 0, GH - 1);
         int tx = Mathf.Clamp(Mathf.RoundToInt(to.x / CELL), 0, GW - 1), ty = Mathf.Clamp(Mathf.RoundToInt(to.y / CELL), 0, GH - 1);

@@ -79,6 +79,14 @@ public class DomeSystem : MonoBehaviour
 
     public void ReleaseSeat(int seat) { if (Valid(seat)) seats[seat].used = false; }
 
+    /// 팁이 가장 많이 쌓인 좌석(없으면 -1) — QA 봇이 좌석 팁을 수거하러 들르는 데 쓴다
+    public int RichestSeat(out int tip)
+    {
+        int best = -1; tip = 0;
+        for (int i = 0; i < seats.Length; i++) if (seats[i].tip > tip) { tip = seats[i].tip; best = i; }
+        return best;
+    }
+
     /// 현재 위치에서 좌석까지 경유점(원본 seatPath): 줄 머리 → 레일 끝 밑(QUEUE_X,700) → 돔 게이트 밖·안(x=DOME.x-2)
     /// → 분수 옆 통로(x=DOME.x∓18) → 좌석 앞(s.y+10). 이미 레일 끝보다 아래면 첫 점은 건너뛴다
     public List<Vector2> SeatPath(int seat, Vector2 from)
