@@ -45,6 +45,7 @@ public class SaveData
     public int pop = 0;                                  // 거주 구역에 사는 정착민 수
     public List<string> story = new List<string>();      // 이미 본 서사 메시지 id
     public List<MissionSave> missions = new List<MissionSave>(); public int missionDay = 0;   // 하루 미션 3개·발급한 날
+    public float evNext = 0;                             // 화성 이벤트(MarsEvents): 다음 판정까지 남은 초(0이면 새로 정함)
 }
 
 public static class SaveSystem

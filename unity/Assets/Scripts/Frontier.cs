@@ -166,13 +166,14 @@ public class Frontier : MonoBehaviour
         if (G == null) return;
         float dt = Mathf.Min(Time.deltaTime, GameConfig.DT_MAX); animT += dt;
         float night = DayNight.I != null ? DayNight.I.night : 0f, sun = 1f - night;
-        // 전력: 햇빛만큼 쓰고 남는 만큼 충전, 어두워지면 배터리로 메운다
+        // 전력: 햇빛만큼 쓰고 남는 만큼 충전, 어두워지면 배터리로 메운다. 먼지 폭풍(MarsEvents) 동안은 발전·충전이 멈춰 배율 1(배터리는 그대로)
         if (SolarOpen)
         {
+            float storm = MarsEvents.StormK;
             bool backup = batt > 0.001f;
             float f = sun + (1f - sun) * (backup ? 1f : 0f);
-            batt = Mathf.Clamp01(batt + (sun * CHARGE - (backup ? (1f - sun) * DRAIN : 0f)) * dt);
-            power = 1f + BOOST * f;
+            batt = Mathf.Clamp01(batt + (sun * CHARGE - (backup ? (1f - sun) * DRAIN : 0f)) * dt * (1f - storm));
+            power = Mathf.Lerp(1f + BOOST * f, 1f, storm);
         }
         else power = 1f;
         // 입주: 경유점을 다 걸어 집 안으로 들어가면(Gone) 인구 +1
