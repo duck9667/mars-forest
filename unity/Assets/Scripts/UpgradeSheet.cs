@@ -319,12 +319,12 @@ public class UpgradeSheet : MonoBehaviour
     }
     static void SetCard(Row r, UIKit.Style st) => r.bg.sprite = UIKit.Panel9(st);
 
-    // ① 이주 카드 (§6.3): 로켓 견본 · "새 기지로 이주 ×n" · 조건 진행 한 줄 · [이주] (2회 탭, 3초)
+    // ① 이주 카드 (§6.3): 로켓 견본 · "새 정착지로 ×n" · 조건 진행 한 줄 · [이주] (2회 탭, 3초)
     Row MakePrest()
     {
         var r = Card("prest", Kind.Prest, 96); prestRow = r;
         ArtTile(r, "rocket");
-        r.name = Name(r, "새 기지로 이주", 16);
+        r.name = Name(r, "새 정착지로", 16);
         r.tag = UIKit.Text(r.bg.transform, "", 19, UIKit.GOLD, TextAnchor.MiddleLeft); UIKit.Stroke(r.tag, UIKit.EDGE, 1.4f);
         UIKit.Anchor(r.tag.rectTransform, new Vector2(0, 0.5f), new Vector2(88 + r.name.preferredWidth + 8, 15), new Vector2(80, 28));
         r.sub = Sub(r, "", -15);
