@@ -36,13 +36,12 @@ public class Stations : MonoBehaviour
     void Build()
     {
         var root = transform;
-        // 얼음 더미: 납작한 얼음판 3장 + 바닥 서리 원판. 8~11은 ice2 구역(열리기 전엔 숨김)
+        // 얼음 더미: 납작한 얼음판 3장(바닥 서리 원판은 jake 10/25 요청으로 없앰). 8~11은 ice2 구역(열리기 전엔 숨김)
         for (int i = 0; i < ALL_SPOTS; i++)
         {
             var sp = WorldMap.ICE_SPOTS[i];
             var g = new GameObject("spot" + i); g.transform.SetParent(root, false); g.transform.position = WorldMap.W2U(sp);
             spotRoots[i] = g.transform;
-            Prim.Cyl(g.transform, "frost", new Vector3(0, 0.02f, 0), 46, 0.6f, GameConfig.Hex("eaf6ff"));
             var pile = new GameObject("pile"); pile.transform.SetParent(g.transform, false);
             Prim.Box(pile.transform, "a", new Vector3(0, 1.8f * GameConfig.K, 0), new Vector3(26, 3.6f, 18), GameConfig.Hex("a9dcf5"));
             Prim.Box(pile.transform, "b", new Vector3(2f * GameConfig.K, 5.4f * GameConfig.K, -1.5f * GameConfig.K), new Vector3(22, 3.6f, 16), GameConfig.ICE);

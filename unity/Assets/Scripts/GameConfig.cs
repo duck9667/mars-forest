@@ -28,7 +28,7 @@ public static class GameConfig
 
     // 얼음 더미
     public const int BASE_SPOTS = 8;
-    public static float SpotRespawn() => 6f + UnityEngine.Random.value * 3f;
+    public static float SpotRespawn() => 3f + UnityEngine.Random.value * 1.5f;   // 원본 6~9초, jake 10/25 "다시 생기는 시간 조금 줄여줘"
 
     // 플레이어 (§2)
     public const float BASE_SPEED = 165f, SPEED_PER_LV = 18f;
