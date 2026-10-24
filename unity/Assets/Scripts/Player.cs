@@ -192,6 +192,13 @@ public class Player : MonoBehaviour
             StartCoroutine(CollectCash());
             actT = GameConfig.CD_CASH; return;
         }
+        // 6. 토끼 벨 수거 (S.penTip>0, PEN_TIP 원 r40, 쿨다운 0.2). 벨 가산·연출은 PenSystem.Collect
+        if (S.penTip > 0 && PenSystem.I != null && Vector2.Distance(pos, WorldMap.PEN_TIP) < PenSystem.R_TIP)
+        {
+            PenSystem.I.Collect();
+            JuiceFX.I.Squash(body, 1f); JuiceFX.I.Vibrate(15);
+            actT = PenSystem.CD_TIP; return;
+        }
     }
 
     void PopTop() { S.p.carry.RemoveAt(S.p.carry.Count - 1); }
