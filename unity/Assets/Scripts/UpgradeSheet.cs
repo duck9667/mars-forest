@@ -335,7 +335,7 @@ public class UpgradeSheet : MonoBehaviour
     {
         var pm = PrestigeManager.I; if (pm == null) return;
         bool can = pm.CanPrestige(); bool armed = can && armUntil > 0;
-        r.tag.text = "×" + (Mathf.Pow(1.5f, G.S.prestige + 1)).ToString("0.0");
+        r.tag.text = "×" + PrestigeManager.I.NextMultiplier.ToString("0.0#");   // 다음 이주 뒤 병값 배율
         string s = pm.ProgressText(); if (string.IsNullOrEmpty(s)) s = FallbackProgress();
         if (r.sub.text != s) r.sub.text = s;
         int st = armed ? 2 : can ? 1 : 0;
