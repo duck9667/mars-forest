@@ -178,6 +178,7 @@ public static class WorldMap
             var a = AIRLOCK; if (Mathf.Abs(x - a.x) < 18 && Mathf.Abs(y - a.y) < 11) return true;   // 반폭 ±18·±11 (원본 947행)
         }
         if (x > 338 && y > 358 && y < 404) return true;                 // 병입 구역 드럼통
+        if (y > 566 && y < 680 && (Mathf.Abs(x - 186) < 5 || Mathf.Abs(x - 246) < 5)) return true;   // 줄 난간 qL·qR(울타리처럼 보이니 통과 금지, jake 10/25)
         if ((p - LANDER).sqrMagnitude < 34 * 34) return true;            // 착륙선
         if (FenceBlocked(x, y)) return true;
         return false;

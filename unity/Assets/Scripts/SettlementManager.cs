@@ -142,7 +142,7 @@ public class SettlementManager : MonoBehaviour
             el += Time.unscaledDeltaTime; brt.localScale = Vector3.one * Mathf.Max(0.001f, JuiceFX.EaseOutBack(Mathf.Clamp01(el / 0.4f)));
             if (!burst && el >= 0.25f)
             {
-                burst = true; JuiceFX.I?.Flash(0.25f); JuiceFX.I?.Shake(3);
+                burst = true; JuiceFX.I?.Shake(3);
                 HUD.I.Coins(brt.position, () => HUD.I.BellsScreen(), 10);
                 if (Player.I != null) JuiceFX.I?.Confetti(Player.I.view.position + Vector3.up * 1.5f, 18);
             }
@@ -166,7 +166,7 @@ public class SettlementManager : MonoBehaviour
         var t2 = UIKit.Text(box.transform, "새 정착지로 떠날 수 있어요", 22, UIKit.GOLD_INK);
         UIKit.Anchor(t2.rectTransform, new Vector2(0.5f, 0), new Vector2(0, 22), new Vector2(380, 34));
         AudioManager.I?.Play("up", 1f); AudioManager.I?.Play("ding", 1.2f, 0.8f);
-        JuiceFX.I?.Flash(0.7f); JuiceFX.I?.Shake(7); JuiceFX.I?.Vibrate(60);
+        JuiceFX.I?.Flash(0.35f); JuiceFX.I?.Shake(7); JuiceFX.I?.Vibrate(60);
         if (Player.I != null)
         {
             var at = Player.I.view.position;

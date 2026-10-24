@@ -227,7 +227,7 @@ public class ZoneManager : MonoBehaviour
         v.fence.gameObject.SetActive(true);
         for (int i = 0; i < v.parts.Count; i++) v.parts[i].position = v.finalPos[i] + Vector3.down * 22 * GameConfig.K;
         JuiceFX.I.Ring(center, Color.white, 60); JuiceFX.I.Ring(center, GameConfig.GOLD, 30);
-        JuiceFX.I.Shake(5); JuiceFX.I.Flash(0.5f); JuiceFX.I.Vibrate(40);
+        JuiceFX.I.Shake(5); JuiceFX.I.Vibrate(40);
         AudioManager.I.Play("up", 1f); AudioManager.I.Play("pad", 0.8f);
         JuiceFX.I.Confetti(center + Vector3.up * 1.5f, 32);
         foreach (var corner in new[] { new Vector2(z.x0, z.y0), new Vector2(z.x1, z.y0), new Vector2(z.x0, z.y1), new Vector2(z.x1, z.y1) }) JuiceFX.I.Dust(WorldMap.W2U(corner, 2), 5);

@@ -16,6 +16,14 @@ public class DevTools : MonoBehaviour
     {
         shotDir = DevArgs.Get("-shot");
         autoplay = DevArgs.Has("-autoplay");
+        // -walk dx,dy: 봇 대신 한 방향으로 계속 밀기(울타리 충돌 확인용). 스크린샷 로그에 위치가 찍힌다
+        var wk = DevArgs.Get("-walk");
+        if (!string.IsNullOrEmpty(wk))
+        {
+            var w = wk.Split(',');
+            if (w.Length == 2 && float.TryParse(w[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var wx) && float.TryParse(w[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var wy))
+            { autoplay = false; FloatingJoystick.Override = new Vector2(wx, wy).normalized; }
+        }
         if (!string.IsNullOrEmpty(shotDir)) Directory.CreateDirectory(shotDir);
         // -shots 2,10,25,...  스크린샷 시점(초) 목록
         var list = DevArgs.Get("-shots");
@@ -70,9 +78,9 @@ public class DevTools : MonoBehaviour
         if (autoplay) Bot();
         if (!string.IsNullOrEmpty(shotDir) && shotIdx < SHOTS.Length && t >= SHOTS[shotIdx])
         {
-            string p = Path.Combine(shotDir, "shot_" + Mathf.RoundToInt(SHOTS[shotIdx]).ToString("000") + ".png");
+            float st = SHOTS[shotIdx]; string p = Path.Combine(shotDir, "shot_" + (Mathf.Approximately(st, Mathf.Round(st)) ? Mathf.RoundToInt(st).ToString("000") : Mathf.RoundToInt(st * 100).ToString("00000")) + ".png");   // 소수 시점은 1/100초 단위 이름
             ScreenCapture.CaptureScreenshot(p);
-            Debug.Log("screenshot " + p + " bells=" + G.S.bells + " sold=" + G.S.sold + " tut=" + G.S.tut + " shelf=" + G.S.shelf + " bottles=" + G.S.bottles + " meltQ=" + G.S.meltQ
+            Debug.Log("screenshot " + p + " pos=" + (Player.I ? Player.I.pos.ToString("0") : "-") + " bells=" + G.S.bells + " sold=" + G.S.sold + " tut=" + G.S.tut + " shelf=" + G.S.shelf + " bottles=" + G.S.bottles + " meltQ=" + G.S.meltQ
                 + " shelfO2=" + G.S.shelfO2 + " shelfFood=" + G.S.shelfFood + " supW=" + G.S.supW + " supO=" + G.S.supO + " supF=" + G.S.supF + " custs=" + G.S.custs + " lost=" + G.S.lost);
             shotIdx++;
             if (shotIdx >= SHOTS.Length) StartCoroutine(QuitSoon());

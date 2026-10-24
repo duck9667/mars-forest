@@ -363,7 +363,6 @@ public class ShopDecor : MonoBehaviour
         if (delay > 0) yield return new WaitForSeconds(delay);
         var d = DecoManager.Def(id);
         var focus = Focus(id);
-        JuiceFX.I.Flash(0.3f);
         JuiceFX.I.Confetti(focus, 20);
         JuiceFX.I.Ring(new Vector3(focus.x, 0.05f, focus.z), GameConfig.GOLD, 40);
         if (d != null) WorldLabels.I.Float(focus + Vector3.up * 0.6f, d.name + "!", true, false);

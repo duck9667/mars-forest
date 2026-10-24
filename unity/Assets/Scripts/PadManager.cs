@@ -143,7 +143,7 @@ public class PadManager : MonoBehaviour
             JuiceFX.I.Pop(v.disc, 1.3f, 0.4f);
             WorldLabels.I.Float(v.root.position + Vector3.up * 1f, d.name + " Lv." + lv, true, true);
         }
-        JuiceFX.I.Flash(d.zone ? 0.5f : 0.3f); JuiceFX.I.Shake(d.zone ? 7 : 3); JuiceFX.I.Vibrate(20);
+        JuiceFX.I.Shake(d.zone ? 7 : 3); JuiceFX.I.Vibrate(20);
         AudioManager.I.Play("pad"); AudioManager.I.Play("up", 1f, 0.6f);
         RefreshVis();
         HUD.I?.Refresh();

@@ -116,6 +116,7 @@ public class JuiceFX : MonoBehaviour
     }
 
     public void Shake(float a) { if (CameraRig.I) CameraRig.I.Shake(a); }
+    // 화면 전체 흰 번쩍임: 이주·정착 완료 같은 큰 순간에만(업그레이드·목표마다 쓰면 깜박임으로 보인다, jake 10/25)
     public void Flash(float a) { if (HUD.I) HUD.I.Flash(a); }
     // 진동: iOS는 짧은 햅틱(Haptics, ms로 세기 선택), 설정에서 끄면(S.vibrate=false) 아무것도 안 함
     public void Vibrate(int ms)

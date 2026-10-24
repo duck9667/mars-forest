@@ -78,7 +78,7 @@ public class QuestManager : MonoBehaviour
         {
             el += Time.deltaTime; brt.localScale = Vector3.one * Mathf.Max(0.001f, JuiceFX.EaseOutBack(Mathf.Clamp01(el / 0.5f)));
             // §6.1: 0.4s 후 뚜껑 열림 + 동전 14개 HUD + 플래시 0.3 + 흔들림 4
-            if (!opened && el >= 0.4f) { opened = true; JuiceFX.I.Flash(0.3f); JuiceFX.I.Shake(4); HUD.I.Coins(brt.position, () => HUD.I.BellsScreen(), 14); }
+            if (!opened && el >= 0.4f) { opened = true; JuiceFX.I.Shake(4); HUD.I.Coins(brt.position, () => HUD.I.BellsScreen(), 14); }
             yield return null;
         }
         brt.localScale = Vector3.one;

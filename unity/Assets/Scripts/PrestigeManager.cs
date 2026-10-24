@@ -105,7 +105,7 @@ public class PrestigeManager : MonoBehaviour
         // 원본 prestige(): 플래시 0.8 · 흔들림 8 · 팡파르. + 색종이·링, 진동
         var pl = Player.I;
         Vector3 at = pl != null ? pl.view.position : WorldMap.W2U(WorldMap.PLAYER_START);
-        JuiceFX.I.Flash(0.8f); JuiceFX.I.Shake(8); JuiceFX.I.Vibrate(60);
+        JuiceFX.I.Flash(0.4f); JuiceFX.I.Shake(8); JuiceFX.I.Vibrate(60);
         AudioManager.I.Play("up", 1f); AudioManager.I.Play("ding", 1.2f, 0.8f);
         JuiceFX.I.Confetti(at + Vector3.up * 1.5f, 36);
         JuiceFX.I.Ring(at, Color.white, 60); JuiceFX.I.Ring(at, GameConfig.GOLD, 30);
