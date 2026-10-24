@@ -13,7 +13,7 @@ public class Stations : MonoBehaviour
     Transform[] spotRoots = new Transform[ALL_SPOTS];
     bool[] spotShown = new bool[ALL_SPOTS];
     GameObject meltCore;
-    WorldLabels.Label meltLbl, waterLbl, trayLbl, shelfLbl, cashLbl;
+    // 수치 라벨(얼음·물·병·선반·+n)은 두지 않는다: 쌓인 모형(얼음·병·지폐 더미)으로 충분 (jake 피드백 10/24)
     int lastMeltQ = -1, lastBottles = -1, lastShelf = -1, lastCash = -1;
     float coreT;
 
@@ -46,24 +46,19 @@ public class Stations : MonoBehaviour
         meltCore = Prim.Sphere(melterView, "core", Local(melterView, m.x + 24, m.y - 4, 56), 16, GameConfig.Hex("9fe0ff"));
         Prim.NoShadow(meltCore);
         meltAnchor = new GameObject("meltQ").transform; meltAnchor.SetParent(melterView, false); meltAnchor.position = WorldMap.W2U(m.x - 22, m.y + 2, 52);
-        meltLbl = WorldLabels.I.Add(() => WorldMap.W2U(m.x - 30, m.y - 16, 70), "", 20, Color.white, Vector2.zero);
-        waterLbl = WorldLabels.I.Add(() => WorldMap.W2U(m.x + 30, m.y - 16, 70), "", 20, GameConfig.Hex("bfe9ff"), Vector2.zero);
         // 병입기
         var b = WorldMap.STN["bottler"];
         bottlerView = Machine("bottler", b, GameConfig.Hex("8fb0a0"), 50).transform;
         trayAnchor = new GameObject("tray").transform; trayAnchor.SetParent(bottlerView, false); trayAnchor.position = WorldMap.W2U(b.x, b.y, 52);
-        trayLbl = WorldLabels.I.Add(() => WorldMap.W2U(b.x, b.y - 14, 72), "", 22, Color.white, Vector2.zero);
         // 카운터(선반)
         var c = WorldMap.STN["counter"];
         counterView = Machine("counter", c, GameConfig.Hex("d89a62"), 40).transform;
         shelfAnchor = new GameObject("shelf").transform; shelfAnchor.SetParent(counterView, false); shelfAnchor.position = WorldMap.W2U(c.x, c.y, 42);
-        shelfLbl = WorldLabels.I.Add(() => WorldMap.W2U(c.x - 80, c.y - 10, 62), "", 22, Color.white, Vector2.zero);
         // 계산대(지폐)
         var r = WorldMap.STN["register"];
         registerView = Machine("register", r, GameConfig.Hex("5b6b8c"), 30).transform;
         Prim.Box(registerView, "screen", Local(registerView, r.x, r.y + 6, 34), new Vector3(24, 14, 3), GameConfig.Hex("c9f0ff"));
         cashAnchor = new GameObject("cash").transform; cashAnchor.SetParent(registerView, false); cashAnchor.position = WorldMap.W2U(r.x + WorldMap.REG_SPOT.x, r.y + WorldMap.REG_SPOT.y, 0);
-        cashLbl = WorldLabels.I.Add(() => cashAnchor.position + Vector3.up * 1.2f, "", 24, GameConfig.GOLD, Vector2.zero);
         // 얼음 드릴 (설치 전 숨김)
         var d = WorldMap.STN["drill"];
         drillView = Machine("drill", d, GameConfig.Hex("a67c52"), 70).transform;
@@ -134,11 +129,6 @@ public class Stations : MonoBehaviour
         if (S.bottles != lastBottles) { lastBottles = S.bottles; Items.SyncStack(trayAnchor, "bottle", S.bottles, 6, 4, 10, 10, GameConfig.BOTTLE_CAP); }
         if (S.shelf != lastShelf) { lastShelf = S.shelf; Items.SyncStack(shelfAnchor, "bottle", S.shelf, 12, 3, 15, 12, 36); }
         if (S.cash != lastCash) { lastCash = S.cash; Items.SyncStack(cashAnchor, "bill", Bills(S.cash), 3, 1, 16, 0, GameConfig.BILL_MAX); }
-        meltLbl.Set(S.meltQ > 0 ? "얼음 " + S.meltQ : "");
-        waterLbl.Set(S.water > 0 ? "물 " + S.water : "");
-        trayLbl.Set("병 " + S.bottles + "/" + GameConfig.BOTTLE_CAP);
-        shelfLbl.Set("선반 " + S.shelf + "/" + G.ShelfCap);
-        cashLbl.Set(S.cash > 0 ? "+" + S.cash : "");
     }
 
     public static int Bills(int cash) => Mathf.Min(GameConfig.BILL_MAX, Mathf.CeilToInt(cash / 12f));

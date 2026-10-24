@@ -64,12 +64,10 @@ public class PenSystem : MonoBehaviour
     Transform propsRoot, pile;
     readonly List<Transform> props = new List<Transform>();
     readonly List<Transform> coins = new List<Transform>();
-    int shown;            // 더미·칩이 보여 주는 금액(배달 동전이 도착할 때 S.penTip을 따라잡는다)
+    int shown;            // 더미가 보여 주는 금액(배달 동전이 도착할 때 S.penTip을 따라잡는다)
     int pendingFly;       // 날아가는 중인 배달 동전 수
     bool collecting;
-    WorldLabels.Label label;
     Material beaconMat, lampMat;
-    Coroutine labelPunch;
 
     void Start()
     {
@@ -84,7 +82,6 @@ public class PenSystem : MonoBehaviour
     {
         if (G != null) G.OnPadLevel -= OnPad;
         if (beaconMat) Destroy(beaconMat); if (lampMat) Destroy(lampMat);
-        if (label != null && WorldLabels.I != null) WorldLabels.I.Remove(label);
         if (I == this) I = null;
     }
 
@@ -96,8 +93,7 @@ public class PenSystem : MonoBehaviour
         if (built) return; built = true;
         propsRoot = new GameObject("penProps").transform; propsRoot.SetParent(transform, false);
         BuildTipPlate(); BuildHay(); BuildCarrots(); BuildBowl(); BuildHutch();
-        label = WorldLabels.I.Add(() => WorldMap.W2U(WorldMap.PEN_TIP, 22f), "", 20, Color.white, new Vector2(0, 14));
-        label.SetIcon("bell"); label.Show(false);
+        // 팁 금액 라벨은 두지 않는다: 동전 더미로 보인다 (jake 피드백 10/24)
         shown = S.penTip; SyncPile(false);
         if (fx) StartCoroutine(CoUnlock());
         else
@@ -256,7 +252,6 @@ public class PenSystem : MonoBehaviour
         TickTip(dt);
         for (int i = 0; i < hoppers.Count; i++) TickHopper(hoppers[i], dt, t);
         if (pendingFly == 0 && !collecting && shown != S.penTip) { shown = S.penTip; SyncPile(false); }
-        UpdateLabel();
         if (beaconMat) beaconMat.SetColor("_EmissionColor", GameConfig.Hex("ff5a4a") * (Mathf.Repeat(t, 1.4f) < 0.18f ? 2.2f : 0.15f));
         if (lampMat) { float night = DayNight.I != null ? DayNight.I.night : 0f; lampMat.SetColor("_EmissionColor", GameConfig.Hex("ffd27a") * (0.25f + night * 1.8f)); }
     }
@@ -300,8 +295,6 @@ public class PenSystem : MonoBehaviour
         JuiceFX.I.Ring(pile.position, GameConfig.GOLD, 12);
         AudioManager.I.PlayHz("coin", 1250, 1100, 0.45f);
         WorldLabels.I.Float(WorldMap.W2U(WorldMap.PEN_TIP.x, WorldMap.PEN_TIP.y - 4, 18), "+" + add, true);
-        if (labelPunch != null) StopCoroutine(labelPunch);
-        labelPunch = StartCoroutine(CoPunch());
     }
 
     // ───────── §1.1 6번째 행동: 토끼 벨 수거 ─────────
@@ -318,7 +311,6 @@ public class PenSystem : MonoBehaviour
     {
         collecting = true;
         var fly = new List<Transform>(coins); coins.Clear();
-        if (label != null) label.Show(false);
         var cam = Camera.main;
         if (cam != null && HUD.I != null) HUD.I.Coins(cam.WorldToScreenPoint(TipWorld), () => HUD.I.BellsScreen(), 8);
         WorldLabels.I.Float(WorldMap.W2U(WorldMap.PEN_TIP.x, WorldMap.PEN_TIP.y - 8, 10), "+" + n, true, n >= G.BottlePrice * 4);
@@ -370,24 +362,6 @@ public class PenSystem : MonoBehaviour
             coins.Add(go.transform);
             if (fx) JuiceFX.I.Pop(go.transform, 0.2f, 0.35f);
         }
-    }
-    void UpdateLabel()
-    {
-        if (label == null) return;
-        bool on = shown > 0 && !collecting;
-        if (on) label.Set("+" + shown);
-        label.Show(on);
-    }
-    IEnumerator CoPunch()
-    {
-        float el = 0;
-        while (el < 0.3f && label != null && label.rt != null)
-        {
-            el += Time.deltaTime; float k = el / 0.3f;
-            label.rt.localScale = Vector3.one * (1f + Mathf.Sin(Mathf.PI * k) * 0.35f);
-            yield return null;
-        }
-        if (label != null && label.rt != null) label.rt.localScale = Vector3.one;
     }
 
     // ───────── 토끼 이동·애니 (원본 tickHoppers + 그리기) ─────────

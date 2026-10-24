@@ -4,8 +4,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // §6.1 목표 QUESTS 순차 12개(qv=2): 0.3초마다 판정, 걷는 중·아이템 비행 중·발판 완료 0.6s 이내면 최대 3s 보류.
-// 완료: 비차단 상자 팝 1.5s(chestT=1.6 동안 다음 목표 보류), 0.4s 후 동전 14개 HUD + 보상, 플래시 0.3, 흔들림 4. 전부 끝나면 칩에 왕관.
-// 상단 칩을 누르면 업그레이드 시트의 목표 탭이 열린다(§3.3, 목표 탭은 칩으로만 진입).
+// 완료: 비차단 상자 팝 1.5s(chestT=1.6 동안 다음 목표 보류), 0.4s 후 동전 14개 HUD + 보상, 플래시 0.3, 흔들림 4.
+// 상단 HUD 칩은 두지 않는다(jake 피드백 10/24: 화면 요소 줄이기). 목표는 업그레이드 시트의 "목표" 탭에서 본다.
 public class QuestManager : MonoBehaviour
 {
     public static QuestManager I;
@@ -30,17 +30,9 @@ public class QuestManager : MonoBehaviour
     };
 
     float tickT, holdT, chestT;
-    // HUD 칩(원본 #qchip): [목표 아이콘] 제목 · 진행(금색) · 진행 바 · [상자] +보상
-    RectTransform chip; Image chipBg, qIcon; Text title, prog; Image bar; Text reward; Image chestIc; int lastQuest = -1;
-    const float BAR_W = 64f;
 
     void Awake() { I = this; }
 
-    void Start()
-    {
-        BuildChip();
-        Refresh();
-    }
 
     int Value(Quest q) => q.key == "sold" ? S.sold : G.PadLv(q.key);
     /// 시트 목표 탭 표시용(판정과 같은 값)
@@ -48,40 +40,6 @@ public class QuestManager : MonoBehaviour
     public int Index => S.quest;
     public Quest Current => S.quest < QUESTS.Length ? QUESTS[S.quest] : null;
     public bool AllDone => S.quest >= QUESTS.Length;
-
-    void BuildChip()
-    {
-        var root = HUD.I.transform;
-        // 2행 중앙: 남색 패널 한 줄 레이아웃, 내용 크기에 맞춤
-        chipBg = UIKit.Chip(root, "quest", UIKit.Navy, "bottle", 28, "", 21, out title, out qIcon, 7);
-        chip = chipBg.rectTransform; chip.anchorMin = chip.anchorMax = new Vector2(0.5f, 1); chip.pivot = new Vector2(0.5f, 1); chip.anchoredPosition = new Vector2(0, -94);
-        var le = chipBg.gameObject.AddComponent<LayoutElement>(); le.minHeight = 54;
-        // 칩을 누르면 시트 목표 탭(원본 #qchip pointerup → openSheet('quest')). 누름 축소 손맛, 조이스틱은 UI 위 터치를 무시한다
-        chipBg.raycastTarget = true;
-        var btn = chipBg.gameObject.AddComponent<Button>(); btn.targetGraphic = chipBg; btn.transition = Selectable.Transition.None;
-        chipBg.gameObject.AddComponent<UIPress>();
-        btn.onClick.AddListener(() => UpgradeSheet.I?.Open(UpgradeSheet.QUEST));
-        prog = UIKit.Text(chipBg.transform, "", 22, UIKit.GOLD);
-        UIKit.ProgressBar(chipBg.transform, "track", new Vector2(BAR_W, 10), out bar);
-        chestIc = UIKit.IconImg(chipBg.transform, "chest", 26);
-        reward = UIKit.Text(chipBg.transform, "", 21, UIKit.GOLD);
-    }
-
-    public void Refresh()
-    {
-        var q = Current;
-        if (q == null)
-        {
-            if (lastQuest != QUESTS.Length) { lastQuest = QUESTS.Length; chipBg.sprite = UIKit.Panel9(UIKit.SignOk); UIKit.SetIcon(qIcon, "crown"); title.color = prog.color = UIKit.SignOk.text; }
-            title.text = "모든 목표 달성"; prog.text = ""; UIKit.SetBar(bar, 1, BAR_W); reward.text = ""; chestIc.gameObject.SetActive(false); return;
-        }
-        if (lastQuest != S.quest) { lastQuest = S.quest; UIKit.SetIcon(qIcon, UIKit.PadIcon(q.key)); }
-        int v = Mathf.Min(Value(q), q.goal);
-        title.text = q.text;
-        prog.text = v + "/" + q.goal;
-        UIKit.SetBar(bar, (float)v / q.goal, BAR_W);
-        reward.text = "+" + q.reward;
-    }
 
     void Update()
     {
@@ -92,7 +50,6 @@ public class QuestManager : MonoBehaviour
         while (Current != null && Current.key != "sold" && !GameState.ACTIVE_IDS.Contains(Current.key)) S.quest++;
         // qskip: 옛 저장(Phase 2)에서 이미 보상받은 목표는 되살린 목표를 지난 뒤 보상 없이 넘긴다(원본 qskip과 같은 뜻)
         while (Current != null && S.qskip != null && S.qskip.Contains(S.quest) && Value(Current) >= Current.goal) { S.qskip.Remove(S.quest); S.quest++; }
-        Refresh();
         var q = Current; if (q == null) return;
         if (Value(q) < q.goal) { holdT = 0; return; }
         // 보류 조건: 걷는 중·아이템 비행 중·발판 완료 0.6s 이내 (최대 3s)
@@ -129,7 +86,6 @@ public class QuestManager : MonoBehaviour
         el = 0;
         while (el < 0.25f) { el += Time.deltaTime; brt.localScale = Vector3.one * (1 - el / 0.25f); yield return null; }
         Destroy(box.gameObject);
-        Refresh();
         if (AllDone) { AudioManager.I.Play("ding", 1.2f); }
     }
 }

@@ -114,7 +114,7 @@ public class CustomerSystem : MonoBehaviour
             case Customer.St.WalkIn:
                 {
                     var target = WorldMap.QueuePos(QueueIndex(c));
-                    if (MoveTo(c, target, GameConfig.CUST_WALK, dt)) { c.st = Customer.St.Queue; c.bubble.Show(true); }
+                    if (MoveTo(c, target, GameConfig.CUST_WALK, dt)) c.st = Customer.St.Queue;
                     Bob(c, true);
                     break;
                 }
@@ -125,6 +125,8 @@ public class CustomerSystem : MonoBehaviour
                     bool arrived = MoveTo(c, target, GameConfig.CUST_WALK, dt);
                     Bob(c, !arrived);
                     if (arrived) c.view.rotation = Quaternion.LookRotation(new Vector3(0, 0, 1), Vector3.up); // 카운터(북쪽) 보기
+                    // 말풍선은 줄 맨 앞(결제 대상) 한 명만: 나머지는 숨겨 화면을 비운다(화난 느낌표도 맨 앞일 때만 보임)
+                    c.bubble.Show(qi == 0 && arrived && !c.bought);
                     if (qi == 0 && !c.bought)
                     {
                         bool canPay = arrived && S.shelf >= c.want && (G.HasCashier || WorldMap.NearStn(Player.I.pos, "register", GameConfig.R_PAY));
@@ -187,15 +189,13 @@ public class CustomerSystem : MonoBehaviour
         return c.wp.Count == 0;
     }
 
-    // 좌석 앞(s.y+10) 도착 → 뒤로 폴짝 올라앉기 시작. 5~8초 앉는다(원본 sitT=5+rand*3). 하트 말풍선 → 잠시 뒤 zz
+    // 좌석 앞(s.y+10) 도착 → 뒤로 폴짝 올라앉기 시작. 5~8초 앉는다(원본 sitT=5+rand*3). 착석 손님 말풍선(하트·zz)은 두지 않는다
     void SitDown(Customer c)
     {
         var dome = DomeSystem.I;
         c.st = Customer.St.Sit; c.sitT = Random.Range(5f, 8f); c.sitK = 0; c.sitAge = 0; c.sitZz = false;
         c.sitFrom = c.pos; c.sitTo = dome != null ? dome.SitPoint(c.seat) : c.pos;
-        c.bubble.SetStyle(c.vip ? UIKit.Vip : UIKit.Bubble); if (c.bubble.bg != null) c.bubble.bg.color = Color.white;   // 결제 진행 금색 틴트 되돌림
-        c.bubble.SetIcon2(null); c.bubble.SetIcon("heart"); c.bubble.Set("");
-        c.bubble.Show(true); c.bubble.rt.localScale = Vector3.one * 0.3f;   // 크기는 TickSit이 직접 키운다
+        c.bubble.Show(false);
         AudioManager.I.Play("pop", 1.4f, 0.35f);
     }
 
@@ -223,12 +223,6 @@ public class CustomerSystem : MonoBehaviour
             if (rig.armR) rig.armR.localRotation = Quaternion.Slerp(rig.armR.localRotation, Quaternion.Euler(-35f, 0, 8f), a);
             if (rig.head && seated) rig.head.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.3f + ph) * 4f, Mathf.Sin(t * 0.6f + ph) * 22f, 0);
         }
-        // 말풍선: 하트 팝(0.3→1) → 1.2s 뒤 작은 zz(0.78, 숨쉬듯) — 좌석 6개가 다 차도 돔을 덮지 않게
-        if (!c.sitZz && c.sitAge > 1.2f) { c.sitZz = true; c.bubble.SetIcon("zz"); }
-        float bk = c.sitZz ? Mathf.Clamp01((c.sitAge - 1.2f) / 0.3f) : Mathf.Clamp01(c.sitAge / 0.35f);
-        float bs = c.sitZz ? Mathf.LerpUnclamped(0.45f, 0.78f, JuiceFX.EaseOutBack(bk)) + Mathf.Sin(t * 2.5f + ph) * 0.03f : Mathf.LerpUnclamped(0.3f, 1f, JuiceFX.EaseOutBack(bk));
-        c.bubble.rt.localScale = Vector3.one * bs;
-        c.bubble.offset = new Vector2(0, Mathf.Sin(t * 2.5f + ph) * 3f * WorldLabels.Scale);
         c.sitT -= dt;
         if (c.sitT <= 0)
         {
@@ -240,7 +234,7 @@ public class CustomerSystem : MonoBehaviour
                 c.wp = dome.LeavePath(c.seat);
             }
             c.seat = -1; c.st = Customer.St.Leave;
-            c.bubble.Show(false); c.bubble.offset = Vector2.zero; c.bubble.rt.localScale = Vector3.one;
+            c.bubble.Show(false);
             if (rig != null && rig.head) rig.head.localRotation = Quaternion.identity;
         }
     }

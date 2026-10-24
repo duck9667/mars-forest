@@ -11,7 +11,7 @@ public class PadManager : MonoBehaviour
 
     public class PadView
     {
-        public PadDef def; public Transform root, disc, prog, ring; public WorldLabels.Label label; public bool shown; public float coinT;
+        public PadDef def; public Transform root, disc, prog, progRim, ring; public WorldLabels.Label label; public bool shown; public float coinT;
     }
     public readonly Dictionary<string, PadView> views = new Dictionary<string, PadView>();
     public HashSet<string> visSet = new HashSet<string>();
@@ -31,7 +31,11 @@ public class PadManager : MonoBehaviour
             v.root.position = WorldMap.W2U(d.pos);
             v.disc = Prim.Cyl(v.root, "disc", new Vector3(0, 0.03f, 0), 60, 3, GameConfig.Hex("fff4dc")).transform;
             Prim.NoShadow(v.disc.gameObject);
-            v.prog = Prim.Cyl(v.root, "prog", new Vector3(0, 0.12f, 0), 52, 1.5f, GameConfig.NAVY).transform;
+            // 진행 채움: 크림 원판 위에 금색이 차오른다(가장자리는 살짝 진한 금). 예전 남색 원판은 부분 납입 때 검은 구멍처럼 보였다.
+            // 크림 원판 윗면(0.105)에 거의 붙여 얇게 깐다: 높이 차가 크면 포스트 외곽선이 진한 테를 그린다
+            v.progRim = Prim.Cyl(v.root, "progRim", new Vector3(0, 0.107f, 0), 52, 0.2f, GameConfig.Hex("e0a93a")).transform;
+            Prim.NoShadow(v.progRim.gameObject);
+            v.prog = Prim.Cyl(v.root, "prog", new Vector3(0, 0.111f, 0), 52, 0.2f, GameConfig.Hex("ffd96a")).transform;
             Prim.NoShadow(v.prog.gameObject);
             v.ring = Prim.Ring(v.root, new Vector3(0, 0.2f, 0), 34, GameConfig.GOLD).transform;
             // 가격표(원본 .sg): 남색 패널, 1줄 [발판 아이콘] 이름 Lv.n / 2줄 [벨] 남은 가격. 살 수 있으면 금색(.sg.ok)
@@ -113,7 +117,9 @@ public class PadManager : MonoBehaviour
             }
             // 시각: 진행 원판 sqrt(prog/cost), 살 수 있으면 금색 링 펄스
             float s = Mathf.Sqrt(Mathf.Clamp01(prog / cost));
-            v.prog.localScale = new Vector3(52 * s, 0.75f, 52 * s) * GameConfig.K;
+            float rim = s > 0 ? 52 * s + 4f * Mathf.Min(1f, s * 6f) : 0f;   // 테두리 폭 2(반지름), 막 차기 시작할 땐 얇게
+            v.prog.localScale = new Vector3(52 * s, 0.1f, 52 * s) * GameConfig.K;
+            v.progRim.localScale = new Vector3(rim, 0.1f, rim) * GameConfig.K;
             bool afford = S.bells >= cost - prog;
             v.ring.gameObject.SetActive(afford);
             if (afford) v.ring.localScale = Vector3.one * 34 * GameConfig.K * (1 + Mathf.Sin(Time.time * 1000f / 250f) * 0.04f);
