@@ -77,19 +77,10 @@ public class CustomerSystem : MonoBehaviour
         c.view = new GameObject("cust").transform; c.view.SetParent(transform, false); c.view.position = WorldMap.W2U(c.pos);
         Prim.BlobShadow(c.view, 22);
         c.body = new GameObject("body").transform; c.body.SetParent(c.view, false);
-        var col = c.vip ? GameConfig.GOLD : GameConfig.CUST_COLS[Random.Range(0, GameConfig.CUST_COLS.Length)];
-        Prim.Capsule(c.body, "torso", new Vector3(0, 16 * k, 0), 14, 24, col);
-        c.head = Prim.Sphere(c.body, "head", new Vector3(0, 33 * k, 0), 14, GameConfig.Hex("ffe0c2")).transform;
-        int acc = c.vip ? 9 : Random.Range(0, 6);
-        if (c.vip)
-        {
-            var crown = Prim.Cyl(c.head, "crown", new Vector3(0, 8 * k, 0), 11, 5, GameConfig.GOLD);
-            for (int i = 0; i < 4; i++) Prim.Box(crown.transform, "tip", new Vector3(Mathf.Cos(i * Mathf.PI / 2) * 4.5f * k, 3.5f * k, Mathf.Sin(i * Mathf.PI / 2) * 4.5f * k), new Vector3(2.5f, 3, 2.5f), GameConfig.GOLD);
-        }
-        if (acc == 0) Prim.Box(c.head, "hat", new Vector3(0, 7 * k, 0), new Vector3(14, 4, 14), GameConfig.Hex("3b3a52"));
-        else if (acc == 1) Prim.Box(c.body, "bag", new Vector3(0, 18 * k, -8 * k), new Vector3(10, 12, 5), GameConfig.Hex("8a5a3c"));
-        else if (acc == 2) Prim.Cyl(c.head, "ant", new Vector3(0, 10 * k, 0), 1.5f, 10, GameConfig.Hex("3b3a52"));
-        else if (acc == 3) Prim.Box(c.body, "scarf", new Vector3(0, 26 * k, 0), new Vector3(16, 4, 16), GameConfig.Hex("f05a5a"));
+        // 여행자 치비(원본 bTraveler): 7색 × 액세서리 0~5, VIP 는 금색 몸+왕관. c.head 는 머리 중심 그룹(말풍선·병 기준)
+        var col = GameConfig.CUST_COLS[Random.Range(0, GameConfig.CUST_COLS.Length)];
+        int acc = Random.Range(0, 6);
+        CharacterKit.BuildCustomer(c.body, col, acc, c.vip, out c.head);
         c.hold = new GameObject("hold").transform; c.hold.SetParent(c.body, false); c.hold.localPosition = new Vector3(0, (c.vip ? 66 : 56) * k, 0);
         c.bubble = WorldLabels.I.Add(() => c.head.position + Vector3.up * (c.vip ? 1.3f : 1.0f), (c.vip ? "VIP 병 ×" : "병 ×") + c.want, 20, GameConfig.NAVY, Vector2.zero, true, c.vip ? GameConfig.GOLD : null);
         c.bubble.Show(false);
@@ -165,11 +156,15 @@ public class CustomerSystem : MonoBehaviour
         c.view.position = WorldMap.W2U(c.pos);
     }
 
+    // 걷기 bob + 팔다리 스윙(위상은 개체마다 다름), 정지 시 호흡. 결제 점프 중(Queue)엔 Tick 이 몸 높이를 잡으므로 건드리지 않는다
     static void Bob(Customer c, bool walking)
     {
-        if (c.bought) return;
-        float t = Time.time * 1000f;
-        c.body.localPosition = new Vector3(0, walking ? Mathf.Abs(Mathf.Sin(t / 90f)) * 2.5f * GameConfig.K : 0, 0);
+        if (c.bought && c.st == Customer.St.Queue) return;
+        var rig = c.body.GetComponent<CharRig>(); float ph = rig ? rig.ph : 0f;
+        float t = Time.time * 1000f, dt = Mathf.Min(Time.deltaTime, GameConfig.DT_MAX);
+        float s = walking ? Mathf.Sin(t / 90f + ph) : 0f;
+        c.body.localPosition = new Vector3(0, (walking ? Mathf.Abs(s) * 2.5f : Mathf.Sin(t / 600f + ph) * 0.8f) * GameConfig.K, 0);
+        CharacterKit.Swing(rig, s, 40f, dt);
     }
 
     // §1.3 결제: 선반에서 want만큼 차감, 수익은 계산대 더미(S.cash)로, 병은 머리 위로 날아가 쌓임

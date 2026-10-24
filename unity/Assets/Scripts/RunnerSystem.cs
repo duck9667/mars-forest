@@ -36,24 +36,12 @@ public class RunnerSystem : MonoBehaviour
 
     void BuildView(Runner r)
     {
-        float k = GameConfig.K; Color pink = GameConfig.Hex("f29bc8"), dark = GameConfig.Hex("3b3a52");
         r.view = new GameObject("runner").transform; r.view.SetParent(transform, false); r.view.position = WorldMap.W2U(r.pos);
         Prim.BlobShadow(r.view, 24);
         r.body = new GameObject("body").transform; r.body.SetParent(r.view, false);
-        Prim.Box(r.body, "torso", new Vector3(0, 13 * k, 0), new Vector3(14, 18, 12), pink);
-        var head = Prim.Box(r.body, "head", new Vector3(0, 29 * k, 0), new Vector3(13, 11, 11), pink);
-        Prim.Box(head.transform, "eyeL", new Vector3(-3 * k, 1 * k, 5.5f * k), new Vector3(3, 3, 1), dark);
-        Prim.Box(head.transform, "eyeR", new Vector3(3 * k, 1 * k, 5.5f * k), new Vector3(3, 3, 1), dark);
-        Prim.Cyl(head.transform, "ant", new Vector3(0, 8 * k, 0), 1.5f, 7, dark);
-        Prim.Cyl(r.body, "wheelL", new Vector3(-7 * k, 4 * k, 0), 8, 2, dark).transform.localRotation = Quaternion.Euler(0, 0, 90);
-        Prim.Cyl(r.body, "wheelR", new Vector3(7 * k, 4 * k, 0), 8, 2, dark).transform.localRotation = Quaternion.Euler(0, 0, 90);
-        // 손수레: 뒤쪽에 끌고 다님
-        r.cart = new GameObject("cart").transform; r.cart.SetParent(r.view, false); r.cart.localPosition = new Vector3(0, 0, -16 * k);
-        Prim.Box(r.cart, "bed", new Vector3(0, 6 * k, 0), new Vector3(18, 2, 14), GameConfig.Hex("c9c3b6"));
-        Prim.Box(r.cart, "bar", new Vector3(0, 7 * k, 7 * k), new Vector3(3, 2, 8), dark);
-        Prim.Cyl(r.cart, "w1", new Vector3(-8 * k, 3.5f * k, -3 * k), 7, 2, dark).transform.localRotation = Quaternion.Euler(0, 0, 90);
-        Prim.Cyl(r.cart, "w2", new Vector3(8 * k, 3.5f * k, -3 * k), 7, 2, dark).transform.localRotation = Quaternion.Euler(0, 0, 90);
-        r.stack = new GameObject("stack").transform; r.stack.SetParent(r.cart, false); r.stack.localPosition = new Vector3(0, 7 * k, 0);
+        // 분홍 로봇(원본 bRobot 골격) + 뒤에 끄는 손수레. r.stack 은 손수레 짐칸 윗면
+        CharacterKit.BuildRunner(r.body, out _);
+        r.cart = CharacterKit.BuildCart(r.view, out r.stack);
     }
 
     static bool MoveTo(Runner r, Vector2 target, float speed, float dt)
@@ -107,6 +95,7 @@ public class RunnerSystem : MonoBehaviour
             r.view.position = WorldMap.W2U(r.pos);
             float t = Time.time * 1000f;
             r.body.localPosition = new Vector3(0, moving ? Mathf.Abs(Mathf.Sin(t / 80f)) * 2f * GameConfig.K : Mathf.Sin(t / 500f) * 0.6f * GameConfig.K, 0);
+            if (moving) CharacterKit.SpinWheels(r.cart.GetComponent<CharRig>(), Speed, dt);   // 손수레 바퀴 굴림
             if (r.carry != r.lastCarry) { r.lastCarry = r.carry; Items.SyncStack(r.stack, "bottle", r.carry, 2, 2, 8, 7, GameConfig.RUNNER_CAP); }
         }
     }
