@@ -4,8 +4,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-// HUD: 벨 필(아이콘+숫자, 펀치), 소리 토글(둥근 버튼), 업그레이드 버튼(금색·점·바운스), 콤보/러시 배지, 화면 플래시, 동전 비행(coinsToHud)
-// 상단 배치: 1행 벨(좌)·소리(우) / 2행 목표 칩(중앙, QuestManager) / 3행 콤보(좌)·러시(중앙)
+// HUD: 벨 필(아이콘+숫자, 펀치), 설정 버튼(톱니, 소리·진동 토글 패널), 며칠째 필, 업그레이드 버튼(금색·점·바운스), 콤보/러시 배지, 화면 플래시, 동전 비행(coinsToHud)
+// 상단 배치: 1행 벨(좌)·설정(우) / 2행 며칠째(좌)·목표 칩(중앙, QuestManager) / 3행 콤보(좌)·러시(중앙)
 public class HUD : MonoBehaviour
 {
     public static HUD I;
@@ -13,7 +13,8 @@ public class HUD : MonoBehaviour
     public Canvas canvas; public RectTransform bellsRt; Text bellsText; Image bellIcon; Image flash; Button upBtn; Image upDot; RectTransform upRt;
     float lastBells = -1; Coroutine punch;
     Text comboText, rushText; RectTransform comboRt, rushRt; int lastCombo;
-    Image muteIcon;
+    Text dayText; int lastDay = -1;
+    GameObject settings; Button sndBtn, vibBtn;
 
     // 예전 호출부 호환용 얇은 래퍼(UIKit로 위임)
     public static class UI
@@ -49,9 +50,12 @@ public class HUD : MonoBehaviour
         bellsText.color = UIKit.GOLD;
         bellsRt = bells.rectTransform; bellsRt.anchorMin = bellsRt.anchorMax = new Vector2(0, 1); bellsRt.pivot = new Vector2(0, 1); bellsRt.anchoredPosition = new Vector2(16, -26);
         var ble = bells.gameObject.AddComponent<LayoutElement>(); ble.minHeight = 56; ble.minWidth = 150;
-        // 1행 우: 소리 토글(둥근 남색 버튼 52)
-        var mute = UIKit.RoundButton(transform, "mute", UIKit.Pill, 52, "sound", 30, () => { G.S.muted = !G.S.muted; RefreshMute(); AudioManager.I?.Play("pop", 1.3f, 0.4f); }, out muteIcon);
-        var mrt = mute.GetComponent<RectTransform>(); mrt.anchorMin = mrt.anchorMax = new Vector2(1, 1); mrt.pivot = new Vector2(1, 1); mrt.anchoredPosition = new Vector2(-16, -26);
+        // 1행 우: 설정 버튼(둥근 남색 버튼 52, 톱니) → 소리·진동 토글 패널
+        var gear = UIKit.RoundButton(transform, "settingsBtn", UIKit.Pill, 52, "gear", 30, ToggleSettings, out _);
+        var mrt = gear.GetComponent<RectTransform>(); mrt.anchorMin = mrt.anchorMax = new Vector2(1, 1); mrt.pivot = new Vector2(1, 1); mrt.anchoredPosition = new Vector2(-16, -26);
+        // 2행 좌: 며칠째 필(S.day, DayNight가 갱신). 2행 가운데는 목표·정착 칩 자리라 비워 둔다
+        var day = UIKit.Chip(transform, "day", UIKit.Pill, "sun", 24, "1일째", 22, out dayText, out _, 5);
+        var dyrt = day.rectTransform; dyrt.anchorMin = dyrt.anchorMax = new Vector2(0, 1); dyrt.pivot = new Vector2(0, 1); dyrt.anchoredPosition = new Vector2(18, -96);
         // 업그레이드 버튼(하단 중앙, 금색 베벨 + 위 화살표)
         upBtn = UIKit.Button(transform, "upBtn", UIKit.Gold, new Vector2(270, 76), "업그레이드", 32, () => UpgradeSheet.I?.Toggle(), "up", 36);
         upRt = upBtn.GetComponent<RectTransform>(); UIKit.Anchor(upRt, new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(270, 76));
@@ -67,16 +71,57 @@ public class HUD : MonoBehaviour
         // 플래시(원본 #flash 색 fff8e0)
         flash = UI.Panel(transform, "flash", new Color(1, 0.97f, 0.88f, 0)); flash.raycastTarget = false;
         var frt = flash.rectTransform; frt.anchorMin = Vector2.zero; frt.anchorMax = Vector2.one; frt.offsetMin = frt.offsetMax = Vector2.zero;
-        RefreshMute();
     }
-    void RefreshMute() { if (muteIcon) UIKit.SetIcon(muteIcon, G.S.muted ? "mute" : "sound"); }
+
+    // ---- 설정 패널(소리·진동 토글 + 닫기) ----
+    public bool SettingsOpen => settings != null;
+    public void ToggleSettings() { if (settings != null) CloseSettings(); else OpenSettings(); }
+    public void OpenSettings()
+    {
+        if (settings != null) return;
+        if (UpgradeSheet.I != null) UpgradeSheet.I.Close();
+        AudioManager.I?.Play("pop", 1.3f, 0.4f);
+        // 화면 막(바깥 누르면 닫힘) + 판 340×300
+        var scrim = UIKit.RT(transform, "settings").gameObject.AddComponent<Image>(); settings = scrim.gameObject;
+        scrim.color = UIKit.SCRIM; scrim.raycastTarget = true;
+        var srt = scrim.rectTransform; srt.anchorMin = Vector2.zero; srt.anchorMax = Vector2.one; srt.offsetMin = srt.offsetMax = Vector2.zero;
+        var sb = scrim.gameObject.AddComponent<Button>(); sb.transition = Selectable.Transition.None; sb.onClick.AddListener(CloseSettings);
+        var panel = UIKit.Panel(scrim.transform, "panel", UIKit.Navy); panel.raycastTarget = true;
+        var pb = panel.gameObject.AddComponent<Button>(); pb.transition = Selectable.Transition.None;   // 판 안쪽 빈 곳 누름이 막(닫기)으로 번지지 않게
+        UIKit.Anchor(panel.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(340, 300));
+        RectTransform At(Component c, float y, Vector2 size) { var rt = c.GetComponent<RectTransform>(); UIKit.Anchor(rt, new Vector2(0.5f, 0.5f), new Vector2(0, y), size); return rt; }
+        var title = UIKit.Text(panel.transform, "설정", 30, Color.white); UIKit.Stroke(title, UIKit.EDGE, 2f); At(title, 106, new Vector2(300, 44));
+        sndBtn = UIKit.Button(panel.transform, "sound", UIKit.Green, new Vector2(280, 64), "", 26, () => { G.S.muted = !G.S.muted; RefreshSettings(); G.Save(); AudioManager.I?.Play("pop", 1.3f, 0.4f); }, "sound", 32);
+        At(sndBtn, 40, new Vector2(280, 64));
+        vibBtn = UIKit.Button(panel.transform, "vibrate", UIKit.Green, new Vector2(280, 64), "", 26, () => { G.S.vibrate = !G.S.vibrate; RefreshSettings(); G.Save(); AudioManager.I?.Play("pop", 1.3f, 0.4f); JuiceFX.I?.Vibrate(20); }, "bolt", 32);
+        At(vibBtn, -34, new Vector2(280, 64));
+        var close = UIKit.Button(panel.transform, "close", UIKit.Gray, new Vector2(160, 54), "닫기", 24, CloseSettings);
+        At(close, -106, new Vector2(160, 54));
+        RefreshSettings();
+        if (FloatingJoystick.I) FloatingJoystick.I.suppressed = true;
+    }
+    public void CloseSettings()
+    {
+        if (settings == null) return;
+        Destroy(settings); settings = null; sndBtn = vibBtn = null;
+        if (FloatingJoystick.I) FloatingJoystick.I.suppressed = false;
+    }
+    void RefreshSettings()
+    {
+        if (sndBtn != null) UIKit.Restyle(sndBtn, G.S.muted ? UIKit.Gray : UIKit.Green, G.S.muted ? "소리 꺼짐" : "소리 켜짐", G.S.muted ? "mute" : "sound");
+        if (vibBtn != null) UIKit.Restyle(vibBtn, G.S.vibrate ? UIKit.Green : UIKit.Gray, G.S.vibrate ? "진동 켜짐" : "진동 꺼짐", "bolt");
+    }
 
     void Start()
     {
         G.OnBellsChanged += Refresh; G.OnPadLevel += (a, b) => Refresh(); Refresh();
         // -sheet: QA 스크린샷용 업그레이드 시트 자동 열기(20s)·닫기(30s)
         if (DevArgs.Has("-sheet")) StartCoroutine(CoAutoSheet());
+        // -settings 초: QA 스크린샷용 설정 패널 자동 열기(그 초)·닫기(+4초)
+        var st = DevArgs.Get("-settings");
+        if (st != null && float.TryParse(st, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var sec)) StartCoroutine(CoAutoSettings(sec));
     }
+    IEnumerator CoAutoSettings(float sec) { yield return new WaitForSeconds(sec); OpenSettings(); yield return new WaitForSeconds(4f); CloseSettings(); }
     IEnumerator CoAutoSheet() { yield return new WaitForSeconds(20f); UpgradeSheet.I?.Open(); yield return new WaitForSeconds(10f); UpgradeSheet.I?.Close(); }
 
     public void Refresh()
@@ -98,6 +143,7 @@ public class HUD : MonoBehaviour
         // 튜토리얼 후 첫 시트 구매 전까지, 메뉴 스탯을 살 수 있을 때만 바운스(원본 970행)
         bool bounce = menuBuyable && G.S.tut >= 3 && G.PadLv("hand") == 0 && G.PadLv("spd") == 0 && G.PadLv("price") == 0;
         upRt.anchoredPosition = new Vector2(0, 36 + (bounce ? Mathf.Abs(Mathf.Sin(Time.time * 4f)) * 10f : 0));
+        if (G.S.day != lastDay) { lastDay = G.S.day; dayText.text = Mathf.Max(1, lastDay) + "일째"; }
     }
 
     IEnumerator Punch(RectTransform rt)
