@@ -7,6 +7,7 @@ public class HintSystem : MonoBehaviour
     GameState G => GameState.I;
     SaveData S => G.S;
     Transform arrow, ring; public Vector2 target; public string targetKey = "";
+    public bool hasTarget = true;   // 할 일이 없으면 false(화살표·링 숨김, 원본 "힌트 없음")
     float t;
 
     void Awake() { I = this; }
@@ -59,9 +60,12 @@ public class HintSystem : MonoBehaviour
             string id = PadManager.I.visOrder[0];   // ORDER상 차례인 발판
             if (S.bells >= G.PadRemain(id) * 0.5f) { targetKey = "pad:" + id; return Pads.Get(id).pos; }
         }
-        if (S.meltQ == 0 && anyOpen && G.Carry == 0) return Ice();
+        // (드릴 없고 큐 비었으면) 가까운 얼음 더미 · 그 외 병입기 (§6.2). 드릴이 있으면 얼음은 드릴 몫이라 일이 없으면 타깃 없음
+        bool drill = G.PadLv("drill") >= 1;
+        if (!drill && S.meltQ == 0 && anyOpen && G.Carry == 0) return Ice();
         if (S.bottles > 0) return P("bottler");
-        if (anyOpen && G.Carry < G.CarryMax) return Ice();
+        if (!drill && anyOpen && G.Carry < G.CarryMax) return Ice();
+        if (drill && S.meltQ == 0 && S.water < 10) { hasTarget = false; return P("bottler"); }
         return P("bottler");
     }
 
@@ -69,9 +73,11 @@ public class HintSystem : MonoBehaviour
     {
         var pl = Player.I; if (pl == null || Stations.I == null) return;
         t += Time.deltaTime;
+        hasTarget = true;
         target = Pick();
         float d = Vector2.Distance(pl.pos, target);
-        bool far = d > 70f;
+        bool far = hasTarget && d > 70f;
+        ring.gameObject.SetActive(hasTarget);
         arrow.gameObject.SetActive(far);
         if (far)
         {

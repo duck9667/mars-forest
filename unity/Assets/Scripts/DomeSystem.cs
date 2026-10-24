@@ -63,16 +63,14 @@ public class DomeSystem : MonoBehaviour
 
     /* ================= 좌석 API (Customers가 호출) ================= */
 
-    /// 빈 좌석을 예약한다. 없거나 돔이 닫혀 있으면 false. 빈 좌석 중 무작위(손님이 돔 곳곳에 퍼지게)
+    /// 빈 좌석을 예약한다. 없거나 돔이 닫혀 있으면 false. 원본 freeSeat처럼 SEATS 순서상 첫 빈 좌석(게이트 쪽 북쪽부터 차서 팁이 모인다)
     public bool TryReserveSeat(out int seat)
     {
         seat = -1;
         if (!Open) return false;
         if (!built) Build(false);
-        int free = 0; foreach (var s in seats) if (!s.used) free++;
-        if (free == 0) return false;
-        int pick = Random.Range(0, free);
-        for (int i = 0; i < seats.Length; i++) if (!seats[i].used && pick-- == 0) { seat = i; break; }
+        for (int i = 0; i < seats.Length; i++) if (!seats[i].used) { seat = i; break; }
+        if (seat < 0) return false;
         seats[seat].used = true;
         return true;
     }

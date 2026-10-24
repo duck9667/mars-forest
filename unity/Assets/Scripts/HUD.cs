@@ -89,13 +89,14 @@ public class HUD : MonoBehaviour
         // 메뉴 스탯 살 수 있으면 점
         bool dot = false;
         foreach (var d in Pads.ALL) if (d.active && d.menu && !G.PadMaxed(d.id) && G.PadReq(d.id) && G.S.bells >= G.PadRemain(d.id)) dot = true;
-        upDot.gameObject.SetActive(dot);
+        upDot.gameObject.SetActive(dot); menuBuyable = dot;
     }
 
+    bool menuBuyable;
     void Update()
     {
-        // 튜토리얼 후 첫 시트 구매 전까지 바운스
-        bool bounce = G.S.tut >= 3 && G.PadLv("hand") == 0 && G.PadLv("spd") == 0;
+        // 튜토리얼 후 첫 시트 구매 전까지, 메뉴 스탯을 살 수 있을 때만 바운스(원본 970행)
+        bool bounce = menuBuyable && G.S.tut >= 3 && G.PadLv("hand") == 0 && G.PadLv("spd") == 0 && G.PadLv("price") == 0;
         upRt.anchoredPosition = new Vector2(0, 36 + (bounce ? Mathf.Abs(Mathf.Sin(Time.time * 4f)) * 10f : 0));
     }
 

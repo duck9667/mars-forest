@@ -62,7 +62,7 @@ public static class WorldMap
     public const float SEAT_R = 34f;                                  // 좌석 팁 수거 반경
     public static Vector2 FOUNTAIN => new Vector2(DOME.x, DOME.y + 30);
     public static Vector2[] BEDS => new[] { new Vector2(DOME.x - 58, DOME.y + 22), new Vector2(DOME.x + 58, DOME.y + 22) };   // 화단 2곳 ±20
-    public static Vector2 AIRLOCK => new Vector2(DOME.x - 55, DOME.y - DOME_R - 4);                                             // 18×11
+    public static Vector2 AIRLOCK => new Vector2(DOME.x - 55, DOME.y - DOME_R - 4);                                             // 충돌 반폭 ±18·±11
     public const float PEN_X0 = 276, PEN_Y0 = 740, PEN_X1 = 378, PEN_Y1 = 934;
     public static readonly Vector2 PEN_TIP = new Vector2(327, 766);
     public static readonly Vector2 LANDER = new Vector2(84, 988);
@@ -100,7 +100,7 @@ public static class WorldMap
             foreach (var s in SEATS) if ((p - s).sqrMagnitude < 16 * 16) return true;
             if ((p - FOUNTAIN).sqrMagnitude < 17 * 17) return true;
             foreach (var b in BEDS) if (Mathf.Abs(x - b.x) < 20 && Mathf.Abs(y - b.y) < 20) return true;
-            var a = AIRLOCK; if (Mathf.Abs(x - a.x) < 9 && Mathf.Abs(y - a.y) < 5.5f) return true;
+            var a = AIRLOCK; if (Mathf.Abs(x - a.x) < 18 && Mathf.Abs(y - a.y) < 11) return true;   // 반폭 ±18·±11 (원본 947행)
         }
         if (x > 338 && y > 358 && y < 404) return true;                 // 병입 구역 드럼통
         if ((p - LANDER).sqrMagnitude < 34 * 34) return true;            // 착륙선

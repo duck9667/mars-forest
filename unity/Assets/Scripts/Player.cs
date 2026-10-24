@@ -134,7 +134,7 @@ public class Player : MonoBehaviour
         {
             bool full = n >= G.CarryMax;
             chip.Set((kind == "ice" || G.pendK == "ice" ? "얼음 " : "병 ") + n + "/" + G.CarryMax);
-            chip.text.color = full ? GameConfig.Hex("ff6b6b") : Color.white;
+            chip.text.color = full ? GameConfig.Hex("e03c3c") : GameConfig.NAVY;   // 흰 말풍선 위라 남색(가득이면 빨강)
             chip.Show(true);
         }
         else chip.Show(false);

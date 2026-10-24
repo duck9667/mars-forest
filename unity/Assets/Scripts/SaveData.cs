@@ -29,7 +29,8 @@ public class SaveData
     public DecoSave deco = new DecoSave();
     public int terraKeep = 0;                       // §6.3 프레스티지로 남긴 초록 타일 수
     public int quest = 0, prestige = 0, custN = 0, lost = 0;
-    public int tut = 0, handShown = 0, qv = 2;
+    public int tut = 0, handShown = 0, qv = 3;   // qv 3: Phase 3(우리·돔 목표 활성)
+    public List<int> qskip = new List<int>();    // 보상 없이 넘길 목표 번호(옛 저장 마이그레이션)
 }
 
 public static class SaveSystem
@@ -74,6 +75,16 @@ public static class SaveSystem
         if (d.sold >= 1) { d.tut = 3; d.handShown = 1; }
         // 드릴 충돌은 저장된 레벨로 먼저 켜고 나서 위치를 검사해야 드릴 안에 갇힌 저장본을 구제할 수 있다
         if (d.deco == null) d.deco = new DecoSave();
+        if (d.qskip == null) d.qskip = new List<int>();
+        // Phase 2 저장(qv<3)은 우리·돔 목표(9·10번)를 보상 없이 건너뛰었다. 아직 그 발판이 없으면 9번으로 되돌리고,
+        // 그 뒤 이미 보상받은 목표(11번 물병 300개 등)는 qskip에 넣어 다시 보상하지 않는다
+        if (d.qv < 3)
+        {
+            bool pen = false, dome = false; foreach (var e in d.pads) { if (e.id == "pen" && e.lv >= 1) pen = true; if (e.id == "dome" && e.lv >= 1) dome = true; }
+            int back = !pen ? 9 : !dome ? 10 : -1;
+            if (back >= 0 && d.quest > back) { for (int q = back; q < d.quest; q++) if (q >= 11) d.qskip.Add(q); d.quest = back; }
+            d.qv = 3;
+        }
         foreach (var e in d.pads) { if (e.id == "drill") WorldMap.drillInstalled = e.lv >= 1; if (e.id == "dome") WorldMap.domeOpen = e.lv >= 1; }
         if (WorldMap.Blocked(d.p.x, d.p.y)) { d.p.x = WorldMap.PLAYER_START.x; d.p.y = WorldMap.PLAYER_START.y; }
         // 비활성·요구조건 미충족 발판의 부분 납입금 환불

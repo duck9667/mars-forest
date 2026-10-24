@@ -90,6 +90,8 @@ public class QuestManager : MonoBehaviour
         tickT += dt; if (tickT < 0.3f) return; tickT = 0;
         // 이번 Phase에 없는 발판(pen·dome 등)을 요구하는 목표는 보상 없이 건너뛴다 (Phase 3에서 활성화되면 그대로 살아남)
         while (Current != null && Current.key != "sold" && !GameState.ACTIVE_IDS.Contains(Current.key)) S.quest++;
+        // qskip: 옛 저장(Phase 2)에서 이미 보상받은 목표는 되살린 목표를 지난 뒤 보상 없이 넘긴다(원본 qskip과 같은 뜻)
+        while (Current != null && S.qskip != null && S.qskip.Contains(S.quest) && Value(Current) >= Current.goal) { S.qskip.Remove(S.quest); S.quest++; }
         Refresh();
         var q = Current; if (q == null) return;
         if (Value(q) < q.goal) { holdT = 0; return; }
@@ -104,6 +106,7 @@ public class QuestManager : MonoBehaviour
     {
         chestT = 1.6f;
         S.quest++;
+        G.AddBells(q.reward); G.Save();   // 원본 completeQuest: 진행·보상·저장을 한 번에(연출 중 종료돼도 보상 유지)
         // 비차단 상자 팝 (UI 중앙, 원본 #chestPop): 남색 패널에 "목표 달성! · 목표명" + [상자][벨] +보상(큰 금색 숫자)
         var box = UIKit.Panel(HUD.I.transform, "chest", UIKit.Navy);
         var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 120), new Vector2(340, 136));
@@ -112,13 +115,16 @@ public class QuestManager : MonoBehaviour
         var row = UIKit.Row(box.transform, "row", 8); var rrt = row.GetComponent<RectTransform>(); UIKit.Anchor(rrt, new Vector2(0.5f, 0), new Vector2(0, 14), new Vector2(320, 64));
         UIKit.IconImg(row.transform, "chest", 48); UIKit.IconImg(row.transform, "bell", 36);
         var t2 = UIKit.Text(row.transform, "+" + q.reward, 44, UIKit.Hex("ffe58a")); UIKit.Stroke(t2, UIKit.Hex("7a3a00"), 3f); UIKit.DropShadow(t2, 3f, 0.35f);
-        AudioManager.I.Play("up", 1.1f); JuiceFX.I.Flash(0.3f); JuiceFX.I.Shake(4); JuiceFX.I.Vibrate(30);
-        float el = 0;
-        while (el < 0.5f) { el += Time.deltaTime; brt.localScale = Vector3.one * Mathf.Max(0.001f, JuiceFX.EaseOutBack(Mathf.Clamp01(el / 0.5f))); yield return null; }
+        AudioManager.I.Play("up", 1.1f); JuiceFX.I.Vibrate(30);   // 팝 시작: 소리·진동만
+        float el = 0; bool opened = false;
+        while (el < 0.5f)
+        {
+            el += Time.deltaTime; brt.localScale = Vector3.one * Mathf.Max(0.001f, JuiceFX.EaseOutBack(Mathf.Clamp01(el / 0.5f)));
+            // §6.1: 0.4s 후 뚜껑 열림 + 동전 14개 HUD + 플래시 0.3 + 흔들림 4
+            if (!opened && el >= 0.4f) { opened = true; JuiceFX.I.Flash(0.3f); JuiceFX.I.Shake(4); HUD.I.Coins(brt.position, () => HUD.I.BellsScreen(), 14); }
+            yield return null;
+        }
         brt.localScale = Vector3.one;
-        // 보상은 즉시 전액 가산(저장·종료 안전), 동전 14개는 표시용 연출
-        G.AddBells(q.reward);
-        HUD.I.Coins(brt.position, () => HUD.I.BellsScreen(), 14);
         yield return new WaitForSeconds(1.0f);
         el = 0;
         while (el < 0.25f) { el += Time.deltaTime; brt.localScale = Vector3.one * (1 - el / 0.25f); yield return null; }

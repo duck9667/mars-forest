@@ -99,6 +99,9 @@ public class DevTools : MonoBehaviour
         // 돔 좌석 팁이 병값×3 이상 쌓였으면 빈손일 때 들러 수거(좌석 r34 안, 좌석 충돌 r16 밖인 앞쪽 26)
         int seatTip = 0; int seatI = DomeSystem.I != null && G.Carry == 0 && G.pend == 0 ? DomeSystem.I.RichestSeat(out seatTip) : -1;
         if (seatI >= 0 && seatTip >= G.BottlePrice * 3) { target = WorldMap.SEATS[seatI] + new Vector2(0, 26); key = "seat:" + seatI; }
+        // 병을 든 채 선반이 가득이면(힌트는 카운터에서 기다리라고 함) 그 사이 계산대 돈을 걷는다 — 사람은 이렇게 하므로 봇도
+        else if (G.CarryTop == "bottle" && G.S.shelf + G.shelfPend >= G.ShelfCap && G.S.cash > 0 && !G.collectingCash)
+        { var r = WorldMap.STN["register"]; target = new Vector2(r.x, r.y - r.h / 2 - 14); key = "register"; }
         else if (G.Carry == 0 && G.pend == 0 && PadManager.I != null)
         {
             // ORDER 순서(visOrder)에서 첫 번째로 살 수 있는 발판 → 진행 순서대로 밟는다

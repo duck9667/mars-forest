@@ -40,7 +40,7 @@ public class TerraformManager : MonoBehaviour
         // 구역 태그 슬롯: 그 구역이 열리면 '그 구역 옆부터' 켜진다
         new object[]{52,18,"ice2"}, new object[]{122,18,"ice2"}, new object[]{192,18,"ice2"},
         new object[]{257,780,"pen"}, new object[]{257,850,"pen"}, new object[]{257,915,"pen"},        // 원본 254 → 손님 길에서 3 비킴
-        new object[]{16,690,"dome"}, new object[]{112,668,"dome"}, new object[]{30,960,"dome"},       // 원본 (20,700)·(30,952) → 가로등 비킴
+        new object[]{26,686,"dome"}, new object[]{112,668,"dome"}, new object[]{30,960,"dome"},       // 원본 (20,700)·(30,952) → 가로등·바위(r+14) 비킴
         // 일반 슬롯(원본 순서: 매장 양옆부터 바깥으로)
         new object[]{398,440}, new object[]{-4,475}, new object[]{398,540}, new object[]{-4,590}, new object[]{-4,300}, new object[]{396,260},
         new object[]{-4,220}, new object[]{396,340}, new object[]{-6,178}, new object[]{396,160}, new object[]{-4,140}, new object[]{396,80},

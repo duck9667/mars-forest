@@ -65,19 +65,25 @@ public class OfflineEarnings : MonoBehaviour
         return n < MIN_BELLS ? 0 : n;
     }
 
+    int modalN, modalMins;   // 모달에 보이는 총액·분(이미 지급된 금액)
     void Evaluate(long fromMs)
     {
-        if (modal != null || G == null || devOff) return;
+        if (G == null || devOff) return;
         int n = Compute(fromMs, out float secs);
         baseMs = NowMs();   // 여기까지는 셈이 끝났다(같은 복귀에 Pause·Focus가 둘 다 와도 한 번만)
         if (n <= 0) return;
         Debug.Log("offline earn: away=" + secs.ToString("0") + "s n=" + n + " price=" + G.BottlePrice + " bottleTime=" + G.BottleTime.ToString("0.00") + " baseGap=" + G.BaseGap.ToString("0.0"));
-        StartCoroutine(CoModal(n, Mathf.RoundToInt(secs / 60f)));
+        // 원본처럼 모달을 띄우는 순간 지급·저장한다(모달이 떠 있는 동안 앱이 꺼져도 잃지 않게). 확인 버튼은 동전 연출만
+        G.AddBells(n); G.Save();
+        int mins = Mathf.RoundToInt(secs / 60f);
+        if (modal != null) { modalN += n; modalMins += mins; return; }   // 모달 중 다시 다녀온 몫은 금액에 더해 다시 차오르게
+        modalN = n; modalMins = mins;
+        StartCoroutine(CoModal());
     }
 
     // ---- 모달 ----
     static Sprite rays;
-    IEnumerator CoModal(int n, int mins)
+    IEnumerator CoModal()
     {
         while (HUD.I == null) yield return null;
         var root = HUD.I.transform;
@@ -101,7 +107,7 @@ public class OfflineEarnings : MonoBehaviour
         // 한 줄: [삐걱] m분 동안 삐걱이 팔았어요
         var row2 = UIKit.Row(panel.transform, "line", 6); At(row2, -22, new Vector2(340, 36));
         UIKit.IconImg(row2.transform, "robot", 28);
-        UIKit.Text(row2.transform, mins + "분 동안 삐걱이 팔았어요", 23, UIKit.SUB);
+        var line = UIKit.Text(row2.transform, modalMins + "분 동안 삐걱이 팔았어요", 23, UIKit.SUB);
         // 확인 버튼
         bool ok = false;
         var btn = UIKit.Button(panel.transform, "ok", UIKit.Gold, new Vector2(220, 70), "확인", 32, () => ok = true, "check", 30);
@@ -118,6 +124,7 @@ public class OfflineEarnings : MonoBehaviour
             if (FloatingJoystick.I) FloatingJoystick.I.suppressed = true;   // 시트가 닫히며 풀어도 다시 잡는다
             scrim.color = new Color(UIKit.SCRIM.r, UIKit.SCRIM.g, UIKit.SCRIM.b, UIKit.SCRIM.a * Mathf.Clamp01(el / 0.25f));
             prt.localScale = Vector3.one * Mathf.Max(0.001f, JuiceFX.EaseOutBack(Mathf.Clamp01(el / 0.45f)));
+            int n = modalN; line.text = modalMins + "분 동안 삐걱이 팔았어요";
             float k = Mathf.Clamp01((el - 0.3f) / 0.7f); int v = Mathf.RoundToInt(n * (1f - (1f - k) * (1f - k)));
             if (v != shown) { shown = v; amt.text = "+" + v.ToString("N0"); tickT -= dt; if (tickT <= 0f) { tickT = 0.06f; AudioManager.I.PlayHz("tick", 600f + 700f * k, 480f, 0.4f); } }
             rayImg.rectTransform.localRotation = Quaternion.Euler(0, 0, -el * 25f);
@@ -130,9 +137,8 @@ public class OfflineEarnings : MonoBehaviour
             if (autoOk > 0f && el >= autoOk) ok = true;
             yield return null;
         }
-        amt.text = "+" + n.ToString("N0");
-        // 확인: 벨 지급 + 상자에서 동전 14개가 HUD로, 상자 팝, 판 축소
-        G.AddBells(n);
+        amt.text = "+" + modalN.ToString("N0");
+        // 확인: (벨은 이미 지급됨) 상자에서 동전 14개가 HUD로, 상자 팝, 판 축소
         AudioManager.I.Play("coin", 1.2f); JuiceFX.I.Vibrate(20);
         HUD.I.Coins(crt.position, () => HUD.I.BellsScreen(), COINS);
         if (FloatingJoystick.I) FloatingJoystick.I.suppressed = false;
