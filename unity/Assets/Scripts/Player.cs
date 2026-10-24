@@ -13,9 +13,11 @@ public class Player : MonoBehaviour
     public float actT;
     public Transform view, body, stackAnchor;
     Transform armL, armR, legL, legR, head;
-    float swX, swZ;      // 등짐 흔들림
-    WorldLabels.Label chip;
-    int lastCarry = -1;
+    float swX, swZ, swVX, swVZ;   // 등짐 흔들림(스프링: 위치·속도)
+    WorldLabels.Label maxTag;      // 가득 찼을 때만 탑 위 "MAX"
+    int lastCarry = -1; string stackKind = "";
+    float popT = 1f;               // 맨 위 블록 팝(0→1)
+    const float LAYER = Items.CARRY_H;
 
     void Awake() { I = this; }
 
@@ -23,9 +25,13 @@ public class Player : MonoBehaviour
     {
         pos = new Vector2(S.p.x, S.p.y); dir = new Vector2(S.p.dx, S.p.dy); if (dir.sqrMagnitude < 0.01f) dir = new Vector2(0, 1);
         BuildView();
-        chip = WorldLabels.I.Add(() => ChipWorld(), "", 24, Color.white, Vector2.zero, true, new Color(0.12f, 0.1f, 0.2f, 0.85f));
-        chip.SetStyle(UIKit.Bubble);   // 원본처럼 흰 말풍선(UI 패스 D의 WorldLabels 스타일)
-        chip.Show(false);
+        // QA: -carry N 이면 시작부터 얼음 N개를 진 채로(등짐 탑 확인용, 저장 분리 -save 와 함께 쓸 것)
+        var cf = DevArgs.Get("-carry");
+        if (!string.IsNullOrEmpty(cf) && int.TryParse(cf, out var cn) && S.p.carry.Count == 0) for (int i = 0; i < cn; i++) S.p.carry.Add("ice");
+        // 머리 위 "얼음 n/32" 칩은 없앴다(jake 10/24). 가득 찼을 때만 탑 꼭대기에 금색 말풍선 "MAX"
+        maxTag = WorldLabels.I.Add(() => MaxWorld(), "MAX", 18, Color.white, Vector2.zero, true, GameConfig.GOLD);
+        maxTag.text.color = GameConfig.Hex("e03c3c");
+        maxTag.Show(false);
         if (CameraRig.I) { CameraRig.I.target = view; CameraRig.I.velL = () => vel; }
     }
 
@@ -38,17 +44,19 @@ public class Player : MonoBehaviour
         float k = GameConfig.K;
         // 우주복 치비(원본 bPerson, 키 ≈ 64). 팔다리는 피벗이 위쪽 끝이라 Animate 가 회전시킨다
         CharacterKit.BuildPlayer(body, out head, out armL, out armR, out legL, out legR);
-        stackAnchor = new GameObject("stack").transform; stackAnchor.SetParent(body, false);
-        stackAnchor.localPosition = new Vector3(0, 30 * k, -17 * k);
-        stackAnchor.localRotation = Quaternion.Euler(-0.1f * Mathf.Rad2Deg, 0, 0);
+        // 등짐 탑: 피자레디처럼 등 뒤에 높이. 몸(body)이 걸을 때 앞으로 숙여도 탑은 서 있도록 view 에 달고 들썩임만 따로 더한다.
+        // 카메라(남쪽 위 55°)에 몸으로 덜 가리게 등에서 살짝 위·뒤(0, 34, -25), 아주 조금 뒤로 기울임
+        stackAnchor = new GameObject("stack").transform; stackAnchor.SetParent(view, false);
+        stackAnchor.localPosition = new Vector3(0, 34 * k, -25 * k);
+        stackAnchor.localRotation = Quaternion.Euler(-0.08f * Mathf.Rad2Deg, 0, 0);
     }
 
-    public Vector3 StackTop() => stackAnchor.position + stackAnchor.up * (G.Carry + G.pend) * (Items.ITEM_H.TryGetValue(G.CarryTop == "" ? G.pendK : G.CarryTop, out var h) ? h : 3f) * GameConfig.K;
-    Vector3 ChipWorld()
-    {
-        int n = G.Carry; float h = Mathf.Max(72, 34 + n * 3f + 14);
-        return view.position + Vector3.up * h * GameConfig.K;
-    }
+    // i층(실수 허용) 블록 중심의 앵커 로컬 위치. 휨은 위로 갈수록 더 커진다(선형+제곱, 상한)
+    float Bend(float i) => Mathf.Min(i * 0.07f + i * i * 0.0035f, 3.6f);
+    Vector3 LayerPos(float i) => new Vector3(swX * Bend(i) * GameConfig.K, (LAYER / 2 + i * LAYER) * GameConfig.K, swZ * Bend(i) * GameConfig.K);
+    // 아이템 비행 도착점: 지금 맨 위(대기 중인 비행 포함) 블록의 윗면. 흔들림까지 따라간다
+    public Vector3 StackTop() => stackAnchor.TransformPoint(LayerPos(Mathf.Min(G.Carry + G.pend, GameConfig.STACK_MAX) - 0.5f));
+    Vector3 MaxWorld() => stackAnchor.TransformPoint(LayerPos(Mathf.Min(G.Carry, GameConfig.STACK_MAX) - 0.5f)) + Vector3.up * 9 * GameConfig.K;
 
     void Update()
     {
@@ -101,43 +109,61 @@ public class Player : MonoBehaviour
         }
     }
 
-    // §2.2 흔들림: 로컬 속도 ×0.06 → 목표 clamp(-v*0.9, ±9), lerp dt*9
+    // §2.2 흔들림(탄력판): 로컬 속도 ×0.06 → 목표 clamp(-v*0.9, ±9). 원본의 lerp 대신 덜 감쇠된 스프링이라
+    // 멈추거나 방향을 틀면 탑이 관성으로 넘어갈 듯 휘청이다 되돌아온다. 걷는 동안엔 발걸음 따라 좌우로 살짝 출렁
     void SyncStack(float dt)
     {
         var carry = S.p.carry; string kind = G.CarryTop;
-        if (carry.Count != lastCarry)
+        int n = Mathf.Min(carry.Count, GameConfig.STACK_MAX);
+        if (n != lastCarry || kind != stackKind)
         {
-            lastCarry = carry.Count;
-            if (carry.Count == 0) Items.SyncStack(stackAnchor, "ice", 0, 1, 1, 0, 0, GameConfig.STACK_MAX);
-            else
-            {
-                // 종류가 바뀌면 전부 교체
-                if (stackAnchor.childCount > 0 && stackAnchor.GetChild(0).name != kind) Items.SyncStack(stackAnchor, kind, 0, 1, 1, 0, 0, GameConfig.STACK_MAX);
-                Items.SyncStack(stackAnchor, kind, carry.Count, 1, 1, 0, 0, GameConfig.STACK_MAX);
-            }
+            // 종류가 바뀌면 전부 교체(빈 손이 되면 전부 비움)
+            if (kind != stackKind) { ClearStack(); stackKind = kind; }
+            // 내려놓기: 맨 위부터 빠진다
+            for (int i = stackAnchor.childCount - 1; i >= n; i--) { var c = stackAnchor.GetChild(i); c.SetParent(null, false); Destroy(c.gameObject); }
+            bool grew = stackAnchor.childCount < n;
+            for (int i = stackAnchor.childCount; i < n; i++) Items.CarryBlock(stackAnchor, kind);
+            if (grew) popT = 0f;      // 줍는 순간 맨 위 블록 팝
+            lastCarry = n;
         }
-        // 로컬 속도: 전방·측방
         Vector3 fwd = new Vector3(dir.x, 0, -dir.y), right = Vector3.Cross(Vector3.up, fwd);
         Vector3 vu = new Vector3(vel.x, 0, -vel.y);
         float lf = Vector3.Dot(vu, fwd) * 0.06f, ls = Vector3.Dot(vu, right) * 0.06f;
-        swZ = Mathf.Lerp(swZ, Mathf.Clamp(-lf * 0.9f, -9, 9), dt * 9f);
-        swX = Mathf.Lerp(swX, Mathf.Clamp(-ls * 0.9f, -9, 9), dt * 9f);
-        float h = kind == "" ? 0.1f : Items.ITEM_H[kind] * GameConfig.K;
-        for (int i = 0; i < stackAnchor.childCount; i++)
+        float tz = Mathf.Clamp(-lf * 0.9f, -9, 9), tx = Mathf.Clamp(-ls * 0.9f, -9, 9);
+        if (walking) tx += Mathf.Sin(Time.time * 1000f / 180f) * 1.2f;   // 발걸음(두 걸음 주기) 출렁
+        const float KS = 70f, KD = 7.5f;   // 스프링 강성·감쇠(감쇠비≈0.45, 한두 번 튕기고 멈춤)
+        swVX += ((tx - swX) * KS - swVX * KD) * dt; swX += swVX * dt;
+        swVZ += ((tz - swZ) * KS - swVZ * KD) * dt; swZ += swVZ * dt;
+        swX = Mathf.Clamp(swX, -14, 14); swZ = Mathf.Clamp(swZ, -14, 14);
+        if (popT < 1f) popT = Mathf.Min(1f, popT + dt / 0.22f);
+        float bob = body.localPosition.y;   // 몸 들썩임만 따라감
+        stackAnchor.localPosition = new Vector3(0, 34 * GameConfig.K + bob, -25 * GameConfig.K);
+        int cnt = stackAnchor.childCount;
+        for (int i = 0; i < cnt; i++)
         {
-            int kk = Mathf.Min(i, 18); var c = stackAnchor.GetChild(i);
-            c.localPosition = new Vector3(swX * kk * 0.11f * GameConfig.K, h / 2 + i * h, swZ * kk * 0.11f * GameConfig.K);
-            c.localRotation = Quaternion.Euler(-swZ * 0.007f * kk * Mathf.Rad2Deg, 0, swX * 0.007f * kk * Mathf.Rad2Deg);
+            var c = stackAnchor.GetChild(i);
+            c.localPosition = LayerPos(i);
+            // 기울기 = 휨 곡선의 기울기(층 사이 수평 차이 / 층 높이)
+            float slope = (Bend(i + 0.5f) - Bend(i - 0.5f)) / LAYER * 0.8f;
+            c.localRotation = Quaternion.Euler(-Mathf.Atan(swZ * slope) * Mathf.Rad2Deg, 0, Mathf.Atan(swX * slope) * Mathf.Rad2Deg);
+            float sc = 1f;
+            if (i == cnt - 1 && popT < 1f)
+            {
+                // easeOutBack 0.45→1(살짝 넘쳤다 돌아옴)
+                float p = popT, c1 = 2.2f, c3 = c1 + 1f;
+                float e = 1f + c3 * Mathf.Pow(p - 1f, 3) + c1 * Mathf.Pow(p - 1f, 2);
+                sc = Mathf.LerpUnclamped(0.45f, 1f, e);
+            }
+            c.localScale = Vector3.one * sc;
         }
-        int n = carry.Count;
-        if (n > 0 || G.pend > 0)
-        {
-            bool full = n >= G.CarryMax;
-            chip.Set((kind == "ice" || G.pendK == "ice" ? "얼음 " : "병 ") + n + "/" + G.CarryMax);
-            chip.text.color = full ? GameConfig.Hex("e03c3c") : GameConfig.NAVY;   // 흰 말풍선 위라 남색(가득이면 빨강)
-            chip.Show(true);
-        }
-        else chip.Show(false);
+        maxTag.Show(n > 0 && n >= G.CarryMax);
+        if (n > 0 && n >= G.CarryMax) maxTag.rt.localScale = Vector3.one * (1f + Mathf.Sin(Time.time * 7f) * 0.06f);
+    }
+
+    void ClearStack()
+    {
+        for (int i = stackAnchor.childCount - 1; i >= 0; i--) { var c = stackAnchor.GetChild(i); c.SetParent(null, false); Destroy(c.gameObject); }
+        lastCarry = 0;
     }
 
     // §1.1 순서대로 첫 번째로 성립한 행동 1개만
@@ -159,7 +185,7 @@ public class Player : MonoBehaviour
             {
                 S.spots[best] = GameConfig.SpotRespawn();
                 G.pend++; G.pendK = "ice";
-                ArcFlyer.I.FlyItem("ice", st.SpotWorld(best), StackTop, () => Arrive("ice"));
+                ArcFlyer.I.Fly(FlyBlock("ice"), st.SpotWorld(best), StackTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("ice"));
                 actT = GameConfig.CD_ICE; return;
             }
         }
@@ -167,7 +193,7 @@ public class Player : MonoBehaviour
         if (G.CarryTop == "ice" && WorldMap.NearStn(pos, "melter", GameConfig.R_MELT))
         {
             PopTop();
-            ArcFlyer.I.FlyItem("ice", StackTop(), st.MeltTop, () => { S.meltQ++; });
+            ArcFlyer.I.Fly(FlyBlock("ice"), StackTop(), st.MeltTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => { S.meltQ++; });
             AudioManager.I.Play("put", 1f + Random.Range(-0.05f, 0.05f));
             actT = GameConfig.CD_MELT; return;
         }
@@ -175,14 +201,14 @@ public class Player : MonoBehaviour
         if (S.bottles > 0 && G.CanCarry("bottle") && WorldMap.NearStn(pos, "bottler", GameConfig.R_BOTTLE))
         {
             S.bottles--; G.pend++; G.pendK = "bottle";
-            ArcFlyer.I.FlyItem("bottle", st.TrayTop(), StackTop, () => Arrive("bottle"));
+            ArcFlyer.I.Fly(FlyBlock("bottle"), st.TrayTop(), StackTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("bottle"));
             actT = GameConfig.CD_BOTTLE; return;
         }
         // 4. 선반 올리기 (카운터 뒤쪽 p.y < counter.y)
         if (G.CarryTop == "bottle" && S.shelf + G.shelfPend < G.ShelfCap && pos.y < WorldMap.STN["counter"].y && WorldMap.NearStn(pos, "counter", GameConfig.R_SHELF))
         {
             PopTop(); G.shelfPend++;
-            ArcFlyer.I.FlyItem("bottle", StackTop(), st.ShelfTop, () => { G.shelfPend--; S.shelf++; if (S.tut == 2) TutorialManager.I?.Advance(3); });
+            ArcFlyer.I.Fly(FlyBlock("bottle"), StackTop(), st.ShelfTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => { G.shelfPend--; S.shelf++; if (S.tut == 2) TutorialManager.I?.Advance(3); });
             AudioManager.I.Play("put", 1.2f);
             actT = GameConfig.CD_SHELF; return;
         }
@@ -202,6 +228,8 @@ public class Player : MonoBehaviour
     }
 
     void PopTop() { S.p.carry.RemoveAt(S.p.carry.Count - 1); }
+    // 탑과 같은 모양의 블록이 날아오고 날아간다(조금 작게)
+    GameObject FlyBlock(string kind) { var go = Items.CarryBlock(ArcFlyer.I.transform, kind); go.transform.localScale = Vector3.one * 0.85f; return go; }
 
     void Arrive(string kind)
     {
