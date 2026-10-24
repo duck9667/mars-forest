@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 // §6.1 목표 QUESTS 순차 12개(qv=2): 0.3초마다 판정, 걷는 중·아이템 비행 중·발판 완료 0.6s 이내면 최대 3s 보류.
 // 완료: 비차단 상자 팝 1.5s(chestT=1.6 동안 다음 목표 보류), 0.4s 후 동전 14개 HUD + 보상, 플래시 0.3, 흔들림 4. 전부 끝나면 칩에 왕관.
+// 상단 칩을 누르면 업그레이드 시트의 목표 탭이 열린다(§3.3, 목표 탭은 칩으로만 진입).
 public class QuestManager : MonoBehaviour
 {
     public static QuestManager I;
@@ -42,6 +43,9 @@ public class QuestManager : MonoBehaviour
     }
 
     int Value(Quest q) => q.key == "sold" ? S.sold : G.PadLv(q.key);
+    /// 시트 목표 탭 표시용(판정과 같은 값)
+    public int ValueOf(Quest q) => Value(q);
+    public int Index => S.quest;
     public Quest Current => S.quest < QUESTS.Length ? QUESTS[S.quest] : null;
     public bool AllDone => S.quest >= QUESTS.Length;
 
@@ -52,6 +56,11 @@ public class QuestManager : MonoBehaviour
         chipBg = UIKit.Chip(root, "quest", UIKit.Navy, "bottle", 28, "", 21, out title, out qIcon, 7);
         chip = chipBg.rectTransform; chip.anchorMin = chip.anchorMax = new Vector2(0.5f, 1); chip.pivot = new Vector2(0.5f, 1); chip.anchoredPosition = new Vector2(0, -94);
         var le = chipBg.gameObject.AddComponent<LayoutElement>(); le.minHeight = 54;
+        // 칩을 누르면 시트 목표 탭(원본 #qchip pointerup → openSheet('quest')). 누름 축소 손맛, 조이스틱은 UI 위 터치를 무시한다
+        chipBg.raycastTarget = true;
+        var btn = chipBg.gameObject.AddComponent<Button>(); btn.targetGraphic = chipBg; btn.transition = Selectable.Transition.None;
+        chipBg.gameObject.AddComponent<UIPress>();
+        btn.onClick.AddListener(() => UpgradeSheet.I?.Open(UpgradeSheet.QUEST));
         prog = UIKit.Text(chipBg.transform, "", 22, UIKit.GOLD);
         UIKit.ProgressBar(chipBg.transform, "track", new Vector2(BAR_W, 10), out bar);
         chestIc = UIKit.IconImg(chipBg.transform, "chest", 26);
