@@ -2,12 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// §5.2 손님: 입장 → 줄 → (맨 앞) 결제 → 병 머리 위로 → 점프 → (휴게 돔 빈 좌석이 있으면 착석 → 팁) → 퇴장.
+// §5.2 정착민(구 손님): 입장 → 줄 → (맨 앞) 결제 → 받은 물자 머리 위로 → 점프 → (휴게 돔 빈 좌석이 있으면 착석 → 팁) → 퇴장.
+// 정착민마다 원하는 종류 하나(kind: bottle 물·o2 산소·food 식량) × 개수(want). 카운터도 종류별 칸에서 꺼낸다.
 public class Customer
 {
     public enum St { WalkIn, Queue, ToSeat, Sit, Leave, Gone }
     public St st = St.WalkIn;
-    public Vector2 pos; public int want; public float wait, pay; public bool angry, bought, vip;
+    public Vector2 pos; public string kind = "bottle"; public int want; public float wait, pay; public bool angry, bought, vip;
     public Transform view, body, head, hold; public WorldLabels.Label bubble;
     public float jumpT = -1;
     // §5.2 휴게 돔: 예약 좌석(-1 없음)·경유점 큐(seatPath/leavePath)·착석 남은 시간·올라앉기 진행·앉은 지 경과
@@ -33,7 +34,7 @@ public class CustomerSystem : MonoBehaviour
     int Waiting() { int n = 0; foreach (var c in list) if (c.st == Customer.St.WalkIn || c.st == Customer.St.Queue) n++; return n; }
     int QueueIndex(Customer c) { int n = 0; foreach (var o in list) { if (o == c) return n; if (o.st == Customer.St.WalkIn || o.st == Customer.St.Queue) n++; } return n; }
     public Customer Front() { foreach (var o in list) if (o.st == Customer.St.Queue) return QueueIndex(o) == 0 ? o : null; return null; }
-    public bool AnyWaitingToPay() { var f = Front(); return f != null && S.shelf >= f.want; }
+    public bool AnyWaitingToPay() { var f = Front(); return f != null && G.ShelfOf(f.kind) >= f.want; }
 
     void Update()
     {
@@ -69,9 +70,22 @@ public class CustomerSystem : MonoBehaviour
         int ads = G.PadLv("ads");
         c.vip = S.tut >= 3 && S.sold >= 40 && S.custN % 10 == 0;   // 10번째 손님마다 VIP
         c.want = S.tut < 3 ? 1 : c.vip ? Random.Range(2, 4) : 1 + (Random.value < 0.3f + 0.06f * ads ? 1 : 0) + (Random.value < 0.1f + 0.05f * ads ? 1 : 0);
+        c.kind = S.tut < 3 ? "bottle" : PickKind();
         BuildView(c);
         list.Add(c);
     }
+
+    // 열린 종류 중 가중치로: 물만 → 물 100 / 산소 열림 → 물 60·산소 40 / 식량 열림 → 물 40·산소 30·식량 30
+    string PickKind()
+    {
+        bool o2 = G.KindOpen("o2"), food = G.KindOpen("food");
+        float wW = food ? 40 : o2 ? 60 : 100, wO = o2 ? (food ? 30 : 40) : 0, wF = food ? 30 : 0;
+        float r = Random.value * (wW + wO + wF);
+        return r < wW ? "bottle" : r < wW + wO ? "o2" : "food";
+    }
+
+    // 말풍선 글자: "물 ×2"·"산소 ×1"·"식량 ×1"(VIP는 앞에 "VIP "). 앞 낱말은 WorldLabels가 아이콘으로 바꾼다
+    static string BubbleText(Customer c) => (c.vip ? "VIP " : "") + GameState.KindName(c.kind) + " ×" + c.want;
 
     void BuildView(Customer c)
     {
@@ -85,7 +99,7 @@ public class CustomerSystem : MonoBehaviour
         CharacterKit.BuildCustomer(c.body, col, acc, c.vip, out c.head);
         if (c.vip) HullOutline.Hull(c.body, HullOutline.GOLD, 2f);   // §5.2 VIP: 금 외곽선(0xd49000)
         c.hold = new GameObject("hold").transform; c.hold.SetParent(c.body, false); c.hold.localPosition = new Vector3(0, (c.vip ? 66 : 56) * k, 0);
-        c.bubble = WorldLabels.I.Add(() => c.head.position + Vector3.up * (c.vip ? 1.3f : 1.0f), (c.vip ? "VIP 병 ×" : "병 ×") + c.want, 20, GameConfig.NAVY, Vector2.zero, true, c.vip ? GameConfig.GOLD : null);
+        c.bubble = WorldLabels.I.Add(() => c.head.position + Vector3.up * (c.vip ? 1.3f : 1.0f), BubbleText(c), 20, GameConfig.NAVY, Vector2.zero, true, c.vip ? GameConfig.GOLD : null);
         c.bubble.Show(false);
     }
 
@@ -129,7 +143,7 @@ public class CustomerSystem : MonoBehaviour
                     c.bubble.Show(qi == 0 && arrived && !c.bought);
                     if (qi == 0 && !c.bought)
                     {
-                        bool canPay = arrived && S.shelf >= c.want && (G.HasCashier || WorldMap.NearStn(Player.I.pos, "register", GameConfig.R_PAY));
+                        bool canPay = arrived && G.ShelfOf(c.kind) >= c.want && (G.HasCashier || WorldMap.NearStn(Player.I.pos, "register", GameConfig.R_PAY));
                         if (canPay)
                         {
                             c.pay += dt;
@@ -143,7 +157,7 @@ public class CustomerSystem : MonoBehaviour
                             if (S.tut >= 3)
                             {
                                 c.wait += dt;
-                                if (c.wait > GameConfig.CUST_WARN && !c.angry) { c.angry = true; c.bubble.Set("병 ×" + c.want + " !"); c.bubble.text.color = GameConfig.Hex("e03c3c"); }
+                                if (c.wait > GameConfig.CUST_WARN && !c.angry) { c.angry = true; c.bubble.Set(BubbleText(c) + " !"); c.bubble.text.color = GameConfig.Hex("e03c3c"); }
                                 if (c.wait > GameConfig.CUST_PATIENCE) { S.lost++; c.bubble.Show(false); c.st = Customer.St.Leave; AudioManager.I.Play("no"); break; }
                             }
                         }
@@ -229,7 +243,7 @@ public class CustomerSystem : MonoBehaviour
             var dome = DomeSystem.I;
             if (dome != null)
             {
-                dome.LeaveTip(c.seat, Mathf.FloorToInt(G.BottlePrice * 0.5f + 0.5f));   // JS Math.round와 같은 반올림
+                dome.LeaveTip(c.seat, Mathf.FloorToInt(G.PriceOf(c.kind) * 0.5f + 0.5f));   // JS Math.round와 같은 반올림
                 dome.ReleaseSeat(c.seat);
                 c.wp = dome.LeavePath(c.seat);
             }
@@ -250,19 +264,21 @@ public class CustomerSystem : MonoBehaviour
         CharacterKit.Swing(rig, s, 40f, dt);
     }
 
-    // §1.3 결제: 선반에서 want만큼 차감, 수익은 계산대 더미(S.cash)로, 병은 머리 위로 날아가 쌓임
+    // §1.3 결제: 그 종류 칸에서 want만큼 차감, 수익은 계산대 더미(S.cash)로, 물자는 머리 위로 날아가 쌓임
     void Pay(Customer c)
     {
-        int want = c.want;
-        S.shelf -= want;
-        int price = G.BottlePrice;
+        int want = c.want; string kind = c.kind;
+        G.AddShelf(kind, -want);
+        int price = G.PriceOf(kind);
         float earnF = price * want;
         int tip = c.vip ? price * 2 : 0;                                 // VIP 팁은 콤보 배수 밖
         if (c.vip) earnF *= 3;                                           // VIP ×3
         combo = Time.time - lastSaleT < 2f ? combo + 1 : 1; lastSaleT = Time.time;
         if (combo >= 3) earnF *= 1 + 0.1f * Mathf.Min(combo, 5);        // 콤보 최대 +50%
         int earn = Mathf.RoundToInt(earnF) + tip;
-        S.cash += earn; S.sold += want; S.custs++;
+        S.cash += earn; S.custs++;
+        if (kind == "bottle") S.sold += want;                            // 기존 목표·통계(병 판매)는 물만 센다
+        G.NotifySupplied(kind, want);
         HUD.I?.SetCombo(combo);
         bool big = c.vip || want >= 3 || combo >= 3;
         if (big) { JuiceFX.I.Confetti(c.head.position + Vector3.up * 1.2f, c.vip ? 36 : 18); JuiceFX.I.Shake(c.vip ? 4 : 2); }
@@ -272,9 +288,9 @@ public class CustomerSystem : MonoBehaviour
         for (int i = 0; i < want; i++)
         {
             int idx = i;
-            ArcFlyer.I.FlyItem("bottle", Stations.I.ShelfTop(), () => c.hold.position + Vector3.up * idx * Items.ITEM_H["bottle"] * GameConfig.K, () =>
+            ArcFlyer.I.FlyItem(kind, Stations.I.ShelfTop(kind), () => c.hold.position + Vector3.up * idx * Items.ITEM_H[kind] * GameConfig.K, () =>
             {
-                if (c.hold != null) { var s = Items.Slab(c.hold, "bottle"); s.transform.localPosition = new Vector3(0, idx * Items.ITEM_H["bottle"] * GameConfig.K, 0); }
+                if (c.hold != null) { var s = Items.Slab(c.hold, kind); s.transform.localPosition = new Vector3(0, idx * Items.ITEM_H[kind] * GameConfig.K, 0); }
             }, 0.3f, 30f);
         }
         AudioManager.I.Play("sell");
