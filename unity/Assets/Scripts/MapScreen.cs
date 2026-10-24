@@ -4,11 +4,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// 지도 화면(정착 목표): HUD "정착 n/5" 알약을 누르면 열린다. 화면 막 + 남색 판 하나.
-//  · 위: [깃발] 정착 목표 [n/5] [본부 기지 Lv.n] · 닫기(X)
+// 지도 화면(정착 목표): HUD "1장 n/5" 알약을 누르면 열린다. 화면 막 + 남색 판 하나.
+//  · 위: [깃발] 1장 생존(지금 장 이름) [n/5] [본부 기지 Lv.n] · 닫기(X)
 //  · 왼쪽: 전체 맵(논리 x 0~400, y Y_MIN~1040, 북쪽 위)을 위에서 본 그림. 구역 사각형(열림 = 구역 바닥색, 잠김 = 어둡게 + 자물쇠),
-//    지금 단계에 필요한 구역은 금테 펄스, 시설 아이콘, 얼음·레골리스 더미 점, 착륙장, 기지 본부(Lv0이면 흐리게), 플레이어 점(맥동 링)
-//  · 오른쪽: 5단계 체크리스트(완료 ✓ / 지금 단계는 항목별 진행 막대 / 다음 단계는 흐리게), 정착 완료면 "새 정착지로" 안내 버튼
+//    지금 단계에 필요한 구역은 금테 펄스(2장: 태양광·거주 구역·본부 터까지), 시설 아이콘, 얼음·레골리스 더미 점, 착륙장, 기지 본부(Lv0이면 흐리게), 플레이어 점(맥동 링)
+//  · 오른쪽: 지금 장의 5단계 체크리스트(완료 ✓ / 지금 단계는 항목별 진행 막대 / 다음 단계는 흐리게). 지난 장은 맨 위 한 줄 요약(✓ 1장 생존 완료),
+//    10단계(화성 마을 선포)까지 끝나면 "새 정착지로" 안내 버튼
 // 세로 화면 기준(참조 540×1170) 판 520×950. 더 낮은 화면(태블릿 등)에서는 판 전체를 줄여 맞춘다.
 // 검증 인자: -map [초] (그 초에 지도 열기, 기본 0.8초)
 public class MapScreen : MonoBehaviour
@@ -108,11 +109,12 @@ public class MapScreen : MonoBehaviour
     void BuildTitle()
     {
         int st = builtStage; bool done = st >= SettlementManager.COUNT;
+        int ch = Mathf.Min(st / SettlementManager.PER_CHAPTER, SettlementManager.CHAPTERS.Length - 1), chDone = st - ch * SettlementManager.PER_CHAPTER;
         var row = UIKit.Row(panel, "title", 8, TextAnchor.MiddleLeft);
         UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0, 1), new Vector2(PAD + 4, -12), new Vector2(380, 52));
         UIKit.IconImg(row.transform, "flag", 34);
-        var t = UIKit.Text(row.transform, "정착 목표", 32, Color.white); UIKit.Stroke(t, UIKit.EDGE, 2.2f);
-        UIKit.Chip(row.transform, "prog", done ? UIKit.SignOk : UIKit.Pill, done ? "crown" : null, 24, st + "/" + SettlementManager.COUNT, 24, out _, out _, 4);
+        var t = UIKit.Text(row.transform, SettlementManager.ChapterName(ch), 32, Color.white); UIKit.Stroke(t, UIKit.EDGE, 2.2f);   // 지금 장 이름(1장 생존 / 2장 마을)
+        UIKit.Chip(row.transform, "prog", done ? UIKit.SignOk : UIKit.Pill, done ? "crown" : null, 24, chDone + "/" + SettlementManager.PER_CHAPTER, 24, out _, out _, 4);
         // 기지 본부 레벨: [본부 그림] 기지 Lv.n
         var hq = UIKit.Chip(row.transform, "hq", UIKit.Pill, null, 0, "기지 Lv." + builtHq, 20, out _, out _, 3);
         var hic = UIKit.RT(hq.transform, "ic_hq").gameObject.AddComponent<Image>(); hic.sprite = Glyph("hq"); hic.preserveAspect = true; hic.raycastTarget = false;
@@ -163,6 +165,8 @@ public class MapScreen : MonoBehaviour
             if (!open) { var lk = UIKit.IconImg(cell.transform, "lock", 20); UIKit.Anchor(lk.rectTransform, new Vector2(1, 1), new Vector2(-4, -4), new Vector2(20, 20)); }
             if (!settled && focus.Contains(z.key)) Frame(focusRoot, z);
         }
+        // 본부 터(구역이 아님): 터 둘레에 금테
+        if (!settled && focus.Contains("hq")) FrameRect(focusRoot, "hq", HQSystem.POS.x - 44, HQSystem.POS.y - 32, HQSystem.POS.x + 44, HQSystem.POS.y + 30);
         focusRoot.SetAsLastSibling();
         focusCg = focusRoot.gameObject.AddComponent<CanvasGroup>(); focusCg.blocksRaycasts = false;
 
@@ -203,10 +207,10 @@ public class MapScreen : MonoBehaviour
         var core = UIKit.RoundPanel(me.transform, "core", Soft, 8); core.color = UIKit.Hex("2a74e8"); var co = core.rectTransform; co.anchorMin = co.anchorMax = new Vector2(0.5f, 0.5f); co.anchoredPosition = Vector2.zero;
         UpdateMe();
 
-        // 정착 완료: 가게와 돔 사이 빈 땅에 금색 리본
+        // 화성 마을 선포(10단계): 가게와 돔 사이 빈 땅에 금색 리본
         if (settled)
         {
-            var rib = UIKit.Chip(mapRt, "settled", UIKit.SignOk, "crown", 28, "정착 완료", 24, out _, out _, 6);
+            var rib = UIKit.Chip(mapRt, "settled", UIKit.SignOk, "crown", 28, "화성 마을", 24, out _, out _, 6);
             var rrt = rib.rectTransform; rrt.anchorMin = rrt.anchorMax = new Vector2(0, 1); rrt.pivot = new Vector2(0.5f, 0.5f); rrt.anchoredPosition = M(200, 650);
         }
     }
@@ -231,10 +235,11 @@ public class MapScreen : MonoBehaviour
         if (!ZoneOpen(zone)) img.color = new Color(1, 1, 1, 0.35f);
     }
     // 금테(4변 막대 + 모서리 점), 구역보다 4 바깥
-    void Frame(RectTransform parent, WorldMap.Zone z)
+    void Frame(RectTransform parent, WorldMap.Zone z) => FrameRect(parent, z.key, z.x0, z.y0, z.x1, z.y1);
+    void FrameRect(RectTransform parent, string key, float x0, float y0, float x1, float y1)
     {
-        var f = UIKit.RT(parent, "f_" + z.key); f.anchorMin = f.anchorMax = new Vector2(0, 1); f.pivot = new Vector2(0, 1);
-        f.anchoredPosition = M(z.x0, z.y0) + new Vector2(-4, 4); f.sizeDelta = new Vector2((z.x1 - z.x0) * S + 8, (z.y1 - z.y0) * S + 8);
+        var f = UIKit.RT(parent, "f_" + key); f.anchorMin = f.anchorMax = new Vector2(0, 1); f.pivot = new Vector2(0, 1);
+        f.anchoredPosition = M(x0, y0) + new Vector2(-4, 4); f.sizeDelta = new Vector2((x1 - x0) * S + 8, (y1 - y0) * S + 8);
         const float T = 3.5f;
         void Bar(Vector2 aMin, Vector2 aMax, Vector2 oMin, Vector2 oMax)
         {
@@ -261,7 +266,11 @@ public class MapScreen : MonoBehaviour
         listRt = UIKit.RT(panel, "list"); listRt.anchorMin = listRt.anchorMax = new Vector2(0, 1); listRt.pivot = new Vector2(0, 1);
         listRt.anchoredPosition = new Vector2(LX, -TITLE_H); listRt.sizeDelta = new Vector2(LW, MH);
         int st = builtStage; float y = 0;
-        for (int i = 0; i < SettlementManager.COUNT; i++)
+        int ch = Mathf.Min(st / SettlementManager.PER_CHAPTER, SettlementManager.CHAPTERS.Length - 1);
+        // 지난 장은 한 줄 요약(✓ 1장 생존 완료)
+        for (int c = 0; c < ch; c++) y += PastChapter(y, c) + 8;
+        // 지금 장의 5단계만
+        for (int i = ch * SettlementManager.PER_CHAPTER; i < (ch + 1) * SettlementManager.PER_CHAPTER && i < SettlementManager.COUNT; i++)
         {
             var def = SettlementManager.STAGES[i];
             if (i < st) y += Simple(y, i, def, true) + 8;
@@ -279,7 +288,19 @@ public class MapScreen : MonoBehaviour
     }
     static RectTransform At(Component c, Vector2 anchor, Vector2 pos, Vector2 size) { var rt = c.GetComponent<RectTransform>(); UIKit.Anchor(rt, anchor, pos, size); return rt; }
 
-    // 완료(✓) 또는 다음 단계(흐리게, 자물쇠) 한 줄
+    // 지난 장 요약 한 줄: ✓ 1장 생존 완료
+    float PastChapter(float y, int ch)
+    {
+        const float H = 44;
+        var c = Card(y, H, UIKit.CardDone, "chapter" + ch);
+        var row = UIKit.Row(c.transform, "row", 6, TextAnchor.MiddleLeft);
+        At(row, new Vector2(0, 0.5f), new Vector2(10, 1.5f), new Vector2(LW - 20, 34));
+        UIKit.IconImg(row.transform, "check", 24);
+        var t = UIKit.Text(row.transform, SettlementManager.ChapterName(ch) + " 완료", 20, UIKit.SUB, TextAnchor.MiddleLeft); UIKit.Stroke(t, UIKit.EDGE, 1.2f);
+        return H;
+    }
+
+    // 완료(✓) 또는 다음 단계(흐리게, 자물쇠) 한 줄. 번호는 장 안 번호(1~5)
     float Simple(float y, int i, SettlementManager.StageDef def, bool done)
     {
         const float H = 44;
@@ -287,7 +308,7 @@ public class MapScreen : MonoBehaviour
         var row = UIKit.Row(c.transform, "row", 6, TextAnchor.MiddleLeft);
         At(row, new Vector2(0, 0.5f), new Vector2(10, 1.5f), new Vector2(LW - 20, 34));
         UIKit.IconImg(row.transform, done ? "check" : "lock", done ? 24 : 20);
-        var t = UIKit.Text(row.transform, (i + 1) + ". " + def.name, 20, done ? UIKit.SUB : Color.white, TextAnchor.MiddleLeft); UIKit.Stroke(t, UIKit.EDGE, 1.2f);
+        var t = UIKit.Text(row.transform, (i % SettlementManager.PER_CHAPTER + 1) + ". " + def.name, 20, done ? UIKit.SUB : Color.white, TextAnchor.MiddleLeft); UIKit.Stroke(t, UIKit.EDGE, 1.2f);
         if (!done) { var cg = c.gameObject.AddComponent<CanvasGroup>(); cg.alpha = 0.45f; }
         return H;
     }
@@ -298,8 +319,9 @@ public class MapScreen : MonoBehaviour
         var list = SM != null ? SM.Items(i) : new List<SettlementManager.Item>();
         float h = 46; foreach (var it in list) h += it.bin ? 32 : 48; h += 10;
         var c = Card(y, h, UIKit.CardCur, "stage" + i);
-        var title = UIKit.Text(c.transform, (i + 1) + ". " + def.name, 22, Color.white, TextAnchor.MiddleLeft); UIKit.Stroke(title, UIKit.EDGE, 1.6f);
-        At(title, new Vector2(0, 1), new Vector2(12, -8), new Vector2(150, 32));
+        var title = UIKit.Text(c.transform, (i % SettlementManager.PER_CHAPTER + 1) + ". " + def.name, 22, Color.white, TextAnchor.MiddleLeft); UIKit.Stroke(title, UIKit.EDGE, 1.6f);
+        title.horizontalOverflow = HorizontalWrapMode.Wrap; title.resizeTextForBestFit = true; title.resizeTextMinSize = 16; title.resizeTextMaxSize = 22;   // 긴 이름(화성 마을 선포)은 줄여 맞춤
+        At(title, new Vector2(0, 1), new Vector2(12, -8), new Vector2(def.reward > 0 ? 150 : LW - 24, 32));
         if (def.reward > 0)
         {
             var rw = UIKit.Row(c.transform, "reward", 3, TextAnchor.MiddleRight);
@@ -312,7 +334,7 @@ public class MapScreen : MonoBehaviour
         {
             var ui = new ItemUI();
             var nm = UIKit.Text(c.transform, it.name, 18, UIKit.CREAM, TextAnchor.MiddleLeft); UIKit.Stroke(nm, UIKit.EDGE, 1f);
-            At(nm, new Vector2(0, 1), new Vector2(14, -iy), new Vector2(LW - 80, 26));
+            At(nm, new Vector2(0, 1), new Vector2(14, -iy), new Vector2(it.bin ? LW - 50 : LW - 80, 26));   // 설치형은 오른쪽이 체크 하나라 더 넓게
             if (it.bin)
             {
                 ui.mark = UIKit.IconImg(c.transform, it.Done ? "check" : "lock", 20);
@@ -335,14 +357,14 @@ public class MapScreen : MonoBehaviour
         return h;
     }
 
-    // 정착 완료 카드: 왕관 + "정착 완료!" + [새 정착지로] (업그레이드 시트의 이주 카드로 안내)
+    // 화성 마을 선포 카드: 왕관 + "화성 마을 선포!" + [새 정착지로] (업그레이드 시트의 이주 카드로 안내)
     void Done(float y)
     {
         var c = Card(y, 132, UIKit.SignOk, "settled");
         var row = UIKit.Row(c.transform, "row", 6);
         At(row, new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(LW - 20, 40));
         UIKit.IconImg(row.transform, "crown", 30);
-        var t = UIKit.Text(row.transform, "정착 완료!", 26, UIKit.SignOk.text); UIKit.Stroke(t, Color.white, 1.2f);
+        var t = UIKit.Text(row.transform, "화성 마을 선포!", 24, UIKit.SignOk.text); UIKit.Stroke(t, Color.white, 1.2f);
         var b = UIKit.Button(c.transform, "go", UIKit.Gold, new Vector2(LW - 36, 56), "새 정착지로", 24, () =>
         {
             Close();

@@ -7,9 +7,12 @@ using UnityEngine.UI;
 //  - 새 게임 인트로: 저장이 새것(S.sold==0 && S.story 비어 있음)이면 3컷 무전. 탭으로 넘기고 건너뛰기 가능. 끝나야 튜토리얼(TutorialManager)이 시작된다(IntroActive).
 //  - 사건 무전: 화면 위쪽(HUD 알약 아래) 작은 카드 하나 = 초상 + 이름 + 한두 줄. 3~4초 뒤 접히고 탭하면 바로 닫힘.
 //    같은 id는 S.story에 넣어 다시 안 뜬다. 여러 개면 큐로 차례대로, 시트·지도·설정·정착 배너·이주 연출 중이면 기다렸다가.
-//  - 사건: 구역 처음 해제(GameState.OnPadLevel lv 1), 정착 단계 1~5(SettlementManager.OnStage), 본부 레벨 업(OnPadLevel "hq"),
-//    첫 산소통·첫 비료·첫 식량·첫 VIP·첫 밤(0.5초마다 폴링). 옛 저장은 시작할 때 이미 지난 "첫 ○○"를 조용히 본 것으로 표시.
-// 대본은 아래 LINES 표(id → 문장)에 모은다. 검증 인자(DevTools): -story id(그 무전 바로) · -intro(인트로 강제).
+//  - 사건: 구역 처음 해제(GameState.OnPadLevel lv 1), 본부 레벨 업(OnPadLevel "hq"), 첫 산소통·첫 비료·첫 식량·첫 VIP·첫 밤(0.5초마다 폴링).
+//    정착 단계 1~9 무전·2장 시작 무전(ch2_start)은 SettlementManager.Complete가 Push한다. 옛 저장은 시작할 때 이미 지난 "첫 ○○"를 조용히 본 것으로 표시,
+//    이미 2장(S.stage ≥ 5)인데 2장 시작 무전을 못 봤으면 한 번 띄운다.
+//  - 엔딩(10단계 화성 마을 선포): 인트로와 같은 탭으로 넘기는 판에 3컷(ENDING) → 마지막 [새 정착지로]가 업그레이드 시트(이주 카드)를 연다. 본 뒤 S.story "ending".
+//    SettlementManager가 QueueEnding으로 예약(큰 축하판이 사라진 뒤), 이미 선포한 저장인데 못 봤으면 시작할 때 예약.
+// 대본은 아래 INTRO·ENDING·LINES 표에 모은다. 검증 인자(DevTools): -story id(그 무전 바로, "ending"이면 엔딩 컷) · -intro(인트로 강제).
 public class StoryManager : MonoBehaviour
 {
     public static StoryManager I;
@@ -25,6 +28,13 @@ public class StoryManager : MonoBehaviour
         "곧 정착민들이 내려와요. 화성에서 살아남으려면 무엇보다 물이 먼저예요.",
         "주변 얼음을 주워 해빙기에 넣어 보세요. 녹으면 물이 돼요. 제가 계속 지켜볼게요!",
     };
+    // 10단계 화성 마을 선포 엔딩(인트로와 같은 판, 탭으로 넘김)
+    public static readonly string[] ENDING =
+    {
+        "관제 센터 확인 완료! 개척 1호 기지는 오늘부터 정식 '화성 마을'이에요.",
+        "얼음 녹이던 첫날이 엊그제 같은데, 이제 서른두 명의 이웃이 돔마다 불을 켜고 살아요.",
+        "다음 착륙지가 기다려요. 준비되면 새 정착지로 떠나요. 이 마을은 제가 지켜볼게요!",
+    };
     public static readonly Dictionary<string, string> LINES = new Dictionary<string, string>
     {
         // 구역 처음 해제 (zone_ + 발판 id)
@@ -37,12 +47,18 @@ public class StoryManager : MonoBehaviour
         { "zone_hab",   "거주 구역 개방! 정착민들에게 집이 생겼어요." },
         { "zone_pen",   "먼지 토끼 우리 완성. 너무 오래 구경하면 안 돼요." },
         { "zone_dome",  "휴게 돔 개장! 정착민들도 숨 돌릴 곳이 생겼네요." },
-        // 정착 단계 달성
+        // 정착 단계 달성(SettlementManager가 Push). 1장 생존 1~5
         { "stage_1", "물 확보 성공! 첫 고비를 넘었어요. 다음은 공기!" },
         { "stage_2", "산소가 돌아요. 관제 센터에 박수가 터졌어요!" },
         { "stage_3", "흙이 살아났어요. 화성에 씨앗 심을 땅이 생겼어요." },
         { "stage_4", "첫 수확 달성! 정착민 식탁이 드디어 차려졌어요." },
-        { "stage_5", "정착 완료! 개척 1호 기지가 진짜 마을이 됐어요." },
+        { "stage_5", "1장 생존 완료! 물·공기·흙·식량, 살아남을 준비는 끝났어요." },
+        // 2장 마을 시작(1장 완료 직후)·6~9 (10은 ENDING 컷)
+        { "ch2_start", "지구에서 이주 희망자가 몰려온대요. 이제 사람이 사는 마을을 만들어요!" },
+        { "stage_6", "전력 확보! 해 뜬 동안 기계들이 쌩쌩 돌아가요." },
+        { "stage_7", "첫 이웃 입주! 돔 주택 창에 불이 하나둘 켜지네요." },
+        { "stage_8", "기지 정비 끝! 본부가 제법 관제 기지 티가 나요." },
+        { "stage_9", "자급 마을 달성! 지구 보급 없이도 버틸 수 있어요." },
         // 처음 일어난 일
         { "first_o2",    "첫 산소통 완성! 다들 크게 한 번 숨 쉬어 봐요." },
         { "first_fert",  "첫 비료 완성. 냄새는… 헬멧 덕에 괜찮죠?" },
@@ -62,14 +78,16 @@ public class StoryManager : MonoBehaviour
     // ---- 상태 ----
     class Msg { public string id, text; public float readyAt; }
     readonly List<Msg> queue = new List<Msg>();
-    bool introPending, introShowing;
-    /// 인트로가 곧 뜨거나 떠 있음(튜토리얼 말풍선·손 포인터는 이 동안 숨는다)
+    bool introPending, introShowing;   // introShowing: 컷 판(인트로·엔딩)이 떠 있음
+    bool endingPending; float endingAt;
+    /// 인트로가 곧 뜨거나 컷 판(인트로·엔딩)이 떠 있음(튜토리얼 말풍선·손 포인터는 이 동안 숨는다)
     public bool IntroActive => introPending || introShowing;
 
     // 사건 카드
     RectTransform card; CanvasGroup cardCg; Msg curMsg; Text cardMsg; float cardT, cardLife; bool cardClosing;
     // 인트로
     GameObject introRoot; RectTransform introPanel; Text introText; Image[] introDots; Button introBtn; int introCut; float typeT; bool typing;
+    string[] cuts = INTRO; string cutsId = "intro", lastLabel = "시작!"; System.Action onLast;   // 지금 컷 판의 대본·본 표시 id·마지막 버튼
     bool AutoIntro => DevArgs.Has("-autoplay") || DevArgs.Has("-shot");   // QA 실행은 컷을 1.5초마다 저절로 넘긴다
     float autoT;
 
@@ -83,7 +101,6 @@ public class StoryManager : MonoBehaviour
     void Start()
     {
         G.OnPadLevel += OnPad;
-        if (SettlementManager.I != null) SettlementManager.I.OnStage += n => Push("stage_" + n, 1.0f);
         // 옛 저장: 이미 지난 "첫 ○○"는 조용히 본 것으로(업데이트 직후 한꺼번에 쏟아지지 않게)
         foreach (var id in new[] { "first_o2", "first_fert", "first_food", "first_vip", "first_night" })
             if (!Seen(id) && FirstMet(id, true)) S.story.Add(id);
@@ -101,6 +118,7 @@ public class StoryManager : MonoBehaviour
     {
         if (string.IsNullOrEmpty(id)) return;
         if (id == "intro") { DevIntro(); return; }
+        if (id == "ending") { S.story.Remove("ending"); QueueEnding(0.6f); return; }
         S.story.Remove(id); Push(id, 0.6f);
     }
 
@@ -109,6 +127,17 @@ public class StoryManager : MonoBehaviour
         yield return null;   // 모든 Start(DevTools 인자 포함)가 끝난 뒤
         if (introPending && S.sold > 0 && !S.story.Contains("intro") && !DevArgs.Has("-intro")) introPending = false;
         if (introPending) ShowIntro();
+        // 옛 저장·검증 인자(-stage N): 이미 2장인데 2장 시작 무전을 못 봤으면, 이미 마을을 선포했는데 엔딩을 못 봤으면
+        var sm = SettlementManager.I;
+        if (sm != null && sm.Stage >= SettlementManager.PER_CHAPTER && !Seen("ch2_start")) Push("ch2_start", 1.5f);
+        if (sm != null && sm.Settled && !Seen("ending")) QueueEnding(1.5f);
+    }
+
+    /// 엔딩 컷 예약(delay초 뒤부터, 화면이 한가해지면). 한 번 본 뒤엔 무시
+    public void QueueEnding(float delay = 0f)
+    {
+        if (G == null || Seen("ending")) return;
+        endingPending = true; endingAt = Time.unscaledTime + delay;
     }
 
     // ---- 사건 ----
@@ -173,6 +202,8 @@ public class StoryManager : MonoBehaviour
                 if (!Seen(id) && FirstMet(id, false)) Push(id, id == "first_vip" ? 0.4f : 0.2f);
         }
         bool busy = Busy();
+        // 엔딩 컷: 카드가 없고 화면이 한가할 때 맨 먼저
+        if (endingPending && !busy && card == null && Time.unscaledTime >= endingAt && HUD.I.transform.Find("chest") == null) { endingPending = false; ShowEnding(); return; }   // 목표 상자 팝(QuestManager)과도 겹치지 않게
         if (card != null)
         {
             cardT += Time.unscaledDeltaTime;
@@ -250,10 +281,27 @@ public class StoryManager : MonoBehaviour
         if (card == rt) { card = null; cardCg = null; cardMsg = null; cardClosing = false; curMsg = null; }
     }
 
-    // ---- 인트로(3컷) ----
+    // ---- 컷 판: 인트로(3컷)·엔딩(3컷)이 같은 판을 쓴다 ----
     void ShowIntro()
     {
-        introPending = false; introShowing = true; introCut = 0; autoT = 0;
+        introPending = false;
+        ShowCuts(INTRO, "intro", "지구 관제 센터 · 무전 수신 중", "시작!", "건너뛰기", null);
+    }
+
+    // 엔딩: 마지막 [새 정착지로] → 업그레이드 시트(맨 위 이주 카드)
+    void ShowEnding()
+    {
+        ShowCuts(ENDING, "ending", "지구 관제 센터 · 축하 무전", "새 정착지로", "닫기", () =>
+        {
+            if (UpgradeSheet.I != null) UpgradeSheet.I.Open(UpgradeSheet.UP);
+        });
+        AudioManager.I?.Play("ding", 1.1f, 0.5f);
+    }
+
+    void ShowCuts(string[] lines, string id, string subText, string last, string skipLabel, System.Action onLastCut)
+    {
+        cuts = lines; cutsId = id; lastLabel = last; onLast = onLastCut;
+        introShowing = true; introCut = 0; autoT = 0;
         if (FloatingJoystick.I) FloatingJoystick.I.suppressed = true;
         if (card != null) { Destroy(card.gameObject); card = null; cardClosing = false; curMsg = null; }
         var h = HUD.I.transform;
@@ -272,7 +320,7 @@ public class StoryManager : MonoBehaviour
         UIKit.Anchor(pic.rectTransform, new Vector2(0, 1), new Vector2(20, -18), new Vector2(80, 80));
         var name = UIKit.Text(panel.transform, WHO, 26, Color.white, TextAnchor.LowerLeft); UIKit.Stroke(name, UIKit.EDGE, 1.6f);
         UIKit.Anchor(name.rectTransform, new Vector2(0, 1), new Vector2(116, -24), new Vector2(w - 136, 36));
-        var sub = UIKit.Text(panel.transform, "지구 관제 센터 · 무전 수신 중", 17, UIKit.SUB, TextAnchor.UpperLeft);
+        var sub = UIKit.Text(panel.transform, subText, 17, UIKit.SUB, TextAnchor.UpperLeft);
         UIKit.Anchor(sub.rectTransform, new Vector2(0, 1), new Vector2(116, -62), new Vector2(w - 136, 24));
         introText = UIKit.Text(panel.transform, "", 24, Color.white, TextAnchor.UpperLeft);
         introText.horizontalOverflow = HorizontalWrapMode.Wrap; introText.verticalOverflow = VerticalWrapMode.Overflow; introText.lineSpacing = 1.05f;
@@ -280,19 +328,20 @@ public class StoryManager : MonoBehaviour
         // 아래: 컷 점 3개(좌) · 다음/시작(우) · 건너뛰기는 판 바깥 오른쪽 위
         var dots = UIKit.Row(panel.transform, "dots", 8, TextAnchor.MiddleLeft);
         UIKit.Anchor(dots.GetComponent<RectTransform>(), new Vector2(0, 0), new Vector2(24, 22), new Vector2(80, 16));
-        introDots = new Image[INTRO.Length];
-        for (int i = 0; i < INTRO.Length; i++)
+        introDots = new Image[cuts.Length];
+        for (int i = 0; i < cuts.Length; i++)
         {
             var d = UIKit.RT(dots.transform, "dot").gameObject.AddComponent<Image>(); d.sprite = Dot(); d.raycastTarget = false;
             var le = d.gameObject.AddComponent<LayoutElement>(); le.preferredWidth = le.minWidth = le.preferredHeight = le.minHeight = 12;
             introDots[i] = d;
         }
-        introBtn = UIKit.Button(panel.transform, "next", UIKit.Blue, new Vector2(132, 48), "다음", 22, Next);
-        UIKit.Anchor(introBtn.GetComponent<RectTransform>(), new Vector2(1, 0), new Vector2(-18, 12), new Vector2(132, 48));
-        var skip = UIKit.Button(scrim.transform, "skip", UIKit.Gray, new Vector2(124, 44), "건너뛰기", 20, EndIntro);
+        float bw = last.Length > 3 ? 168f : 132f;   // "새 정착지로"처럼 긴 마지막 버튼은 넓게
+        introBtn = UIKit.Button(panel.transform, "next", UIKit.Blue, new Vector2(bw, 48), "다음", 22, Next);
+        UIKit.Anchor(introBtn.GetComponent<RectTransform>(), new Vector2(1, 0), new Vector2(-18, 12), new Vector2(bw, 48));
+        var skip = UIKit.Button(scrim.transform, "skip", UIKit.Gray, new Vector2(124, 44), skipLabel, 20, () => EndIntro(false));
         UIKit.Anchor(skip.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(w / 2f - 62f, py + ph / 2f + 34f), new Vector2(124, 44));
         SetCut(0);
-        Debug.Log("story intro start");
+        Debug.Log("story cuts start: " + id);
         StartCoroutine(CoPop(introPanel, 0.3f));
     }
 
@@ -300,8 +349,8 @@ public class StoryManager : MonoBehaviour
     {
         introCut = i; typeT = 0; typing = true; introText.text = "";
         for (int k = 0; k < introDots.Length; k++) introDots[k].color = k == i ? Color.white : new Color(1, 1, 1, k < i ? 0.55f : 0.22f);
-        bool last = i >= INTRO.Length - 1;
-        UIKit.Restyle(introBtn, last ? UIKit.Gold : UIKit.Blue, last ? "시작!" : "다음");
+        bool last = i >= cuts.Length - 1;
+        UIKit.Restyle(introBtn, last ? UIKit.Gold : UIKit.Blue, last ? lastLabel : "다음");
         AudioManager.I?.Play("tick", 1.4f, 0.5f);
         if (i > 0) StartCoroutine(CoPop(introPanel, 0.18f));
     }
@@ -309,11 +358,11 @@ public class StoryManager : MonoBehaviour
     void UpdateIntro()
     {
         // 인트로 중엔 첫 정착민이 내려오지 않게 스폰 타이머를 붙잡아 둔다
-        if (S.spawnT < GameConfig.FIRST_SPAWN) S.spawnT = GameConfig.FIRST_SPAWN;
+        if (cutsId == "intro" && S.spawnT < GameConfig.FIRST_SPAWN) S.spawnT = GameConfig.FIRST_SPAWN;
         if (typing)
         {
             typeT += Time.unscaledDeltaTime;
-            var full = INTRO[introCut]; int n = Mathf.Min(full.Length, Mathf.FloorToInt(typeT * 42f));
+            var full = cuts[introCut]; int n = Mathf.Min(full.Length, Mathf.FloorToInt(typeT * 42f));
             introText.text = full.Substring(0, n);
             if (n >= full.Length) typing = false;
         }
@@ -324,22 +373,25 @@ public class StoryManager : MonoBehaviour
     void Next()
     {
         if (!introShowing) return;
-        if (typing) { typing = false; introText.text = INTRO[introCut]; return; }
-        if (introCut + 1 < INTRO.Length) { SetCut(introCut + 1); AudioManager.I?.Play("pop", 1.4f, 0.3f); }
-        else EndIntro();
+        if (typing) { typing = false; introText.text = cuts[introCut]; return; }
+        if (introCut + 1 < cuts.Length) { SetCut(introCut + 1); AudioManager.I?.Play("pop", 1.4f, 0.3f); }
+        else EndIntro(true);
     }
 
-    void EndIntro()
+    // 컷 판 닫기. byLast: 마지막 버튼(시작!/새 정착지로)으로 닫음 → onLast 실행. 건너뛰기·닫기는 false
+    void EndIntro(bool byLast)
     {
         if (!introShowing) return;
         introShowing = false;
-        if (!Seen("intro")) S.story.Add("intro");
+        if (!Seen(cutsId)) S.story.Add(cutsId);
         G.Save();
         if (FloatingJoystick.I && (UpgradeSheet.I == null || !UpgradeSheet.I.IsOpen)) FloatingJoystick.I.suppressed = false;
         AudioManager.I?.Play("up", 1.2f, 0.5f);
-        Debug.Log("story intro end at cut " + (introCut + 1));
+        Debug.Log("story cuts end: " + cutsId + " at cut " + (introCut + 1) + (byLast ? " (last)" : " (skip)"));
         if (introRoot != null) StartCoroutine(CoFadeOut(introRoot, 0.25f));
         introRoot = null; introPanel = null; introText = null; introBtn = null; introDots = null;
+        var act = byLast ? onLast : null; onLast = null;
+        act?.Invoke();
     }
 
     static IEnumerator CoPop(RectTransform rt, float dur)

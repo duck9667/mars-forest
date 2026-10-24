@@ -40,11 +40,13 @@ public class SaveData
     public int elecQ, elecOut, purQ, purOut, mixQ, mixOut, grnQ, grnOut;   // 시설 입력 큐·출력 더미
     public float elecT, purT, mixT, grnT;
     public int supW, supO, supF, fertMade;               // 공급 누계(물·산소·식량)·비료 생산 누계
-    public int stage = 0;                                // 정착 목표 단계(0~5, 5=정착 완료)
+    public int stage = 0;                                // 정착 목표 단계(0~10: 1~5 1장 생존, 6~10 2장 마을, 10=화성 마을 선포). 옛 저장의 5는 6단계부터 이어짐
     // ---- 2장 정착지 확장 (docs/chapter2-design.md) ----
     public int pop = 0;                                  // 거주 구역에 사는 정착민 수
     public List<string> story = new List<string>();      // 이미 본 서사 메시지 id
     public List<MissionSave> missions = new List<MissionSave>(); public int missionDay = 0;   // 하루 미션 3개·발급한 날
+    public float powerRun = 0;                           // 2장 6단계: 태양광 전력으로 기계가 일한 초(SettlementManager, 2장부터 셈)
+    public int missionAll = 0;                           // 2장 9단계: 하루 미션 3개를 모두 끝낸 적 있음(0/1)
 }
 
 public static class SaveSystem

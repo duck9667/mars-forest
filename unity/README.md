@@ -25,7 +25,7 @@
 | `QuestManager` | 목표 12개 순차, 업그레이드 시트 목표 탭에서만 표시(상단 칩 없음), 달성 즉시 보상·저장, qskip (§6.1) |
 | `SettleStations` · `MachineKit` | 생존 기지 생산 체인(레골리스 더미·전기분해기·토양 정화기·비료 배합기·온실, docs/settlement-design.md), 기계 공통 문법(받침판→투입부→움직이는 가공부→산출 받침대, MachineAnim) |
 | `Frontier` | 2장 개척지(docs/chapter2-design.md D): 거주 구역 돔 주택 8채(정착민 3명 중 1명 입주 → S.pop, 상한 32, 창 불·도착 간격 −최대 20%·하루 세금), 태양광 단지(패널 낱장 기울기·배터리 막대, 낮·배터리 동안 기계 속도 ×1.2 → `GameState.MachineSpeedMul`). 검증 인자 `-pop N`·`-batt f` |
-| `SettlementManager` · `MapScreen` | 정착 목표 5단계(물 확보→숨 쉴 공기→흙 살리기→첫 수확→정착 완료)·보상, 지도 화면(구역 상태·시설·플레이어·단계별 진행 막대), HUD "정착 n/5" 알약 |
+| `SettlementManager` · `MapScreen` | 정착 목표 10단계 두 장: 1장 생존(물 확보→숨 쉴 공기→흙 살리기→첫 수확→생존 완료), 2장 마을(전력 확보→첫 이웃→기지 정비→자급 마을→화성 마을 선포, 엔딩 무전)·보상, 지도 화면(구역 상태·시설·플레이어·지금 장 5단계 진행 막대·지난 장 요약), HUD "1장 n/5"→"2장 n/5" 알약. 검증 인자 `-stage N`(0~10)·`-power 초`·`-mall` |
 | `PenSystem` · `DomeSystem` | 먼지 토끼 우리(토끼·소품·팁 적립·수거), 휴게 돔(조립·좌석 예약·경로·팁·수거) (§5.1·§5.2) |
 | `DecoManager` · `ShopDecor` | 장식 6종 구매·매장 시각물(차양·네온·선인장·줄전구·깃발·체크 바닥) (§3.4) |
 | `PrestigeManager` · `TerraformManager` · `OfflineEarnings` | 이주(초기화·보너스·로켓 연출·Bootstrap.Restart), 테라포밍(terra·45 슬롯·점등), 부재 수익 모달 (§5.4·§6.3·§6.4) |
@@ -38,7 +38,7 @@
 | `TutorialManager` · `HintSystem` | 말풍선 3단계·손 포인터, 바닥 화살표·타깃 링 (§6.2) |
 | `StoryManager` | 서사(docs/chapter2-design.md A): 관제사 하나의 새 게임 인트로 3컷(탭으로 넘김·건너뛰기, 끝나야 튜토리얼 시작)과 사건 무전 카드(HUD 아래 작은 카드, 3~4초 뒤 접힘·탭하면 닫힘, 본 id는 `S.story`, 시트·지도·배너 중엔 대기). 대본은 파일 안 `INTRO`·`LINES` 표 |
 | `ArcFlyer` · `JuiceFX` · `CameraRig` · `AudioManager` | 아크 비행·스쿼시·팝·링·동전·흔들림, 직교 추적 카메라(핀치·휠 확대 1~2.2배, 저장), 합성 효과음, `Haptics`(iOS `MarsHaptics.mm`, 설정에서 끔) (§7) |
-| `DevTools` | `-wipe` 저장 초기화, `-autoplay` 힌트 추종 봇(격자 경로·5초마다 diag 로그·좌석 팁 수거), `-shot <dir>` 스크린샷 후 종료(소리 꺼짐), `-shots 2,10,…`, `-rich`/`-bells N`, `-pads id=lv,…`, `-sold N`, `-tut N`, `-shelf N`, `-start x,y`, `-save 이름`(저장 파일 분리), F5 초기화, F6 +500벨. 기능별: `-pentip N`·`-pent S`(우리), `-decos all`·`-decobuy id,…`·`-clock N`(장식), `-sheettab upgrade|deco|quest`(시트), `-offline 초`(부재 수익), `-prestigeAt 초`(이주), `-zoom f`(카메라 확대), `-settings s`(설정 창 열기), `-carry N`(등짐 N개 채우기), `-walk dx,dy`(봇 대신 한 방향으로 밀기, 0,0이면 제자리), `-shelfo2 N`·`-shelffood N`(카운터 칸 채우기), `-map [초]`·`-stage N`·`-sup 물,산소,식량[,비료[,정착민]]`(정착 목표), `-fx mask=0`(외곽선 마스크 끄기), `-story id`(그 무전 바로 띄우기)·`-intro`(인트로 강제). `-shots`는 소수 시점도 받는다(1/100초 이름). 검증 인자는 실행당 1회(Restart 뒤 유지) |
+| `DevTools` | `-wipe` 저장 초기화, `-autoplay` 힌트 추종 봇(격자 경로·5초마다 diag 로그·좌석 팁 수거), `-shot <dir>` 스크린샷 후 종료(소리 꺼짐), `-shots 2,10,…`, `-rich`/`-bells N`, `-pads id=lv,…`, `-sold N`, `-tut N`, `-shelf N`, `-start x,y`, `-save 이름`(저장 파일 분리), F5 초기화, F6 +500벨. 기능별: `-pentip N`·`-pent S`(우리), `-decos all`·`-decobuy id,…`·`-clock N`(장식), `-sheettab upgrade|deco|quest`(시트), `-offline 초`(부재 수익), `-prestigeAt 초`(이주), `-zoom f`(카메라 확대), `-settings s`(설정 창 열기), `-carry N`(등짐 N개 채우기), `-walk dx,dy`(봇 대신 한 방향으로 밀기, 0,0이면 제자리), `-shelfo2 N`·`-shelffood N`(카운터 칸 채우기), `-map [초]`·`-stage N`(0~10)·`-sup 물,산소,식량[,비료[,정착민]]`(정착 목표), `-fx mask=0`(외곽선 마스크 끄기), `-story id`(그 무전 바로 띄우기)·`-intro`(인트로 강제). `-shots`는 소수 시점도 받는다(1/100초 이름). 검증 인자는 실행당 1회(Restart 뒤 유지) |
 | `Editor/ProjectSetup` · `Editor/BuildScript` | 재질 에셋(셰이더 포함용)·빈 씬·플레이어 설정, 배치 빌드 |
 
 ## 빌드·QA

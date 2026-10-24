@@ -6,6 +6,7 @@ using UnityEngine.UI;
 // 시트 최상단 카드(sold≥60 또는 prestige>0부터 노출)가 CanPrestige/Prestige를 부른다. 원본 index.html 545행(canPrestige)·898행(prestige).
 //  - 초기화: pads(padProg 포함)·bells·shelf·bottles·water·cash·meltQ/T·botT·penTip·spots·플레이어(시작 위치·빈 등짐). 손님·좌석은 재조립으로 사라짐
 //    생존 기지: 카운터 산소·식량 칸, 레골리스 리스폰, 시설 4개 큐·출력·타이머, 공급·비료 누계, 정착 단계(stage 0부터), 정착민 수(custs: 정착지마다 새로 센다)
+//    2장: 인구(pop)·전력 가동 초(powerRun)·하루 미션 완료 기록(missionAll)
 //  - 유지: sold·quest·deco·clock/day·custN·lost·tut. 영구 보너스: prestige++(병값 ×1.5^p·등짐 +3은 GameState 파생값), terraKeep += 8
 //  - 연출(원본: 플래시 0.8·흔들림 8·팡파르): 플레이어가 작은 로켓에 올라 이륙 → 화면이 크림색으로 덮이면 저장 후 Bootstrap.Restart()
 //    → 새 기지에서 덮개가 걷히며 "새 기지 n번째" 배너, 남겨 둔 초록 타일이 팝으로 번진다(TerraformManager가 Arrived를 본다)
@@ -51,15 +52,15 @@ public class PrestigeManager : MonoBehaviour
         return G.PadLv("dome") > 0 && G.PadLv("pen") > 0 && G.PadLv("ice2") > 0 && G.S.sold >= SOLD_GOAL && TerraNow >= TERRA_GOAL;
     }
 
-    /// 정착 목표 5단계를 다 채웠는가(지도·시트에서 "새 정착지로" 안내)
+    /// 정착 목표 10단계(2장 화성 마을 선포)까지 다 채웠는가(지도·시트·엔딩에서 "새 정착지로" 안내)
     public bool Settled => SettlementManager.I != null && SettlementManager.I.Settled;
 
-    /// 조건 진행 한 줄(예: "판매 120/300 · 테라 42%/60% · 구역 2/3"). 정착 완료면 앞에 "정착 완료 · "
+    /// 조건 진행 한 줄(예: "판매 120/300 · 테라 42%/60% · 구역 2/3"). 화성 마을 선포 뒤면 앞에 "화성 마을 · "
     public string ProgressText()
     {
         if (G == null) return "";
         int tp = Mathf.FloorToInt(TerraNow * 100f + 0.5f);
-        return (Settled ? "정착 완료 · " : "") + "판매 " + Mathf.Min(G.S.sold, SOLD_GOAL) + "/" + SOLD_GOAL + " · 테라 " + tp + "%/" + Mathf.RoundToInt(TERRA_GOAL * 100f) + "% · 구역 " + ZonesOpen + "/3";
+        return (Settled ? "화성 마을 · " : "") + "판매 " + Mathf.Min(G.S.sold, SOLD_GOAL) + "/" + SOLD_GOAL + " · 테라 " + tp + "%/" + Mathf.RoundToInt(TERRA_GOAL * 100f) + "% · 구역 " + ZonesOpen + "/3";
     }
 
     /// 이주 실행: 연출 → 저장 초기화·보너스 반영 → Bootstrap.Restart()
@@ -172,6 +173,7 @@ public class PrestigeManager : MonoBehaviour
         S.elecT = S.purT = S.mixT = S.grnT = 0;
         S.supW = S.supO = S.supF = S.fertMade = 0;
         S.stage = 0; S.custs = 0;
+        S.pop = 0; S.powerRun = 0; S.missionAll = 0;   // 2장: 새 정착지는 빈 거주 구역·전력·미션 기록부터
         S.terraKeep += KEEP_PER_PRESTIGE;
         // 정적 충돌 플래그는 저장 복원(Migrate)이 pads에 없는 항목을 되돌리지 않으므로 여기서 끈다
         WorldMap.drillInstalled = false; WorldMap.domeOpen = false;
