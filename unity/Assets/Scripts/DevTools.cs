@@ -96,9 +96,15 @@ public class DevTools : MonoBehaviour
         // 현재 목표가 시트 스탯(hand·spd·price)이면 살 수 있을 때 시트 구매로 처리(사람은 시트에서 탭)
         var q = QuestManager.I != null ? QuestManager.I.Current : null;
         if (q != null && Pads.Get(q.key) != null && Pads.Get(q.key).menu && G.PadReq(q.key) && !G.PadMaxed(q.key) && G.S.bells >= G.PadRemain(q.key)) PadManager.I.Buy(q.key);
-        // 돔 좌석 팁이 병값×3 이상 쌓였으면 빈손일 때 들러 수거(좌석 r34 안, 좌석 충돌 r16 밖인 앞쪽 26)
+        // 돔 좌석 팁이 병값×3 이상 쌓였으면 빈손일 때 들러 수거(좌석 r34 안, 좌석 충돌 r16 밖)
         int seatTip = 0; int seatI = DomeSystem.I != null && G.Carry == 0 && G.pend == 0 ? DomeSystem.I.RichestSeat(out seatTip) : -1;
-        if (seatI >= 0 && seatTip >= G.BottlePrice * 3) { target = WorldMap.SEATS[seatI] + new Vector2(0, 26); key = "seat:" + seatI; }
+        if (seatI >= 0 && seatTip >= G.BottlePrice * 3)
+        {
+            // 돔 울타리가 막은 뒤로 뒷줄 좌석(y 890) 뒤쪽은 못 들어가므로 화단·분수 사이 앞쪽 안쪽 자리(좌석에서 r34 안)에서 걷는다
+            var st = WorldMap.SEATS[seatI];
+            target = st.y > WorldMap.DOME.y + 20 ? st + new Vector2(st.x < WorldMap.DOME.x ? 14 : -14, -18) : st + new Vector2(0, 26);
+            key = "seat:" + seatI;
+        }
         // 병을 든 채 선반이 가득이면(힌트는 카운터에서 기다리라고 함) 그 사이 계산대 돈을 걷는다 — 사람은 이렇게 하므로 봇도
         else if (G.CarryTop == "bottle" && G.S.shelf + G.shelfPend >= G.ShelfCap && G.S.cash > 0 && !G.collectingCash)
         { var r = WorldMap.STN["register"]; target = new Vector2(r.x, r.y - r.h / 2 - 14); key = "register"; }
@@ -138,15 +144,15 @@ public class DevTools : MonoBehaviour
 
     // 격자 BFS (8방향). 타깃 셀이 막혀 있으면 가장 가까운 열린 셀로.
     static readonly int[] DX = { 1, -1, 0, 0, 1, 1, -1, -1 }, DY = { 0, 0, 1, -1, 1, -1, 1, -1 };
-    int[] prev = new int[GW * GH]; bool[] blockedCell = new bool[GW * GH]; bool gridBuilt; bool gridDrill, gridDome;
+    int[] prev = new int[GW * GH]; bool[] blockedCell = new bool[GW * GH]; bool gridBuilt; bool gridDrill, gridDome; int gridFence = -1;
     void BuildGrid()
     {
         for (int y = 0; y < GH; y++) for (int x = 0; x < GW; x++) blockedCell[y * GW + x] = WorldMap.Blocked(x * CELL, y * CELL);
-        gridBuilt = true; gridDrill = WorldMap.drillInstalled; gridDome = WorldMap.domeOpen;
+        gridBuilt = true; gridDrill = WorldMap.drillInstalled; gridDome = WorldMap.domeOpen; gridFence = WorldMap.fenceVer;
     }
     void FindPath(Vector2 from, Vector2 to)
     {
-        if (!gridBuilt || gridDrill != WorldMap.drillInstalled || gridDome != WorldMap.domeOpen) BuildGrid();
+        if (!gridBuilt || gridDrill != WorldMap.drillInstalled || gridDome != WorldMap.domeOpen || gridFence != WorldMap.fenceVer) BuildGrid();   // 구역이 열려 울타리가 생기면 격자도 다시
         path.Clear();
         int sx = Mathf.Clamp(Mathf.RoundToInt(from.x / CELL), 0, GW - 1), sy = Mathf.Clamp(Mathf.RoundToInt(from.y / CELL), 0, GH - 1);
         int tx = Mathf.Clamp(Mathf.RoundToInt(to.x / CELL), 0, GW - 1), ty = Mathf.Clamp(Mathf.RoundToInt(to.y / CELL), 0, GH - 1);

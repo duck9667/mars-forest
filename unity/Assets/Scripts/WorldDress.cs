@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// §9 Kenney 모델로 환경을 입힌다: 가장자리 바위·큰 바위, 착륙선 4단, 로버, 위성 안테나, 드럼통.
-// 원본 index.html 516~522행(바위), 546~550행(착륙선), 555행(드럼통), 562행(안테나), 573행(로버). World.Start가 프리미티브 바위를 만든 뒤 호출한다.
+// §9 환경: 맵 바깥을 감싸는 메사(평평한 붉은 절벽) 테두리 + 포인트 바위 몇 개, 착륙선 4단, 로버, 위성 안테나, 드럼통.
+// jake 피드백("어설픈 산맥이 아쉽다")으로 원본의 가장자리 바위 40여 개 흩뿌림을 "협곡 안 기지" 테두리로 바꿨다.
+// 원본 index.html 546~550행(착륙선), 555행(드럼통), 562행(안테나), 573행(로버). World.Start가 호출한다.
 public static class WorldDress
 {
     const float LANDER_X = 84f, LANDER_Y = 988f; // 원본 253행 LANDER
@@ -26,33 +27,98 @@ public static class WorldDress
         Barrels(worldRoot);
     }
 
-    // 바위: 가장자리 40개(원본 517~518행 분포, 논리 0..400×30..1024 안쪽은 비움) + 좌우 띠의 큰 바위 6개(519행).
-    // 모델 4종 × 화성 색(521행 rockRe): A·B는 (8a3418, f0a878), C·D는 (6e2a12, d0683a). 크기 r×1.5, y회전 ry
+    // 메사: (중심 x, 중심 y, 반지름 rx, ry, 높이). 보이는 범위는 대략 x −10~410, y −80~1090(CameraRig 직교 반폭 210).
+    // 안쪽 가장자리는 놀이 경계(x 14~386, y 30~1024) 밖에 머물게, 아래쪽은 착륙장·입구(x 140~270) 앞을 협곡 입구로 비운다.
+    static readonly Vector4[] MESAS =
+    {
+        // 위(북): 옆면 지층 띠가 정면으로 보이는 쪽이라 가장 높게
+        new Vector4(-40, -80, 110, 90), new Vector4(150, -78, 110, 88), new Vector4(330, -84, 120, 92), new Vector4(470, -70, 100, 80),
+        // 왼쪽
+        new Vector4(-64, 150, 68, 130), new Vector4(-62, 400, 66, 140), new Vector4(-66, 650, 70, 130), new Vector4(-64, 880, 68, 120),
+        // 오른쪽
+        new Vector4(464, 170, 68, 140), new Vector4(462, 430, 66, 130), new Vector4(466, 680, 70, 140), new Vector4(464, 920, 68, 120),
+        // 아래(남): 앞쪽 물체를 가리지 않게 낮게
+        new Vector4(10, 1124, 100, 72), new Vector4(390, 1128, 110, 76), new Vector4(-60, 1080, 80, 90), new Vector4(470, 1090, 80, 90),
+    };
+    static readonly float[] MESA_H = { 72, 80, 76, 70, 58, 64, 54, 60, 60, 56, 62, 58, 26, 28, 40, 40 };
+
+    // rockRoot: 테두리 부모(이름은 예전 그대로). 메사 + 포인트 바위 8개
     static void Rocks(Transform rockRoot)
     {
         var rnd = new Rnd();
-        var spots = new List<Vector4>(); // x, y, r, ry
-        var entry = WorldMap.ENTRY;
-        for (int tries = 0; spots.Count < 40 && tries < 400; tries++)
-        {
-            float side = rnd.Next(); float x, y;
-            if (side < 0.3f) { x = -30 + rnd.Next() * 30; y = -60 + rnd.Next() * 1140; }
-            else if (side < 0.55f) { x = 386 + rnd.Next() * 22; y = 600 + rnd.Next() * 480; }
-            else if (side < 0.85f) { x = rnd.Next() < 0.5f ? 24 + rnd.Next() * 146 : 262 + rnd.Next() * 114; y = 590 + rnd.Next() * 130; }
-            else { x = rnd.Next() * 400; y = 1040 + rnd.Next() * 60; }
-            if (Vector2.Distance(new Vector2(x, y), entry) < 80 || Vector2.Distance(new Vector2(x, y), new Vector2(LANDER_X, LANDER_Y)) < 50) continue;
-            if (x > 0 && x < 400 && y > 30 && y < 1024) continue; // 놀이 영역 안쪽은 비워 둔다
-            spots.Add(new Vector4(x, y, 6 + rnd.Next() * 10, rnd.Next() * 6));
-        }
-        spots.Add(new Vector4(-26, 90, 15, .4f)); spots.Add(new Vector4(-24, 250, 18, 2.2f)); spots.Add(new Vector4(-28, 430, 14, 1.1f));
-        spots.Add(new Vector4(408, 720, 16, 3.5f)); spots.Add(new Vector4(406, 860, 19, 2.8f)); spots.Add(new Vector4(410, 990, 15, .9f));
+        for (int i = 0; i < MESAS.Length; i++) Mesa(rockRoot, MESAS[i], MESA_H[i], rnd);
+        // 포인트 바위: 메사 발치·경계 안쪽 빈자리에 몇 개만 (x, y, 크기, 회전)
+        var spots = new[] { new Vector4(4, 188, 10, .4f), new Vector4(396, 300, 9, 2.2f), new Vector4(2, 566, 11, 1.1f), new Vector4(398, 724, 10, 3.5f),
+                            new Vector4(120, 16, 9, 2.8f), new Vector4(300, 18, 8, .9f), new Vector4(134, 1050, 9, 1.7f), new Vector4(282, 1054, 8, 4.1f) };
         string[] names = { "rockA", "rockB", "rockC", "rockD" };
         var reAB = RockRe(0x8a3418, 0xf0a878); var reCD = RockRe(0x6e2a12, 0xd0683a);
-        for (int i = 0; i < spots.Count; i++)
+        for (int i = 0; i < spots.Length; i++)
         {
-            var s = spots[i]; float sc = s.z * 1.5f; int k = i % 4;
-            ModelLib.Put(rockRoot, names[k], sc, sc, sc, s.x - 200, 0, s.y - 520, s.w, k < 2 ? reAB : reCD);
+            var sp = spots[i]; float sc = sp.z * 1.5f; int k = i % 4;
+            ModelLib.Put(rockRoot, names[k], sc, sc, sc, sp.x - 200, 0, sp.y - 520, sp.w, k < 2 ? reAB : reCD);
         }
+    }
+
+    // 메사 한 덩어리: 들쭉날쭉한 10각 바닥을 지층 띠 4단으로 쌓아 올리고(단마다 살짝 들여 넣어 턱), 위는 평평한 밝은 뚜껑.
+    // 한 메시에 서브메시(띠 4 + 뚜껑)로 그려 드로우콜을 줄이고, 면마다 꼭짓점을 따로 둬 저폴리 플랫 셰이딩
+    static readonly Color[] STRATA = { GameConfig.Hex("97401f"), GameConfig.Hex("b9562f"), GameConfig.Hex("a64a27"), GameConfig.Hex("c4663b") };
+    static readonly Color MESA_TOP = GameConfig.Hex("d4825a");
+    static void Mesa(Transform parent, Vector4 m, float h, Rnd rnd)
+    {
+        const int N = 10; float k = GameConfig.K;
+        var foot = new Vector2[N];
+        float a0 = rnd.Next() * Mathf.PI * 2;
+        for (int i = 0; i < N; i++)
+        {
+            float a = a0 + (i + (rnd.Next() - 0.5f) * 0.5f) / N * Mathf.PI * 2, r = 0.84f + rnd.Next() * 0.2f;
+            foot[i] = new Vector2(Mathf.Cos(a) * m.z * r, Mathf.Sin(a) * m.w * r);
+        }
+        float[] hs = { 0f, 0.34f, 0.58f, 0.8f, 1f };            // 띠 경계 높이 비율
+        float[] insetB = { 1f, 0.97f, 0.95f, 0.92f };           // 띠 아래 둘레 배율(턱)
+        float[] insetT = { 0.985f, 0.96f, 0.935f, 0.9f };       // 띠 위 둘레 배율(살짝 기울기)
+        var verts = new List<Vector3>(); var subs = new List<List<int>>();
+        Vector3 V(Vector2 p, float s, float y) => new Vector3(p.x * s * k, y * k, -p.y * s * k);   // 논리 y↓ → Unity z
+        for (int b = 0; b < 4; b++)
+        {
+            var tri = new List<int>(); float y0 = hs[b] * h, y1 = hs[b + 1] * h;
+            for (int i = 0; i < N; i++)
+            {
+                var p = foot[i]; var q = foot[(i + 1) % N]; int v = verts.Count;
+                verts.Add(V(p, insetB[b], y0)); verts.Add(V(q, insetB[b], y0)); verts.Add(V(q, insetT[b], y1)); verts.Add(V(p, insetT[b], y1));
+                tri.AddRange(new[] { v, v + 2, v + 1, v, v + 3, v + 2 });
+            }
+            // 턱: 이 띠의 위 둘레(insetT[b]) → 다음 띠의 아래 둘레(insetB[b+1]) 사이 수평 고리
+            if (b < 3)
+                for (int i = 0; i < N; i++)
+                {
+                    var p = foot[i]; var q = foot[(i + 1) % N]; int v = verts.Count;
+                    verts.Add(V(p, insetT[b], y1)); verts.Add(V(q, insetT[b], y1)); verts.Add(V(q, insetB[b + 1], y1)); verts.Add(V(p, insetB[b + 1], y1));
+                    tri.AddRange(new[] { v, v + 2, v + 1, v, v + 3, v + 2 });
+                }
+            subs.Add(tri);
+        }
+        {   // 뚜껑(부채꼴)
+            var tri = new List<int>(); int c = verts.Count; verts.Add(new Vector3(0, h * k, 0));
+            for (int i = 0; i < N; i++) verts.Add(V(foot[i], insetT[3], h));
+            for (int i = 0; i < N; i++) tri.AddRange(new[] { c, c + 1 + (i + 1) % N, c + 1 + i });
+            subs.Add(tri);
+        }
+        var mesh = new Mesh { name = "mesa" }; mesh.SetVertices(verts); mesh.subMeshCount = subs.Count;
+        for (int i = 0; i < subs.Count; i++) mesh.SetTriangles(subs[i], i);
+        // 감김 방향 보정: 바깥을 향하도록(뚜껑은 위). 법선이 아래/안쪽이면 뒤집는다
+        mesh.RecalculateNormals();
+        if (Vector3.Dot(mesh.normals[verts.Count - 1], Vector3.up) < 0f)
+        {
+            for (int i = 0; i < subs.Count; i++) { var t = subs[i]; for (int j = 0; j < t.Count; j += 3) { int x = t[j + 1]; t[j + 1] = t[j + 2]; t[j + 2] = x; } mesh.SetTriangles(t, i); }
+            mesh.RecalculateNormals();
+        }
+        mesh.RecalculateBounds();
+        var go = new GameObject("mesa"); go.transform.SetParent(parent, false);
+        go.transform.position = WorldMap.W2U(m.x, m.y, 0f);
+        go.AddComponent<MeshFilter>().sharedMesh = mesh;
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.sharedMaterials = new[] { Mats.Solid(STRATA[0]), Mats.Solid(STRATA[1]), Mats.Solid(STRATA[2]), Mats.Solid(STRATA[3]), Mats.Solid(MESA_TOP) };
+        mr.receiveShadows = true;
     }
     static Dictionary<int, int> RockRe(int a, int b) => new Dictionary<int, int> { { 0xdeb590, a }, { 0xede2cd, b }, { 0xc9d8e2, a } };
 

@@ -232,6 +232,34 @@ public class GroundPainter
         }
     }
 
+    // 기지 비네트: 기지 사각형(x 16~384, y 40~1010) 안쪽은 살짝 밝게, 바깥은 거리에 따라 어둡게·채도 낮게(최대 −38%·−50%)
+    public void BaseVignette()
+    {
+        const float bx0 = 16f, bx1 = 384f, by0 = 40f, by1 = 1010f, fall = 200f;
+        for (int py = 0; py < TH; py++)
+        {
+            float ly = oy + (py + 0.5f) / s;
+            float dy = ly < by0 ? by0 - ly : ly > by1 ? ly - by1 : 0f;
+            for (int px = 0; px < TW; px++)
+            {
+                float lx = ox + (px + 0.5f) / s;
+                float dx = lx < bx0 ? bx0 - lx : lx > bx1 ? lx - bx1 : 0f;
+                float d = Mathf.Sqrt(dx * dx + dy * dy);
+                int i = py * TW + px;
+                if (d <= 0f)
+                {   // 기지 안: 가운데로 갈수록 아주 살짝 밝게(최대 +6%)
+                    float cx = Mathf.Abs(lx - 200f) / 200f, cy = Mathf.Abs(ly - 525f) / 500f;
+                    float b = 0.06f * (1f - Mathf.Clamp01(Mathf.Max(cx, cy) * 0.9f));
+                    R[i] = Mathf.Min(1f, R[i] + (1f - R[i]) * b); G[i] = Mathf.Min(1f, G[i] + (1f - G[i]) * b); B[i] = Mathf.Min(1f, B[i] + (1f - B[i]) * b);
+                    continue;
+                }
+                float t = Mathf.Clamp01(d / fall); t = t * t * (3f - 2f * t);
+                float lum = R[i] * 0.3f + G[i] * 0.55f + B[i] * 0.15f, sat = 1f - 0.5f * t, dark = 1f - 0.38f * t;
+                R[i] = (lum + (R[i] - lum) * sat) * dark; G[i] = (lum + (G[i] - lum) * sat) * dark; B[i] = (lum + (B[i] - lum) * sat) * dark;
+            }
+        }
+    }
+
     // mips: 지면처럼 화면보다 촘촘한 텍스처는 밉맵을 켜야 카메라가 움직일 때 반짝임이 없다
     public Texture2D ToTexture(bool transparent, bool mips = false)
     {
@@ -252,7 +280,7 @@ public class GroundPainter
     }
 
     // =====================================================================
-    // 지면: 화성 흙 바탕 + 셀 명암·판·균열·얼룩·크레이터·점·그레인, 손님 길 점선, 착륙선·로버 자국, 줄 자리 발자국, 착륙장
+    // 지면: 화성 흙 바탕 + 넓은 명암·옅은 판·균열·얼룩·크레이터·점·그레인·비네트, 손님 길 점선, 착륙선·로버 자국, 줄 자리 발자국, 착륙장
     // 원본 452~469행. 범위는 World의 바닥 상자와 같게(400+600 × 1040+600, 중심 200,520).
     // =====================================================================
     public const float GX0 = 200f - (GameConfig.W + 600f) / 2f, GY0 = 520f - (GameConfig.H + 600f) / 2f;
@@ -266,38 +294,43 @@ public class GroundPainter
         float X0 = GX0, Y0 = GY0, X1 = GX0 + GW, Y1 = GY0 + GH;
         Color light = C(255, 220, 190), dark = C(60, 20, 10);
 
-        // 1) 40 단위 셀 명암(원본 ±.04)
-        p.Cells(40f, 0.08f, light, dark, X0, Y0, GW, GH);
+        // jake 피드백("배경이 어설프다"): 잔무늬(균열·얼룩·자갈)는 원본의 절반 이하로 줄이고, 넓은 명암 그라데이션 + 비네트(기지 밝게·바깥 어둡고 채도 낮게)로 시선을 기지에 모은다
+        // 1) 넓은 명암: 큰 부드러운 얼룩 몇 개 + 80 단위 셀 명암(약하게)
+        for (int i = 0; i < 14; i++)
+        {
+            bool lt = p.Rn() < 0.5f;
+            p.Ellipse(p.Rn(X0, X1), p.Rn(Y0, Y1), 160f + p.Rn() * 220f, 120f + p.Rn() * 160f, p.Rn() * 3f, lt ? C(255, 215, 180) : C(90, 30, 10), 0.05f + p.Rn() * 0.04f);
+        }
+        p.Cells(80f, 0.04f, light, dark, X0, Y0, GW, GH);
 
-        // 2) 갈라진 판: 보로노이풍 다각형 + 어두운 균열선 + 밝은 모서리선 (원본 64개 → 면적 비례 88개)
-        for (int i = 0; i < 88; i++)
+        // 2) 갈라진 판: 보로노이풍 다각형 + 옅은 균열선 (원본 64개 → 30개)
+        for (int i = 0; i < 30; i++)
         {
             float cx = p.Rn(X0, X1), cy = p.Rn(Y0, Y1); int n = 5 + (int)(p.Rn() * 4); float r = 70f + p.Rn() * 110f;
             var poly = new List<Vector2>();
             for (int k = 0; k < n; k++) { float a = k / (float)n * Mathf.PI * 2, rr = r * (0.7f + p.Rn() * 0.5f); poly.Add(new Vector2(cx + Mathf.Cos(a) * rr, cy + Mathf.Sin(a) * rr)); }
-            float l = (p.Rn() - 0.5f) * 0.12f;
+            float l = (p.Rn() - 0.5f) * 0.08f;
             p.Poly(poly, l > 0 ? C(255, 215, 180) : C(70, 20, 8), Mathf.Abs(l));
-            p.Polyline(poly, 1.8f, C(70, 18, 6), 0.16f, true);
-            p.Polyline(poly, 0.8f, C(255, 225, 200), 0.10f, true);
+            p.Polyline(poly, 1.6f, C(70, 18, 6), 0.09f, true);
         }
-        // 2b) 가는 균열 네트워크: 짧은 갈래가 뻗는 폴리라인(원본엔 없음, 질감 보강)
-        for (int i = 0; i < 70; i++)
+        // 2b) 가는 균열 네트워크: 짧은 갈래가 뻗는 폴리라인(원본엔 없음, 70 → 22)
+        for (int i = 0; i < 22; i++)
         {
             float x = p.Rn(X0, X1), y = p.Rn(Y0, Y1), ang = p.Rn() * Mathf.PI * 2;
             var pts = new List<Vector2> { new Vector2(x, y) };
             int segs = 3 + (int)(p.Rn() * 4);
             for (int k = 0; k < segs; k++) { ang += (p.Rn() - 0.5f) * 1.2f; float len = 10f + p.Rn() * 22f; x += Mathf.Cos(ang) * len; y += Mathf.Sin(ang) * len; pts.Add(new Vector2(x, y)); }
-            p.Polyline(pts, 1.1f, C(70, 18, 6), 0.20f);
-            if (p.Rn() < 0.6f) { var b = pts[1 + (int)(p.Rn() * (pts.Count - 2))]; float ba = ang + (p.Rn() < 0.5f ? 1f : -1f) * (0.8f + p.Rn() * 0.6f); p.Line(b.x, b.y, b.x + Mathf.Cos(ba) * 14f, b.y + Mathf.Sin(ba) * 14f, 0.9f, C(70, 18, 6), 0.16f); }
+            p.Polyline(pts, 1.1f, C(70, 18, 6), 0.12f);
+            if (p.Rn() < 0.6f) { var b = pts[1 + (int)(p.Rn() * (pts.Count - 2))]; float ba = ang + (p.Rn() < 0.5f ? 1f : -1f) * (0.8f + p.Rn() * 0.6f); p.Line(b.x, b.y, b.x + Mathf.Cos(ba) * 14f, b.y + Mathf.Sin(ba) * 14f, 0.9f, C(70, 18, 6), 0.10f); }
         }
-        // 3) 얼룩 타원(원본 60개 → 80개)
-        for (int i = 0; i < 80; i++)
+        // 3) 얼룩 타원(원본 60개 → 28개, 옅게)
+        for (int i = 0; i < 28; i++)
         {
             bool lt = p.Rn() < 0.5f;
-            p.Ellipse(p.Rn(X0, X1), p.Rn(Y0, Y1), 16f + p.Rn() * 50f, 10f + p.Rn() * 28f, p.Rn() * 3f, lt ? C(255, 225, 200) : C(90, 30, 10), 0.05f + p.Rn() * 0.08f);
+            p.Ellipse(p.Rn(X0, X1), p.Rn(Y0, Y1), 16f + p.Rn() * 50f, 10f + p.Rn() * 28f, p.Rn() * 3f, lt ? C(255, 225, 200) : C(90, 30, 10), 0.04f + p.Rn() * 0.05f);
         }
         // 4) 크레이터(놀이 영역 밖): 어두운 테두리 + 밝은 안쪽 + 그늘 + 가는 림 하이라이트
-        for (int made = 0, tries = 0; made < 20 && tries < 300; tries++)
+        for (int made = 0, tries = 0; made < 8 && tries < 300; tries++)
         {
             float x = p.Rn(X0, X1), y = p.Rn(Y0, Y1), r = 10f + p.Rn() * 22f;
             if (x > -20 && x < 420 && y > 10 && y < 960) continue;
@@ -307,14 +340,15 @@ public class GroundPainter
             p.Ellipse(x, y + r * 0.15f, r * 0.55f, r * 0.3f, 0f, C(90, 25, 8), 0.30f);
             p.Ellipse(x, y - r * 0.55f, r * 0.9f, r * 0.22f, 0f, C(255, 225, 200), 0.14f);
         }
-        // 5) 자갈 점(원본 900개 → 1300개)
-        for (int i = 0; i < 1300; i++)
+        // 5) 자갈 점(원본 900개 → 400개, 옅게)
+        for (int i = 0; i < 400; i++)
         {
             bool d = p.Rn() < 0.5f;
-            p.Disc(p.Rn(X0, X1), p.Rn(Y0, Y1), 0.8f + p.Rn() * 1.8f, d ? C(80, 30, 15) : C(255, 225, 200), 0.15f + p.Rn() * 0.25f);
+            p.Disc(p.Rn(X0, X1), p.Rn(Y0, Y1), 0.8f + p.Rn() * 1.6f, d ? C(80, 30, 15) : C(255, 225, 200), 0.10f + p.Rn() * 0.15f);
         }
-        // 6) 미세 그레인
-        p.Grain(0.05f);
+        // 6) 미세 그레인(약하게) + 비네트
+        p.Grain(0.03f);
+        p.BaseVignette();
 
         // 7) 손님 길: 다져진 띠(연한 둥근 사각) + 바퀴 자국 점선 2줄(입구→줄 끝, 사인 흔들림)
         float QX = WorldMap.QUEUE_X; var E = WorldMap.ENTRY;
