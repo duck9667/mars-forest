@@ -314,13 +314,16 @@ public class GroundPainter
 
         // 7) 손님 길: 다져진 띠(연한 둥근 사각)만. 바퀴 자국·로버 자국 점선은 낙서처럼 보여 없앰
         float QX = WorldMap.QUEUE_X; var E = WorldMap.ENTRY;
-        p.RoundRect(QX - 30f, 560f, 60f, GameConfig.H - 560f + 60f, 26f, C(255, 236, 214), 0.13f);
-        // 7b) 생존 기지 길(손님 길보다 옅은 띠만): 북쪽 길(y 10~46)·가운데 길(y −210~−180)·통로(x 236~256)
+        // 길은 크림 타일(목표 그림): 손님 길(입구→줄), 기지 가운데 통로(x 236~256)·상점 북쪽 띠(y 404~420)
+        p.TilePath(QX - 30f, 560f, 60f, GameConfig.H - 560f + 40f);
+        p.TilePath(236f, 46f, 20f, 374f, 20f);
+        p.TilePath(16f, 404f, 364f, 16f, 16f);
+        // 7b) 생존 기지 길(크림 타일): 북쪽 길(y 10~46)·가운데 길(y −210~−180)·통로(x 236~256)
         float nY0 = WorldMap.NORTH_Y, nY1 = 46f, nMid = (nY0 + nY1) / 2f;
-        p.RoundRect(14f, nY0 + 1f, 372f, nY1 - nY0 - 2f, 14f, C(255, 236, 214), 0.10f);
+        p.TilePath(14f, nY0, 372f, nY1 - nY0);
         float mY0 = WorldMap.MID_Y0, mY1 = WorldMap.MID_Y1, mMid = (mY0 + mY1) / 2f;
-        p.RoundRect(16f, mY0 + 2f, 364f, mY1 - mY0 - 4f, 12f, C(255, 236, 214), 0.07f);
-        p.RoundRect(238f, GameConfig.Y_MIN + 12f, 16f, nY0 - GameConfig.Y_MIN - 12f, 7f, C(255, 236, 214), 0.07f);
+        p.TilePath(16f, mY0, 364f, mY1 - mY0);
+        p.TilePath(236f, GameConfig.Y_MIN + 10f, 20f, nY0 - GameConfig.Y_MIN - 10f, 20f);
 
         // 9) 착륙장: 원 r58 흰 .14 채움 + 테두리 .55 폭4, 안쪽 r34 폭3, "H" 폭4 .5
         p.Disc(E.x, E.y, 58f, Color.white, 0.14f);
@@ -338,11 +341,29 @@ public class GroundPainter
     // =====================================================================
     // 구역 바닥(원본 floorTex 473~480행을 단순화): 색 면 + 26 타일 옅은 명암·격자 + 가장자리 어둡게 + 외곽선
     // =====================================================================
+    public static readonly Color ZONE_GROUND = GameConfig.Hex("d4916a"), PATH_TILE = GameConfig.Hex("f1dcc0");
+
+    // 크림 타일 길(목표 그림의 길): 채움 + 옅은 타일 줄눈 + 가장자리 살짝 어둡게. 축 정렬 사각형
+    void TilePath(float x, float y, float w, float h, float ts = 20f)
+    {
+        RoundRect(x, y, w, h, 4f, PATH_TILE, 0.96f);
+        for (float gx = x + ts; gx < x + w - 1f; gx += ts) Line(gx, y + 1f, gx, y + h - 1f, 1f, C(120, 70, 40), 0.10f);
+        for (float gy = y + ts; gy < y + h - 1f; gy += ts) Line(x + 1f, gy, x + w - 1f, gy, 1f, C(120, 70, 40), 0.10f);
+        Polyline(RoundRectPath(x, y, w, h, 4f), 2f, C(150, 90, 50), 0.22f, true);
+    }
+
     public static Texture2D PaintFloor(WorldMap.Zone z)
     {
         float w = z.x1 - z.x0, h = z.y1 - z.y0;
         bool ice = z.key.StartsWith("ice"), shop = z.key == "shop";
-        var p = new GroundPainter(0f, 0f, w, h, 2f, 31 + z.key.Length * 7 + (int)z.x0, z.floor);
+        if (!shop)
+        {   // 목표 그림(docs/art/target_north_v1.png): 구역 안은 타일 없이 땅보다 한 톤 밝은 맨땅, 경계는 연석이 맡는다
+            var g = new GroundPainter(0f, 0f, w, h, 2f, 31 + z.key.Length * 7 + (int)z.x0, ZONE_GROUND);
+            g.Grain(0.025f);
+            g.EdgeShade(10f, 0.10f, C(90, 35, 15));
+            return g.ToTexture(false);
+        }
+        var p = new GroundPainter(0f, 0f, w, h, 2f, 31 + z.key.Length * 7 + (int)z.x0, PATH_TILE);
         const float ts = 26f;
         p.Cells(ts, 0.05f, Color.white, Color.black, 0f, 0f, w, h);
         for (float x = 0; x <= w + 0.1f; x += ts) p.Line(x, 0f, x, h, 1f, Color.black, 0.05f);

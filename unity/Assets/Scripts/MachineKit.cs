@@ -9,6 +9,7 @@ using UnityEngine;
 public static class MachineKit
 {
     public static readonly Color SHELL = GameConfig.Hex("eee8de"), SHELL_D = GameConfig.Hex("c9c1b4"), STEEL = GameConfig.Hex("5d6470"), STEEL_D = GameConfig.Hex("3a3f4a");
+    public static readonly Color PAD = GameConfig.Hex("d9c8b2"), PAD_TOP = GameConfig.Hex("e8dccb");
     public static readonly Color GLASS = new Color(0.82f, 0.94f, 1f, 0.42f);
 
     public static Vector3 L(float dx, float dy, float h) => new Vector3(dx * GameConfig.K, h * GameConfig.K, -dy * GameConfig.K);
@@ -23,8 +24,8 @@ public static class MachineKit
         }
         var g = new GameObject("machine").transform; g.SetParent(view, false);
         g.position = WorldMap.W2U(s.x, s.y, 0f);
-        Prim.Box(g, "plate", L(0, 0, 2.5f), new Vector3(w, 5, d), STEEL);
-        Prim.Box(g, "plateTop", L(0, 0, 5.2f), new Vector3(w - 6, 0.6f, d - 6), GameConfig.Hex("707885"));
+        Prim.Box(g, "plate", L(0, 0, 2.5f), new Vector3(w, 5, d), PAD);   // 밝은 콘크리트 받침(어두운 강철판은 무거워 보였다, 목표 그림 docs/art)
+        Prim.Box(g, "plateTop", L(0, 0, 5.2f), new Vector3(w - 6, 0.6f, d - 6), PAD_TOP);
         return g;
     }
 

@@ -198,7 +198,16 @@ public class SettleStations : MonoBehaviour
             g.gameObject.SetActive(false);
         }
         BuildElec(); BuildPurif(); BuildMixer(); BuildGreen();
+        // 목표 그림(docs/art/target_north_v1.png)처럼 기계가 구역을 채우게: 키만 1.25배(충돌 발자국 그대로), 온실은 전체 1.2배
+        for (int i = 0; i < 3; i++) Grow(i, new Vector3(1f, 1.25f, 1f));
+        Grow(3, new Vector3(1.2f, 1.2f, 1.2f));
         for (int i = 0; i < 4; i++) views[i].gameObject.SetActive(false);
+    }
+
+    void Grow(int i, Vector3 s)
+    {
+        views[i].localScale = s;
+        var inv = new Vector3(1f / s.x, 1f / s.y, 1f / s.z); inA[i].localScale = inv; outA[i].localScale = inv;
     }
 
     // 시설 뷰: 피벗은 시설 중심(JuiceFX 스쿼시·팝이 제자리), 바닥판 steelD + 입력·출력 앵커
@@ -206,7 +215,8 @@ public class SettleStations : MonoBehaviour
     {
         var s = WorldMap.STN[KEYS[i]];
         var v = new GameObject(KEYS[i]).transform; v.SetParent(transform, false); v.position = WorldMap.W2U(s.x, s.y, 0);
-        Prim.Box(v, "plate", L(0, 0, PLATE / 2), new Vector3(s.w, PLATE, s.h), STEEL_D);
+        float gs = i == 3 ? 1.2f : 1f;   // 온실은 뷰를 1.2배 키우므로(Grow) 판은 설계 크기로
+        Prim.Box(v, "plate", L(0, 0, PLATE / 2), new Vector3(s.w / gs, PLATE, s.h / gs), MachineKit.PAD);
         inA[i] = new GameObject("in").transform; inA[i].SetParent(v, false); inA[i].localPosition = L(inAt.x, inAt.y, PLATE);
         outA[i] = new GameObject("out").transform; outA[i].SetParent(v, false); outA[i].localPosition = L(outAt.x, outAt.y, PLATE);
         // 받침 쟁반(입력은 어두운 판, 출력은 금색 테두리 판)

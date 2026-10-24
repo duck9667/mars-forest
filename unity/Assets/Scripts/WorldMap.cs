@@ -17,7 +17,7 @@ public static class WorldMap
         { "elec",     new Stn{ key="elec",     x=322, y=-85,  w=96,  h=64 } },  // 전기분해기: 물통 → 산소통
         { "purif",    new Stn{ key="purif",    x=322, y=-340, w=96,  h=56 } },  // 토양 정화기: 레골리스 → 흙
         { "mixer",    new Stn{ key="mixer",    x=322, y=-252, w=96,  h=56 } },  // 비료 배합기: 흙 → 비료
-        { "green",    new Stn{ key="green",    x=126, y=-300, w=150, h=84 } },  // 온실: 비료(+물) → 식량
+        { "green",    new Stn{ key="green",    x=126, y=-300, w=180, h=100 } }, // 온실: 비료(+물) → 식량 (모형은 150×84 설계를 1.2배, SettleStations.Grow)
     };
     public static readonly Dictionary<string, string> STN_ZONE = new Dictionary<string, string> { { "elec", "o2" }, { "purif", "soil" }, { "mixer", "soil" }, { "green", "farm" } };
     public static bool StnActive(string key) => key == "drill" ? drillInstalled : !STN_ZONE.TryGetValue(key, out var z) || openZones.Contains(z);

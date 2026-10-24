@@ -15,7 +15,7 @@ public class ZoneManager : MonoBehaviour
         public List<Vector3> finalPos = new List<Vector3>(); public bool open, archShown;
     }
     readonly Dictionary<string, ZView> views = new Dictionary<string, ZView>();
-    static readonly Color GPOST = GameConfig.Hex("7f5f48"), CURB = GameConfig.Hex("b08c6e");   // 게이트 기둥·연석(배경 톤, 채도 낮게)
+    static readonly Color GPOST = GameConfig.Hex("7f5f48"), CURB = GameConfig.Hex("e2bf98");   // 게이트 기둥·연석(목표 그림의 밝은 둥근 연석)
 
     void Awake() { I = this; WorldMap.ClearZones(); }   // 이주(Restart) 뒤 새 씬은 열림 상태를 처음부터
 
@@ -93,7 +93,7 @@ public class ZoneManager : MonoBehaviour
         // 바닥: 코드로 그린 텍스처 판(색 면 + 타일 명암 + 점선 테두리, GroundPainter.PaintFloor). 접지 그림자(0.01m)보다 낮게 0.1
         v.floor = GroundPainter.FloorQuad(v.root, z, 0.1f).transform;
         v.fence = new GameObject("fence").transform; v.fence.SetParent(v.root, false);
-        BuildFence(v);
+        BuildFence(v); Corners(v);
         v.open = z.open || (z.pad != null && G.PadLv(z.pad) >= 1);
         WorldMap.SetZoneOpen(z.key, v.open);
         if (!v.open)
@@ -136,7 +136,7 @@ public class ZoneManager : MonoBehaviour
             {
                 float mid = (sg.x + sg.y) / 2, len = sg.y - sg.x;
                 float x = horiz ? mid : fixedV, y = horiz ? fixedV : mid;
-                Part(v, Prim.Box(v.fence, "curb", WorldMap.W2U(x, y, 2.5f), horiz ? new Vector3(len, 5, 4) : new Vector3(4, 5, len), CURB));
+                Part(v, Prim.Box(v.fence, "curb", WorldMap.W2U(x, y, 3f), horiz ? new Vector3(len, 6, 7) : new Vector3(7, 6, len), CURB));
             }
             if (gAt >= 0)
             {
@@ -146,6 +146,14 @@ public class ZoneManager : MonoBehaviour
                 Part(v, Prim.Box(v.fence, "gpost", WorldMap.W2U(x1, y1, 6), new Vector3(6, 12, 6), GPOST));
             }
         }
+    }
+    // 둥근 모서리: 변이 닿는 구역 꼭짓점마다 연석 굵기의 원기둥(목표 그림의 둥근 연석 모서리)
+    void Corners(ZView v)
+    {
+        var z = v.z;
+        foreach (var (cx, cy, s1, s2) in new[] { (z.x0, z.y0, 'N', 'W'), (z.x1, z.y0, 'N', 'E'), (z.x1, z.y1, 'S', 'E'), (z.x0, z.y1, 'S', 'W') })
+            if (z.sides.IndexOf(s1) >= 0 || z.sides.IndexOf(s2) >= 0)
+                Part(v, Prim.Cyl(v.fence, "corner", WorldMap.W2U(cx, cy, 3f), 9, 6, CURB));
     }
     void Part(ZView v, GameObject go) { v.parts.Add(go.transform); v.finalPos.Add(go.transform.position); }
 
