@@ -27,6 +27,13 @@ public class DevTools : MonoBehaviour
         // -rich: 검증용 시작 자금 2000, -bells N: 지정 금액
         if (DevArgs.Has("-rich")) G.AddBells(2000);
         var bells = DevArgs.Get("-bells"); if (!string.IsNullOrEmpty(bells) && float.TryParse(bells, out var bv)) G.AddBells(bv);
+        // -pads id=lv,id=lv: 발판 레벨 바로 지정(구역 해제 연출·시스템 반응까지 이벤트로 돈다), -sold N, -tut N, -shelf N(선반 병)
+        var pads = DevArgs.Get("-pads");
+        if (!string.IsNullOrEmpty(pads))
+            foreach (var kv in pads.Split(',')) { var a = kv.Split('='); if (a.Length == 2 && Pads.Get(a[0]) != null && int.TryParse(a[1], out var lv)) G.SetPadLv(a[0], lv); }
+        if (int.TryParse(DevArgs.Get("-sold"), out var soldV)) G.S.sold = soldV;
+        if (int.TryParse(DevArgs.Get("-tut"), out var tutV)) { G.S.tut = tutV; if (tutV >= 3) G.S.handShown = 1; }
+        if (int.TryParse(DevArgs.Get("-shelf"), out var shelfV)) G.S.shelf = Mathf.Min(shelfV, G.ShelfCap);
         // -start x,y: 플레이어 시작 위치(스크린샷용). Player.Start 전에 저장값을 바꿔 둔다
         var st = DevArgs.Get("-start");
         if (!string.IsNullOrEmpty(st)) { var xy = st.Split(','); if (xy.Length == 2 && float.TryParse(xy[0], out var sx) && float.TryParse(xy[1], out var sy)) { G.S.p.x = sx; G.S.p.y = sy; if (Player.I != null) Player.I.pos = new Vector2(sx, sy); } }
