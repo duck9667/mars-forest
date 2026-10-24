@@ -39,6 +39,10 @@ public class TutorialManager : MonoBehaviour
     void Update()
     {
         var pl = Player.I; if (pl == null) return;
+        // 새 게임 인트로(StoryManager 무전) 중엔 말풍선·손 포인터를 숨기고 단계도 멈춘다. 인트로가 끝나면 튜토리얼 시작
+        bool held = StoryManager.I != null && StoryManager.I.IntroActive;
+        hand.enabled = handText.enabled = !held;
+        if (held) { bubble.Show(false); return; }
         if (S.tut < 3) { bubble.Set(GameConfig.TUT[S.tut]); bobT += Time.deltaTime; bubble.offset = new Vector2(0, 8 + Mathf.Sin(bobT * 4.8f) * 5f * WorldLabels.Scale); }
         bubble.Show(S.tut < 3);
         // 단계 조건 (3은 Player에서 선반 올릴 때)
