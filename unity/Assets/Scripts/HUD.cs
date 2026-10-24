@@ -63,10 +63,10 @@ public class HUD : MonoBehaviour
         Destroy(upDot.GetComponent<LayoutElement>());
         // 3행: 콤보 배지(좌, 금색) · 러시 배지(중앙, 빨강)
         var cb = UIKit.Chip(transform, "combo", UIKit.SignOk, "bolt", 26, "", 24, out comboText, out _);
-        comboRt = cb.rectTransform; comboRt.anchorMin = comboRt.anchorMax = new Vector2(0, 1); comboRt.pivot = new Vector2(0, 1); comboRt.anchoredPosition = new Vector2(16, -178);
+        comboRt = cb.rectTransform; comboRt.anchorMin = comboRt.anchorMax = new Vector2(1, 1); comboRt.pivot = new Vector2(1, 1); comboRt.anchoredPosition = new Vector2(-16, -96);   // 2행 오른쪽(목표 칩이 빠진 자리)
         cb.gameObject.SetActive(false);
         var rb = UIKit.Chip(transform, "rush", UIKit.Red, "bang", 26, "", 24, out rushText, out _);
-        rushRt = rb.rectTransform; rushRt.anchorMin = rushRt.anchorMax = new Vector2(0.5f, 1); rushRt.pivot = new Vector2(0.5f, 1); rushRt.anchoredPosition = new Vector2(40, -178);
+        rushRt = rb.rectTransform; rushRt.anchorMin = rushRt.anchorMax = new Vector2(0.5f, 1); rushRt.pivot = new Vector2(0.5f, 1); rushRt.anchoredPosition = new Vector2(0, -96);   // 2행 가운데
         rb.gameObject.SetActive(false);
         // 플래시(원본 #flash 색 fff8e0)
         flash = UI.Panel(transform, "flash", new Color(1, 0.97f, 0.88f, 0)); flash.raycastTarget = false;
