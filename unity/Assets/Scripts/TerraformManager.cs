@@ -15,7 +15,7 @@ public class TerraformManager : MonoBehaviour
     void Awake() { I = this; }
 
     public const float TS = 28f;          // 타일 지름(원본 모델 1단위 = 28)
-    const int TILES_PER_TERRA = 24;       // terra 1.0 = 24장
+    const int TILES_PER_TERRA = 12;       // terra 1.0 = 12장(원본 24장, 2026-10-25 소품 밀도 절반)
     const float PAD_MAX = 48f;            // 활성 발판 레벨 총합(§3 PAD_MAX)
 
     // §6.4 terra(): 구역 3개가 절반, 전체 발판 레벨이 절반
@@ -38,17 +38,19 @@ public class TerraformManager : MonoBehaviour
     static readonly object[][] CANDIDATES =
     {
         // 구역 태그 슬롯: 그 구역이 열리면 '그 구역 옆부터' 켜진다
-        new object[]{52,18,"ice2"}, new object[]{122,18,"ice2"}, new object[]{192,18,"ice2"},
-        new object[]{257,780,"pen"}, new object[]{257,850,"pen"}, new object[]{257,915,"pen"},        // 원본 254 → 손님 길에서 3 비킴
-        new object[]{26,686,"dome"}, new object[]{112,668,"dome"}, new object[]{30,960,"dome"},       // 원본 (20,700)·(30,952) → 가로등·바위(r+14) 비킴
+        // 예전 북쪽 가장자리(y 18)는 이제 북쪽 길이라, 그 줄의 슬롯 7개는 새 북쪽 메사 발치(y −396)로 옮겼다(태그도 옆 구역 온실·토양 공장으로)
+        new object[]{52,-396,"farm"}, new object[]{122,-396,"farm"}, new object[]{192,-396,"farm"},
+        // 2026-10-25 소품 절반: 기지 안쪽(손님 길 옆·돔 위) 덤불을 줄여 우리·돔은 하나씩, 우리 몫은 바깥 가장자리로
+        new object[]{396,846,"pen"},
+        new object[]{26,686,"dome"},
         // 일반 슬롯(원본 순서: 매장 양옆부터 바깥으로)
         new object[]{398,440}, new object[]{-4,475}, new object[]{398,540}, new object[]{-4,590}, new object[]{-4,300}, new object[]{396,260},
         new object[]{-4,220}, new object[]{396,340}, new object[]{-6,178}, new object[]{396,160}, new object[]{-4,140}, new object[]{396,80},
-        new object[]{258,704}, new object[]{-4,700}, new object[]{290,18}, new object[]{350,18}, new object[]{398,775}, new object[]{-4,740},
+        new object[]{258,704}, new object[]{-4,700}, new object[]{290,-396,"soil"}, new object[]{350,-396,"soil"}, new object[]{398,775}, new object[]{-4,740},
         new object[]{398,910}, new object[]{-4,780}, new object[]{146,960}, new object[]{300,958}, new object[]{-4,820}, new object[]{390,958},
-        new object[]{120,950}, new object[]{-4,60}, new object[]{150,1060}, new object[]{398,490}, new object[]{16,18}, new object[]{384,18},
+        new object[]{120,950}, new object[]{-4,60}, new object[]{150,1060}, new object[]{398,490}, new object[]{20,-396}, new object[]{246,-398},
         // 보충(우리 레이아웃의 맨땅)
-        new object[]{246,14}, new object[]{160,690}, new object[]{30,650}, new object[]{268,1052}, new object[]{60,1050}, new object[]{330,1050},
+        new object[]{30,650},   // (246,14)는 북쪽 길, (160,690)은 기지 안 맨땅 한가운데라 뺐다 new object[]{268,1052}, new object[]{60,1050}, new object[]{330,1050},
         new object[]{-6,960}, new object[]{-10,324}, new object[]{-10,390}, new object[]{398,120}, new object[]{398,300}, new object[]{398,384},
         new object[]{-10,912}, new object[]{278,1002}, new object[]{14,1002},
     };

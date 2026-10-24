@@ -49,20 +49,21 @@ public static class WorldMap
 
     // open=false인 구역은 pad(발판 id) Lv≥1일 때 열린다
     public struct Zone { public string key; public float x0, y0, x1, y1; public Color floor; public string sides; public bool open; public string pad; }
+    // 바닥색은 모두 같은 모래·주황 계열(얼음밭만 조금 희게): 2026-10-25 배경 채도 정리(예전 초록 돔·파랑 산소동·연두 온실 → 같은 계열)
     public static readonly Zone[] ZONES =
     {
-        new Zone{ key="ice",    x0=16,  y0=196, x1=236, y1=404, floor=GameConfig.Hex("e6d8c6"), sides="NESW", open=true },
-        new Zone{ key="ice2",   x0=16,  y0=46,  x1=236, y1=196, floor=GameConfig.Hex("e6d8c6"), sides="NEW",  open=false, pad="ice2" },
-        new Zone{ key="melt",   x0=256, y0=46,  x1=380, y1=224, floor=GameConfig.Hex("d9b298"), sides="NESW", open=true },
-        new Zone{ key="bottle", x0=256, y0=224, x1=380, y1=404, floor=GameConfig.Hex("d9b298"), sides="ESW",  open=true },
-        new Zone{ key="shop",   x0=16,  y0=420, x1=380, y1=560, floor=GameConfig.Hex("efcfa9"), sides="EW",   open=true },
-        new Zone{ key="dome",   x0=22,  y0=740, x1=196, y1=934, floor=GameConfig.Hex("d3dbbd"), sides="NESW", open=false, pad="dome" },
-        new Zone{ key="pen",    x0=276, y0=740, x1=378, y1=934, floor=GameConfig.Hex("dcb085"), sides="NESW", open=false, pad="pen" },
+        new Zone{ key="ice",    x0=16,  y0=196, x1=236, y1=404, floor=GameConfig.Hex("e3d6c8"), sides="NESW", open=true },
+        new Zone{ key="ice2",   x0=16,  y0=46,  x1=236, y1=196, floor=GameConfig.Hex("e3d6c8"), sides="NEW",  open=false, pad="ice2" },
+        new Zone{ key="melt",   x0=256, y0=46,  x1=380, y1=224, floor=GameConfig.Hex("dcc1a8"), sides="NESW", open=true },
+        new Zone{ key="bottle", x0=256, y0=224, x1=380, y1=404, floor=GameConfig.Hex("dcc1a8"), sides="ESW",  open=true },
+        new Zone{ key="shop",   x0=16,  y0=420, x1=380, y1=560, floor=GameConfig.Hex("e8cfb3"), sides="EW",   open=true },
+        new Zone{ key="dome",   x0=22,  y0=740, x1=196, y1=934, floor=GameConfig.Hex("dccab2"), sides="NESW", open=false, pad="dome" },
+        new Zone{ key="pen",    x0=276, y0=740, x1=378, y1=934, floor=GameConfig.Hex("d9bb9c"), sides="NESW", open=false, pad="pen" },
         // 생존 기지(북쪽): 잠겨 있으면 단단한 땅(통행 불가, NorthBlocked)
-        new Zone{ key="mine",   x0=16,  y0=-180, x1=236, y1=10,   floor=GameConfig.Hex("d9b8a0"), sides="NESW", open=false, pad="mine" },
-        new Zone{ key="o2",     x0=256, y0=-180, x1=380, y1=10,   floor=GameConfig.Hex("cfd8e3"), sides="NESW", open=false, pad="o2" },
-        new Zone{ key="farm",   x0=16,  y0=-380, x1=236, y1=-210, floor=GameConfig.Hex("c9dbb0"), sides="NESW", open=false, pad="farm" },
-        new Zone{ key="soil",   x0=256, y0=-380, x1=380, y1=-210, floor=GameConfig.Hex("d6b08c"), sides="NESW", open=false, pad="soil" },
+        new Zone{ key="mine",   x0=16,  y0=-180, x1=236, y1=10,   floor=GameConfig.Hex("d6bca2"), sides="NESW", open=false, pad="mine" },
+        new Zone{ key="o2",     x0=256, y0=-180, x1=380, y1=10,   floor=GameConfig.Hex("ddcbb8"), sides="NESW", open=false, pad="o2" },
+        new Zone{ key="farm",   x0=16,  y0=-380, x1=236, y1=-210, floor=GameConfig.Hex("d8c8a8"), sides="NESW", open=false, pad="farm" },
+        new Zone{ key="soil",   x0=256, y0=-380, x1=380, y1=-210, floor=GameConfig.Hex("d4b496"), sides="NESW", open=false, pad="soil" },
     };
     // 게이트(울타리 틈): 구역키, 변, 위치, 폭
     public struct Gate { public string zone; public char side; public float at, w; }
