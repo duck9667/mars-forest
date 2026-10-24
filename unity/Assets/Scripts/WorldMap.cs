@@ -42,6 +42,8 @@ public static class WorldMap
         new Zone{ key="melt",   x0=256, y0=46,  x1=380, y1=224, floor=GameConfig.Hex("d9b298"), sides="NESW", open=true },
         new Zone{ key="bottle", x0=256, y0=224, x1=380, y1=404, floor=GameConfig.Hex("d9b298"), sides="ESW",  open=true },
         new Zone{ key="shop",   x0=16,  y0=420, x1=380, y1=560, floor=GameConfig.Hex("efcfa9"), sides="EW",   open=true },
+        new Zone{ key="dome",   x0=22,  y0=740, x1=196, y1=934, floor=GameConfig.Hex("d3dbbd"), sides="NESW", open=false, pad="dome" },
+        new Zone{ key="pen",    x0=276, y0=740, x1=378, y1=934, floor=GameConfig.Hex("dcb085"), sides="NESW", open=false, pad="pen" },
     };
     // 게이트(울타리 틈): 구역키, 변, 위치, 폭
     public struct Gate { public string zone; public char side; public float at, w; }
@@ -50,7 +52,21 @@ public static class WorldMap
         new Gate{ zone="ice", side='N', at=126, w=70 }, new Gate{ zone="ice", side='S', at=126, w=70 },
         new Gate{ zone="melt", side='W', at=150, w=70 },
         new Gate{ zone="bottle", side='W', at=330, w=70 }, new Gate{ zone="bottle", side='S', at=322, w=70 },
+        new Gate{ zone="dome", side='N', at=106, w=60 }, new Gate{ zone="pen", side='N', at=330, w=60 },
     };
+
+    // §4.2 휴게 돔·토끼 우리·착륙선
+    public static readonly Vector2 DOME = new Vector2(108, 838);
+    public const float DOME_R = 84f;
+    public static readonly Vector2[] SEATS = { new Vector2(74, 786), new Vector2(142, 786), new Vector2(74, 838), new Vector2(142, 838), new Vector2(74, 890), new Vector2(142, 890) };
+    public const float SEAT_R = 34f;                                  // 좌석 팁 수거 반경
+    public static Vector2 FOUNTAIN => new Vector2(DOME.x, DOME.y + 30);
+    public static Vector2[] BEDS => new[] { new Vector2(DOME.x - 58, DOME.y + 22), new Vector2(DOME.x + 58, DOME.y + 22) };   // 화단 2곳 ±20
+    public static Vector2 AIRLOCK => new Vector2(DOME.x - 55, DOME.y - DOME_R - 4);                                             // 18×11
+    public const float PEN_X0 = 276, PEN_Y0 = 740, PEN_X1 = 378, PEN_Y1 = 934;
+    public static readonly Vector2 PEN_TIP = new Vector2(327, 766);
+    public static readonly Vector2 LANDER = new Vector2(84, 988);
+    public static bool domeOpen;   // 휴게 돔 발판 Lv1 이후 true (돔 시설 충돌)
     public const float POST_GAP = 40f;
 
     // 논리 → Unity (z 반전으로 왼손 좌표 보정)
@@ -78,6 +94,16 @@ public static class WorldMap
             if (s.key == "drill" && !drillInstalled) continue;
             if (Mathf.Abs(x - s.x) < s.w / 2 + 10 && Mathf.Abs(y - s.y) < s.h / 2 + 8) return true;
         }
+        var p = new Vector2(x, y);
+        if (domeOpen)
+        {
+            foreach (var s in SEATS) if ((p - s).sqrMagnitude < 16 * 16) return true;
+            if ((p - FOUNTAIN).sqrMagnitude < 17 * 17) return true;
+            foreach (var b in BEDS) if (Mathf.Abs(x - b.x) < 20 && Mathf.Abs(y - b.y) < 20) return true;
+            var a = AIRLOCK; if (Mathf.Abs(x - a.x) < 9 && Mathf.Abs(y - a.y) < 5.5f) return true;
+        }
+        if (x > 338 && y > 358 && y < 404) return true;                 // 병입 구역 드럼통
+        if ((p - LANDER).sqrMagnitude < 34 * 34) return true;            // 착륙선
         return false;
     }
 

@@ -110,9 +110,9 @@ public static class Pads
         new PadDef{ id="drill",   name="얼음 드릴",    icon="⛏", pos=new Vector2(62,166),  cost=l=>600f,  max=1, req=g=>g.PadLv("runner")>=1 && g.PadLv("ice2")>=1, reqText="뽀삐·얼음밭", active=true },
         new PadDef{ id="runspd",  name="뽀삐 속도",    icon="💨", pos=new Vector2(282,662), cost=l=>250f*Mathf.Pow(1.8f,l), max=4, req=g=>g.PadLv("runner")>=1, reqText="뽀삐", active=true },
         new PadDef{ id="runner2", name="뽀삐 한 명 더", icon="🛒", pos=new Vector2(360,662), cost=l=>1200f, max=1, req=g=>g.PadLv("drill")>=1, reqText="드릴", active=true },
-        // ---- Phase 3 (정의만 유지, active=false) ----
-        new PadDef{ id="pen",     name="먼지 토끼 우리", icon="🐰", pos=new Vector2(330,720), cost=l=>400f, max=1, req=g=>g.PadLv("drill")>=1, reqText="드릴", zone=true },
-        new PadDef{ id="dome",    name="휴게 돔",      icon="🏠", pos=new Vector2(106,720), cost=l=>700f,  max=1, req=g=>g.PadLv("pen")>=1, reqText="우리", zone=true },
+        // ---- Phase 3 ----
+        new PadDef{ id="pen",     name="먼지 토끼 우리", icon="🐰", pos=new Vector2(330,720), cost=l=>400f, max=1, req=g=>g.PadLv("drill")>=1, reqText="드릴", zone=true, active=true },
+        new PadDef{ id="dome",    name="휴게 돔",      icon="🏠", pos=new Vector2(106,720), cost=l=>700f,  max=1, req=g=>g.PadLv("pen")>=1, reqText="우리", zone=true, active=true },
     };
 
     // §3.1 노출 순서. n번째 등장 = 그 id의 Lv n 차례.

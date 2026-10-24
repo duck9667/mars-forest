@@ -35,11 +35,30 @@ public static class Bootstrap
         new GameObject("Runners").AddComponent<RunnerSystem>();
         new GameObject("Drill").AddComponent<DrillStation>();
         new GameObject("AdsSign").AddComponent<AdsSign>();
+        new GameObject("Pen").AddComponent<PenSystem>();
+        new GameObject("Dome").AddComponent<DomeSystem>();
+        new GameObject("Deco").AddComponent<DecoManager>();
+        new GameObject("Terraform").AddComponent<TerraformManager>();
+        new GameObject("Prestige").AddComponent<PrestigeManager>();
+        new GameObject("Offline").AddComponent<OfflineEarnings>();
         new GameObject("DayNight").AddComponent<DayNight>();
         new GameObject("Quests").AddComponent<QuestManager>();
         new GameObject("Tutorial").AddComponent<TutorialManager>();
         new GameObject("Hint").AddComponent<HintSystem>();
         new GameObject("Dev").AddComponent<DevTools>();
+    }
+
+    // 저장을 디스크에 쓴 뒤 씬을 다시 불러 전부 새로 조립한다(F5 초기화·프레스티지 "새 기지로 이주").
+    // RuntimeInitializeOnLoadMethod는 앱당 1회라 sceneLoaded에서 Init을 직접 다시 부른다.
+    public static void Restart()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += Reboot;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+    }
+    static void Reboot(UnityEngine.SceneManagement.Scene s, UnityEngine.SceneManagement.LoadSceneMode m)
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= Reboot;
+        Init();
     }
 }
 

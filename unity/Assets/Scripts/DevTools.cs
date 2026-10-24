@@ -51,9 +51,7 @@ public class DevTools : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.F5))
         {
             SaveSystem.Wipe(); G.S = new SaveData();
-            // RuntimeInitializeOnLoadMethod는 앱당 1회라 씬 재로드 뒤 Bootstrap을 직접 다시 돌린다
-            UnityEngine.SceneManagement.SceneManager.sceneLoaded += Reboot;
-            UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+            Bootstrap.Restart();
         }
         if (Input.GetKeyDown(KeyCode.F6)) { G.AddBells(500); }
         if (autoplay) Bot();
@@ -159,12 +157,6 @@ public class DevTools : MonoBehaviour
         var rev = new List<Vector2>();
         for (int c = best; c != start && c != -1; c = prev[c]) rev.Add(new Vector2((c % GW) * CELL, (c / GW) * CELL));
         rev.Reverse(); path.AddRange(rev);
-    }
-
-    static void Reboot(UnityEngine.SceneManagement.Scene s, UnityEngine.SceneManagement.LoadSceneMode m)
-    {
-        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= Reboot;
-        Bootstrap.Init();
     }
 
     void OnDestroy() { FloatingJoystick.Override = null; }

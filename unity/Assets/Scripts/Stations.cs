@@ -78,6 +78,7 @@ public class Stations : MonoBehaviour
         bool ice2 = G.PadLv("ice2") >= 1;
         for (int i = GameConfig.BASE_SPOTS; i < ALL_SPOTS; i++) spotRoots[i].gameObject.SetActive(ice2);
         WorldMap.drillInstalled = G.PadLv("drill") >= 1;
+        WorldMap.domeOpen = G.PadLv("dome") >= 1;
         drillView.gameObject.SetActive(WorldMap.drillInstalled);
     }
 
