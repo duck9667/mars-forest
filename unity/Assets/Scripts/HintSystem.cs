@@ -46,6 +46,8 @@ public class HintSystem : MonoBehaviour
             targetKey = "ice:" + best; return WorldMap.ICE_SPOTS[best];
         }
         bool iceFull = G.Carry + G.pend >= G.CarryMax;
+        // 해빙기 옆이면 다 넣을 때까지 머문다(몇 개 넣자마자 "덜 찼다"며 얼음밭으로 돌아가는 왕복 방지)
+        if (top == "ice" && WorldMap.NearStn(Player.I.pos, "melter", GameConfig.R_MELT)) return P("melter");
         if (top == "ice" || G.pendK == "ice") return (iceFull || !anyOpen) ? P("melter") : Ice();   // 얼음 가득/밭 비었음→해빙기, 아니면 계속 줍기
         // 생존 기지: 들고 있는(또는 날아오는) 종류별 목적지. 출력을 받는 중이면 가득 차거나 더미가 빌 때까지 그 자리
         var ss = SettleStations.I;
