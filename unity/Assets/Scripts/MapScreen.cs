@@ -42,6 +42,7 @@ public class MapScreen : MonoBehaviour
     {
         { "ice", "얼음밭" }, { "ice2", "얼음밭" }, { "melt", "해빙기" }, { "bottle", "병입기" }, { "shop", "가게" },
         { "dome", "휴게 돔" }, { "pen", "우리" }, { "mine", "채굴장" }, { "o2", "산소동" }, { "farm", "온실" }, { "soil", "토양 공장" },
+        { "hab", "거주 구역" }, { "solar", "태양광" },
     };
 
     void Awake()
@@ -137,6 +138,7 @@ public class MapScreen : MonoBehaviour
         bool far = WorldMap.openZones.Contains("farm") || WorldMap.openZones.Contains("soil");
         if (near) Strip(16, WorldMap.NORTH_Y, 380, 46);
         if (far) Strip(16, WorldMap.MID_Y0, 380, WorldMap.MID_Y1);
+        if (far) Strip(16, WorldMap.ROAD3_Y0, 380, WorldMap.ROAD3_Y1);   // 2장 개척 길
 
         // 구역
         var focusRoot = UIKit.RT(mapRt, "focus"); focusRoot.anchorMin = Vector2.zero; focusRoot.anchorMax = Vector2.one; focusRoot.offsetMin = focusRoot.offsetMax = Vector2.zero;
@@ -179,6 +181,8 @@ public class MapScreen : MonoBehaviour
         Fac(Stn("mixer"), Glyph("sack"), "soil");
         Fac(Stn("green"), Glyph("leaf"), "farm", 30);
         Fac(WorldMap.DOME, UIKit.Icon("home"), "dome");
+        Fac(new Vector2(126, -515), UIKit.Icon("home"), "hab", 30);
+        Fac(new Vector2(318, -515), UIKit.Icon("sun"), "solar", 30);
         Fac(new Vector2((WorldMap.PEN_X0 + WorldMap.PEN_X1) / 2, (WorldMap.PEN_Y0 + WorldMap.PEN_Y1) / 2), UIKit.Icon("rabbit"), "pen");
         // 착륙장: 회색 원판 + 깃발 + 이름
         var pad = UIKit.RoundPanel(mapRt, "lander", Dot, 30); pad.color = UIKit.Hex("c3cfe6"); Place(pad, M(WorldMap.LANDER.x, WorldMap.LANDER.y), new Vector2(30, 30));

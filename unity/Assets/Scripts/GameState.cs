@@ -64,9 +64,11 @@ public class GameState : MonoBehaviour
     public int CarryMax => GameConfig.CARRY[Mathf.Min(6, PadLv("hand"))] + 3 * Mathf.Min(2, S.prestige);
     public int ShelfCap => 8 + PadLv("shelf") * 7;
     public int BottlePrice => Mathf.FloorToInt((12 + PadLv("price") * 6) * Mathf.Pow(1.5f, S.prestige) + 0.5f);
-    public float MeltTime => 1.6f / (1 + PadLv("melter") * 0.35f);
-    public float BottleTime => 1.6f / (1 + PadLv("bottler") * 0.35f);
-    public float BaseGap => Mathf.Max(2f, 6.5f - PadLv("ads") * 0.9f);
+    // 공용 기계 속도 배율(2장): 태양광 전력(Frontier, 낮·배터리 동안 ×1.2). 본부 보너스 등 다른 배율은 여기에 곱한다
+    public float MachineSpeedMul => Frontier.PowerMul;
+    public float MeltTime => 1.6f / (1 + PadLv("melter") * 0.35f) / MachineSpeedMul;
+    public float BottleTime => 1.6f / (1 + PadLv("bottler") * 0.35f) / MachineSpeedMul;
+    public float BaseGap => Mathf.Max(2f, 6.5f - PadLv("ads") * 0.9f) * (Frontier.I != null ? Frontier.I.GapMul : 1f);   // 거주 구역 인구만큼 도착 간격 조금 줄어듦
     public float Speed => GameConfig.BASE_SPEED + GameConfig.SPEED_PER_LV * PadLv("spd");
     public bool HasCashier => PadLv("cashier") >= 1;
 

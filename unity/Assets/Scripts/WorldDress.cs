@@ -30,11 +30,12 @@ public static class WorldDress
 
     // 메사: (중심 x, 중심 y, 반지름 rx, ry, 높이). 보이는 범위는 대략 x −10~410, y Y_MIN−100(−490)~1090(CameraRig 직교 반폭 210).
     // 안쪽 가장자리는 놀이 경계(x 14~386, y Y_MIN+6~1024) 밖에 머물게, 아래쪽은 착륙장·입구(x 140~270) 앞을 협곡 입구로 비운다.
-    // 북쪽 확장(생존 기지): 위 4개를 새 북쪽 경계 밖(y≈−500)으로 올리고, 늘어난 좌우에 2개씩 덧붙였다(배열 끝: 기존 메사 모양 난수 순서 유지)
+    // 북쪽 확장(생존 기지): 위 4개를 새 북쪽 경계 밖으로 올리고, 늘어난 좌우에 2개씩 덧붙였다(배열 끝: 기존 메사 모양 난수 순서 유지)
+    // 2장 개척지(Y_MIN −640): 위 4개를 다시 y≈−752(안쪽 가장자리 ≈ −660, 경계 −634 밖)로, 개척지 옆 좌우에 1개씩 더
     static readonly Vector4[] MESAS =
     {
         // 위(북): 옆면 지층 띠가 정면으로 보이는 쪽이라 가장 높게
-        new Vector4(-40, -500, 110, 90), new Vector4(150, -498, 110, 88), new Vector4(330, -504, 120, 92), new Vector4(470, -490, 100, 80),
+        new Vector4(-40, -750, 110, 90), new Vector4(150, -748, 110, 88), new Vector4(330, -754, 120, 92), new Vector4(470, -740, 100, 80),
         // 왼쪽
         new Vector4(-64, 150, 68, 130), new Vector4(-62, 400, 66, 140), new Vector4(-66, 650, 70, 130), new Vector4(-64, 880, 68, 120),
         // 오른쪽
@@ -43,8 +44,10 @@ public static class WorldDress
         new Vector4(10, 1124, 100, 72), new Vector4(390, 1128, 110, 76), new Vector4(-60, 1080, 80, 90), new Vector4(470, 1090, 80, 90),
         // 북쪽 확장 좌우(생존 기지 옆)
         new Vector4(-66, -330, 70, 140), new Vector4(-62, -90, 66, 130), new Vector4(466, -340, 70, 140), new Vector4(462, -96, 68, 130),
+        // 2장 개척지 옆(거주 구역 서쪽·태양광 단지 동쪽)
+        new Vector4(-64, -560, 68, 130), new Vector4(464, -566, 70, 130),
     };
-    static readonly float[] MESA_H = { 72, 80, 76, 70, 58, 64, 54, 60, 60, 56, 62, 58, 26, 28, 40, 40, 62, 56, 60, 58 };
+    static readonly float[] MESA_H = { 72, 80, 76, 70, 58, 64, 54, 60, 60, 56, 62, 58, 26, 28, 40, 40, 62, 56, 60, 58, 60, 62 };
 
     // rockRoot: 테두리 부모(이름은 예전 그대로). 메사 + 포인트 바위 6개(북쪽 길 위에 있던 것은 북쪽 메사 발치·채굴장 옆으로)
     static void Rocks(Transform rockRoot)
@@ -54,7 +57,7 @@ public static class WorldDress
         // 포인트 바위: 메사 발치·경계 안쪽 빈자리에 몇 개만 (x, y, 크기, 회전)
         // 소품 밀도 절반(2026-10-25): 11개 → 6개
         var spots = new[] { new Vector4(4, 188, 10, .4f), new Vector4(398, 724, 10, 3.5f), new Vector4(134, 1050, 9, 1.7f),
-                            new Vector4(88, -400, 9, 2.8f), new Vector4(4, -44, 10, 1.3f), new Vector4(397, -128, 9, .6f) };
+                            new Vector4(400, -606, 9, 2.8f), new Vector4(4, -44, 10, 1.3f), new Vector4(397, -128, 9, .6f) };
         string[] names = { "rockA", "rockB", "rockC", "rockD" };
         var reAB = RockRe(0x8a3418, 0xf0a878); var reCD = RockRe(0x6e2a12, 0xd0683a);
         for (int i = 0; i < spots.Length; i++)
@@ -144,7 +147,7 @@ public static class WorldDress
             Prim.Box(g, "saddle", WorldMap.W2U(X, y, 2.5f), new Vector3(9, 5, 4), dark);
             Prim.Box(g, "band", WorldMap.W2U(X, y, H), new Vector3(R + 1.6f, R + 1.6f, 2), dark);
         }
-        ModelLib.Put(g, "tankBig", 26, 26, 26, X - 200, 0, -400 - 520, 0.5f, ModelLib.SK(ModelLib.COL.blue));
+        ModelLib.Put(g, "tankBig", 24, 24, 24, X + 6 - 200, 0, -392 - 520, 0.5f, ModelLib.SK(ModelLib.COL.blue));   // 개척 길(x ≤380) 끝과 안 겹치게 동쪽으로
     }
 
     // 착륙선: Kenney 로켓 파츠 4단 (날개·연료·몸통·코), S=23, SK(orange, dark) (원본 546~550행)

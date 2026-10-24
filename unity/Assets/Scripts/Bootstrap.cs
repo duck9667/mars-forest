@@ -32,6 +32,7 @@ public static class Bootstrap
         new GameObject("World").AddComponent<World>();
         new GameObject("Stations").AddComponent<Stations>();
         new GameObject("Settle").AddComponent<SettleStations>();
+        new GameObject("Frontier").AddComponent<Frontier>();               // 2장 개척지: 거주 구역·태양광 단지
         new GameObject("Zones").AddComponent<ZoneManager>();
         new GameObject("Player").AddComponent<Player>();
         new GameObject("Pads").AddComponent<PadManager>();

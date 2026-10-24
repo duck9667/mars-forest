@@ -128,7 +128,7 @@ public class SettleStations : MonoBehaviour
             if (!Open(i)) { t = 0; continue; }
             bool can = Q(i) > 0 && Out(i) < GameConfig.SETTLE_OUT_CAP && (i != 3 || S.water >= GREEN_WATER);
             if (!can) { t = 0; continue; }
-            t += dt;
+            t += dt * G.MachineSpeedMul;   // 태양광 전력 등 공용 기계 속도 배율
             if (t >= TIMES[i])
             {
                 t = 0; Q(i)--; Out(i)++;

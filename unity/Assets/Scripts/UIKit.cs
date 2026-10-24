@@ -330,6 +330,7 @@ public static class UIKit
             case "bottler": return "bottle"; case "melter": return "snow"; case "shelf": return "shelf"; case "ice2": return "ice";
             case "runner": case "runner2": return "cart"; case "ads": return "sign"; case "drill": return "drill"; case "runspd": return "bolt";
             case "pen": return "rabbit"; case "dome": return "home"; case "sold": return "bottle";
+            case "hab": return "home"; case "solar": return "sun";
             default: return "flag";
         }
     }
