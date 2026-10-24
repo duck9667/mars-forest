@@ -23,6 +23,7 @@ public class DayNight : MonoBehaviour
         K(1.00f, "fff0dc", 1.9f,  "fff1e2", "a8482a", 1.05f, "c9552b", 0f),
     };
     const float SUN_SCALE = 1.15f / 1.9f, HEMI_SCALE = 0.55f / 1.05f;
+    static readonly Color PRESTIGE_SKY = GameConfig.Hex("6fa6d8");
     int lastDay = -1;
 
     void Awake() { I = this; }
@@ -47,6 +48,12 @@ public class DayNight : MonoBehaviour
         RenderSettings.ambientSkyColor = sky * hemi;
         RenderSettings.ambientEquatorColor = Color.Lerp(sky, ground, 0.5f) * hemi;
         RenderSettings.ambientGroundColor = ground * hemi;
-        if (CameraRig.I != null) CameraRig.I.cam.backgroundColor = Color.Lerp(a.bg, b.bg, k);
+        if (CameraRig.I != null)
+        {
+            var bg = Color.Lerp(a.bg, b.bg, k);
+            // §6.3 프레스티지 영구 보너스: 이주할 때마다 하늘이 푸른 쪽(0x6fa6d8)으로 min(0.5, 0.1*prestige)만큼 (원본 395행, 보간 결과의 마지막 단계)
+            if (S.prestige > 0) bg = Color.Lerp(bg, PRESTIGE_SKY, Mathf.Min(0.5f, 0.1f * S.prestige));
+            CameraRig.I.cam.backgroundColor = bg;
+        }
     }
 }
