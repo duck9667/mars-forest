@@ -123,11 +123,11 @@ public static class Pads
         // ---- Phase 3 ----
         new PadDef{ id="pen",     name="먼지 토끼 우리", icon="🐰", pos=new Vector2(330,720), cost=l=>400f, max=1, req=g=>g.PadLv("drill")>=1, reqText="드릴", zone=true, active=true },
         new PadDef{ id="dome",    name="휴게 돔",      icon="🏠", pos=new Vector2(106,720), cost=l=>700f,  max=1, req=g=>g.PadLv("pen")>=1, reqText="우리", zone=true, active=true },
-        // ---- 생존 기지 (북쪽 확장) ----
-        new PadDef{ id="o2",      name="전기분해기",    icon="🫧", pos=new Vector2(318,28),   cost=l=>300f,  max=1, req=g=>g.PadLv("ice2")>=1, reqText="얼음밭 확장", zone=true, active=true },
-        new PadDef{ id="mine",    name="레골리스 채굴장", icon="⛏", pos=new Vector2(126,28),  cost=l=>500f,  max=1, req=g=>g.PadLv("o2")>=1, reqText="전기분해기", zone=true, active=true },
-        new PadDef{ id="soil",    name="토양 공장",     icon="🪴", pos=new Vector2(300,-150), cost=l=>700f,  max=1, req=g=>g.PadLv("mine")>=1, reqText="채굴장", zone=true, active=true },
-        new PadDef{ id="farm",    name="온실",         icon="🥔", pos=new Vector2(126,-160), cost=l=>1000f, max=1, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", zone=true, active=true },
+        // ---- 생존 기지 (북쪽 확장) ---- 발판은 자물쇠 아치(게이트) 앞을 피해 둔다(가격표가 아치를 가리지 않게)
+        new PadDef{ id="o2",      name="전기분해기",    icon="🫧", pos=new Vector2(214,28),   cost=l=>300f,  max=1, req=g=>g.PadLv("ice2")>=1, reqText="얼음밭 확장", zone=true, active=true },
+        new PadDef{ id="mine",    name="레골리스 채굴장", icon="⛏", pos=new Vector2(52,28),   cost=l=>500f,  max=1, req=g=>g.PadLv("o2")>=1, reqText="전기분해기", zone=true, active=true },
+        new PadDef{ id="soil",    name="토양 공장",     icon="🪴", pos=new Vector2(282,-20), cost=l=>700f,  max=1, req=g=>g.PadLv("mine")>=1, reqText="채굴장", zone=true, active=true },
+        new PadDef{ id="farm",    name="온실",         icon="🥔", pos=new Vector2(214,-110), cost=l=>1000f, max=1, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", zone=true, active=true },
     };
 
     // §3.1 노출 순서. n번째 등장 = 그 id의 Lv n 차례.
