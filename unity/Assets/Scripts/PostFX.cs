@@ -45,6 +45,12 @@ public class PostFX : MonoBehaviour
     public ShadowResolution shadowRes = Application.isMobilePlatform ? ShadowResolution.High : ShadowResolution.VeryHigh;   // 모바일은 메모리 절약
     public float sunBias = -1f, sunNormalBias = -1f;   // 음수면 World 값 유지
 
+    [Header("외곽선 마스크")]
+    public bool maskOutline = true;       // 배경(바닥·울타리·메사·소품)엔 선을 안 긋는다. -fx mask=0 으로 예전처럼 전부
+    public const int ENV_LAYER = 8;       // 배경 레이어(이름 없는 사용자 레이어 8)
+    static readonly string[] ENV_ROOTS = { "World", "Zones", "Deco", "Terraform", "Pads" };   // Bootstrap 루트 이름
+    Camera maskCam; RenderTexture maskRT; Shader maskShader; float envT;
+
     public bool off;
     Material mat; Camera cam; bool shadowTuned;
 
@@ -60,6 +66,47 @@ public class PostFX : MonoBehaviour
         cam.allowHDR = true;
         cam.depthTextureMode |= DepthTextureMode.Depth;
         if (normalStrength > 0) cam.depthTextureMode |= DepthTextureMode.DepthNormals;
+        maskShader = Resources.Load<Shader>("Shaders/MarsMaskDepth");
+        if (maskShader == null || !maskShader.isSupported) maskOutline = false;
+        if (maskOutline) BuildMaskCam();
+    }
+
+    // 메인 카메라 자식(같은 위치·투영)으로 붙어 먼저 그린다(depth -1). 배경 레이어·UI 를 빼고 선형 깊이만 기록
+    void BuildMaskCam()
+    {
+        var go = new GameObject("outlineMask"); go.transform.SetParent(transform, false);
+        maskCam = go.AddComponent<Camera>();
+        maskCam.enabled = true;
+        maskCam.depth = cam.depth - 1;
+        maskCam.clearFlags = CameraClearFlags.SolidColor; maskCam.backgroundColor = Color.white;
+        maskCam.cullingMask = ~((1 << ENV_LAYER) | (1 << 5));
+        maskCam.renderingPath = RenderingPath.VertexLit;   // 그림자 맵을 다시 만들지 않게
+        maskCam.allowHDR = false; maskCam.allowMSAA = false;
+        maskCam.SetReplacementShader(maskShader, "RenderType");
+        SyncMask();
+    }
+
+    void SyncMask()
+    {
+        maskCam.orthographic = cam.orthographic; maskCam.orthographicSize = cam.orthographicSize; maskCam.fieldOfView = cam.fieldOfView;
+        maskCam.nearClipPlane = cam.nearClipPlane; maskCam.farClipPlane = cam.farClipPlane;
+        int w = Mathf.Max(1, cam.pixelWidth), h = Mathf.Max(1, cam.pixelHeight);
+        if (maskRT == null || maskRT.width != w || maskRT.height != h)
+        {
+            if (maskRT != null) { maskCam.targetTexture = null; maskRT.Release(); }
+            maskRT = new RenderTexture(w, h, 24, RenderTextureFormat.RFloat) { name = "OutlineMask", filterMode = FilterMode.Point };
+            maskCam.targetTexture = maskRT;
+        }
+    }
+
+    // 배경 루트(바닥·구역 울타리·장식·테라포밍·발판) 아래를 배경 레이어로. 구역 해제 등으로 새로 생기니 1초마다 다시 훑는다
+    void TagEnv()
+    {
+        foreach (var n in ENV_ROOTS)
+        {
+            var r = GameObject.Find(n); if (r == null) continue;
+            foreach (var t in r.GetComponentsInChildren<Transform>(true)) if (t.gameObject.layer != ENV_LAYER) t.gameObject.layer = ENV_LAYER;
+        }
     }
 
     void ParseArgs()
@@ -73,6 +120,7 @@ public class PostFX : MonoBehaviour
             switch (p[0])
             {
                 case "off": off = true; break;
+                case "mask": maskOutline = v > 0.5f; break;
                 case "exp": exposure = v; break;
                 case "sat": saturation = v; break;
                 case "con": contrast = v; break;
@@ -97,6 +145,12 @@ public class PostFX : MonoBehaviour
     {
         // World.Lights()(World.Start) 뒤에 한 번: 직교 카메라용 그림자 설정
         if (!shadowTuned && Time.frameCount > 2) { shadowTuned = true; TuneShadows(); }
+        if (maskCam != null)
+        {
+            maskCam.enabled = maskOutline && !off;
+            SyncMask();
+            envT -= Time.unscaledDeltaTime; if (envT <= 0) { envT = 1f; TagEnv(); }
+        }
     }
 
     void TuneShadows()
@@ -122,6 +176,9 @@ public class PostFX : MonoBehaviour
         float depthT = depthThreshL * GameConfig.K / Mathf.Max(1f, cam.farClipPlane - cam.nearClipPlane);
         var oc = outlineColor.linear; oc.a = outlineStrength;
         mat.SetColor("_OutlineColor", oc);
+        bool useMask = maskOutline && maskRT != null;
+        if (useMask) mat.SetTexture("_MaskDepth", maskRT);
+        mat.SetVector("_MaskParams", new Vector4(useMask ? 1 : 0, depthT * 6f, 0, 0));
         mat.SetVector("_EdgeParams", new Vector4(px, depthT, normalThresh, normalStrength));
         mat.SetVector("_ToneParams", new Vector4(exposure, saturation, contrast, bloomIntensity));
         mat.SetVector("_VigParams", new Vector4(vignetteCenter.x, vignetteCenter.y, vignetteStart, vignette));
@@ -146,5 +203,5 @@ public class PostFX : MonoBehaviour
         else Graphics.Blit(src, dst, mat, 0);
     }
 
-    void OnDestroy() { if (mat != null) Destroy(mat); }
+    void OnDestroy() { if (mat != null) Destroy(mat); if (maskRT != null) maskRT.Release(); }
 }

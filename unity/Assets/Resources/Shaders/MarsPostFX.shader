@@ -16,6 +16,8 @@ Shader "Hidden/Mars/PostFX"
     sampler2D_float _CameraDepthTexture; float4 _CameraDepthTexture_TexelSize;
     sampler2D _CameraDepthNormalsTexture;
     sampler2D _BloomTex;
+    sampler2D_float _MaskDepth;   // 배경 레이어를 뺀 물체만의 선형 깊이(MarsMaskDepth). 비어 있는 곳 = 1
+    float4 _MaskParams;          // x 1이면 마스크 깊이로 외곽선(배경엔 선 없음)  y 가림 허용 오차
     float4 _OutlineColor;   // 선형 공간 색, a = 세기
     float4 _EdgeParams;     // x 샘플 오프셋(px)  y 깊이 문턱(near~far 를 0~1 로 본 단위)  z 노멀 문턱(1-dot)  w 노멀 선 세기(0이면 노멀 텍스처 안 읽음)
     float4 _ToneParams;     // x 노출(three.js toneMappingExposure 와 같은 의미)  y 채도  z 대비  w 블룸 세기
@@ -65,6 +67,25 @@ Shader "Hidden/Mars/PostFX"
         return smoothstep(t, t * 2.0, e);
     }
 
+    // 마스크 깊이 엣지: 배경을 뺀 물체만의 깊이로 같은 2차 미분. 실루엣 바깥 픽셀(배경 위)에 선이 생기므로
+    // 그 물체가 다른 물체(메사·건물) 뒤에 가려져 있으면(마스크 최솟값이 장면 깊이보다 멀면) 선을 지운다.
+    float MaskD(float2 uv) { return tex2D(_MaskDepth, uv).r; }
+    float EdgeMask(float2 uv, float2 o, float t)
+    {
+        float d0 = MaskD(uv);
+        float dl = MaskD(uv - float2(o.x, 0)), dr = MaskD(uv + float2(o.x, 0));
+        float dd = MaskD(uv - float2(0, o.y)), du = MaskD(uv + float2(0, o.y));
+        float2 q = o * 0.7071;
+        float d1 = MaskD(uv + float2(-q.x, -q.y)), d2 = MaskD(uv + float2(q.x, q.y));
+        float d3 = MaskD(uv + float2(-q.x, q.y)), d4 = MaskD(uv + float2(q.x, -q.y));
+        float e = max(max(2 * d0 - dl - dr, 2 * d0 - dd - du), max(2 * d0 - d1 - d2, 2 * d0 - d3 - d4));
+        float near = min(min(min(dl, dr), min(dd, du)), min(min(d1, d2), min(d3, d4)));
+        // 선이 그려질 자리(실루엣 바깥)의 장면 깊이가 물체보다 충분히 멀어야 한다: 바닥에 붙은 납작한 원판(서리·발판) 둘레엔 선을 안 긋는다
+        float sd = Depth(uv);
+        float vis = step(near, sd + _MaskParams.y) * smoothstep(t * 2.0, t * 4.0, sd - near);
+        return smoothstep(t, t * 2.0, e) * vis;
+    }
+
     // 노멀 엣지(선택): 이웃과의 1-dot 최대. 깊이 단차가 있는 곳은 깊이 엣지가 이미 칠하므로 거기선 끈다(물체 안쪽까지 두 줄 생기는 것 방지)
     float EdgeNormal(float2 uv, float2 o, float t, float dt)
     {
@@ -94,7 +115,7 @@ Shader "Hidden/Mars/PostFX"
     {
         float3 c = tex2D(_MainTex, i.uv).rgb;
         float2 o = _CameraDepthTexture_TexelSize.xy * _EdgeParams.x;
-        float edge = EdgeDepth(i.uvd, o, _EdgeParams.y);
+        float edge = _MaskParams.x > 0.5 ? EdgeMask(i.uvd, o, _EdgeParams.y) : EdgeDepth(i.uvd, o, _EdgeParams.y);
         if (_EdgeParams.w > 0) edge = max(edge, EdgeNormal(i.uvd, o, _EdgeParams.z, _EdgeParams.y) * _EdgeParams.w);
         if (_ToneParams.w > 0) c += tex2D(_BloomTex, i.uv).rgb * _ToneParams.w;
         c = lerp(c, _OutlineColor.rgb, edge * _OutlineColor.a);
