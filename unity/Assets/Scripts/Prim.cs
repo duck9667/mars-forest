@@ -142,6 +142,38 @@ public static class Items
         if (kind == "coin") return Prim.Cyl(parent, kind, Vector3.zero, 9, 1.8f, GameConfig.GOLD);
         return Prim.Box(parent, kind, Vector3.zero, new Vector3(14, 2.4f, 10), ColorOf(kind));
     }
+    // 등짐 탑 전용 블록(피자레디처럼 등 뒤에 높이 쌓는 두툼한 덩어리). 한 층 CARRY_H 논리, 피벗은 블록 중심.
+    // 얼음: 하늘색 얼음 블록 + 밝은 윗면 + 서리 띠 / 병: 나무 상자 + 병 6개(뚜껑이 위로 보이게)
+    public const float CARRY_H = 5.0f;
+    static readonly Color ICE_BODY = GameConfig.Hex("8fd4f5"), ICE_TOP = GameConfig.Hex("f2fbff");
+    static readonly Color CRATE = GameConfig.Hex("e08a45"), CRATE_LIP = GameConfig.Hex("a8582a"), CAP = GameConfig.Hex("ffffff");
+    public static GameObject CarryBlock(Transform parent, string kind)
+    {
+        var root = new GameObject(kind); root.transform.SetParent(parent, false);
+        var t = root.transform; float k = GameConfig.K, h = CARRY_H;
+        // 층마다 윗면 테두리(립)를 몸통보다 넓게 둬서 쌓인 층이 줄무늬처럼 또렷하게 읽히게 한다(같은 폭이면 외곽선이 안 생김)
+        if (kind == "bottle")
+        {
+            float ch = 3.2f;   // 상자 높이, 나머지는 병목·뚜껑
+            Prim.Box(t, "crate", new Vector3(0, (-h / 2 + ch / 2) * k, 0), new Vector3(17, ch, 12.5f), CRATE);
+            Prim.Box(t, "lip", new Vector3(0, (-h / 2 + ch - 0.4f) * k, 0), new Vector3(18, 0.8f, 13.5f), CRATE_LIP);
+            for (int r = 0; r < 2; r++)
+                for (int c = 0; c < 3; c++)
+                {
+                    float x = (c - 1) * 5f, z = (r - 0.5f) * 5.6f;
+                    Prim.Cyl(t, "b", new Vector3(x * k, (-h / 2 + ch + 0.5f) * k, z * k), 3.8f, 1.4f, GameConfig.BOTTLE);
+                    Prim.Cyl(t, "cap", new Vector3(x * k, (h / 2 - 0.3f) * k, z * k), 2.4f, 0.6f, CAP);
+                }
+        }
+        else if (kind == "ice")
+        {
+            Prim.Box(t, "ice", new Vector3(0, -0.5f * k, 0), new Vector3(17, h - 1f, 12.5f), ICE_BODY);
+            Prim.Box(t, "top", new Vector3(0, (h / 2 - 0.5f) * k, 0), new Vector3(18, 1f, 13.5f), ICE_TOP);
+        }
+        else Prim.Box(t, kind, Vector3.zero, new Vector3(17, h - 0.4f, 12.5f), ColorOf(kind));
+        return root;
+    }
+
     // 컨테이너 안 스택을 count에 맞춰 재구성(간단한 재빌드; 수십 개 수준이라 충분)
     public static void SyncStack(Transform anchor, string kind, int count, int cols, int rows, float gapX, float gapZ, int max)
     {
