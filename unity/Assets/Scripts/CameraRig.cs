@@ -21,6 +21,7 @@ public class CameraRig : MonoBehaviour
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = GameConfig.BG;
         gameObject.AddComponent<AudioListener>();
+        gameObject.AddComponent<PostFX>();   // §7.2 외곽선·ACES·비네트·블룸(깊이 텍스처는 PostFX 가 켠다)
         camY = GameState.I ? GameState.I.S.p.y : 450f;
     }
 

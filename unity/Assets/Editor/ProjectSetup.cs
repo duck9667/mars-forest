@@ -55,7 +55,25 @@ public static class ProjectSetup
         PlayerSettings.runInBackground = true;
         PlayerSettings.iOS.targetOSVersionString = "15.0";
         PlayerSettings.colorSpace = ColorSpace.Linear;
+        EnsureHdr();
         AssetDatabase.SaveAssets();
         Debug.Log("Mars: 프로젝트 셋업 완료");
+    }
+
+    // PostFX(ACES 톤매핑·블룸)는 1 이상의 값이 살아 있어야 하므로 모든 티어에서 카메라 HDR 을 켠다 (기본 티어 설정은 모바일 Tier1 이 꺼져 있음)
+    static void EnsureHdr()
+    {
+        try
+        {
+            foreach (var grp in new[] { BuildTargetGroup.Standalone, BuildTargetGroup.iOS })
+                foreach (UnityEngine.Rendering.GraphicsTier tier in System.Enum.GetValues(typeof(UnityEngine.Rendering.GraphicsTier)))
+                {
+                    var ts = UnityEditor.Rendering.EditorGraphicsSettings.GetTierSettings(grp, tier);
+                    if (ts.hdr && ts.hdrMode == UnityEngine.Rendering.CameraHDRMode.FP16) continue;
+                    ts.hdr = true; ts.hdrMode = UnityEngine.Rendering.CameraHDRMode.FP16;
+                    UnityEditor.Rendering.EditorGraphicsSettings.SetTierSettings(grp, tier, ts);
+                }
+        }
+        catch (System.Exception e) { Debug.LogWarning("HDR 티어 설정 건너뜀: " + e.Message); }
     }
 }
