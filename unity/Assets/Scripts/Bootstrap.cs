@@ -53,6 +53,7 @@ public static class Bootstrap
         new GameObject("Settlement").AddComponent<SettlementManager>();   // 정착 목표 10단계(1장 생존·2장 마을)
         new GameObject("Map").AddComponent<MapScreen>();                  // 지도 화면(HUD 정착 알약)
         new GameObject("Story").AddComponent<StoryManager>();             // 관제사 하나의 무전(인트로·사건 카드)
+        new GameObject("Events").AddComponent<MarsEvents>();              // 화성 이벤트(먼지 폭풍·보급선·운석)
         new GameObject("Tutorial").AddComponent<TutorialManager>();
         new GameObject("Hint").AddComponent<HintSystem>();
         new GameObject("Dev").AddComponent<DevTools>();

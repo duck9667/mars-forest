@@ -47,6 +47,7 @@ public class SaveData
     public List<MissionSave> missions = new List<MissionSave>(); public int missionDay = 0;   // 하루 미션 3개·발급한 날
     public float powerRun = 0;                           // 2장 6단계: 태양광 전력으로 기계가 일한 초(SettlementManager, 2장부터 셈)
     public int missionAll = 0;                           // 2장 9단계: 하루 미션 3개를 모두 끝낸 적 있음(0/1)
+    public float evNext = 0;                             // 화성 이벤트(MarsEvents): 다음 판정까지 남은 초(0이면 새로 정함)
 }
 
 public static class SaveSystem

@@ -71,12 +71,17 @@ public class StoryManager : MonoBehaviour
         { "hq_3", "본부 Lv.3! 관제 센터 동료들이 다들 부러워해요." },
         { "hq_4", "본부 Lv.4! 이제 지구 망원경으로도 기지가 보인대요." },
         { "hq_5", "본부 최고 레벨! 이제 제 도움 없이도 되겠어요." },
+        // 화성 이벤트(MarsEvents, 일어날 때마다 다시 뜸)
+        { "ev_storm",     "먼지 폭풍이 와요! 햇빛이 가려지고 걸음도 무거워져요." },
+        { "ev_storm_end", "폭풍이 걷혔어요. 하늘이 다시 맑아요!" },
+        { "ev_supply",    "지구 보급선 도착! 착륙장 캡슐을 1분 안에 챙겨요." },
+        { "ev_meteor",    "작은 운석이 떨어졌어요. 얼음이 박혀 있대요, 주워 봐요!" },
     };
     // 처음 해제하면 무전하는 구역 발판
     static readonly HashSet<string> ZONE_PADS = new HashSet<string> { "ice2", "o2", "mine", "soil", "farm", "solar", "hab", "pen", "dome" };
 
     // ---- 상태 ----
-    class Msg { public string id, text; public float readyAt; }
+    class Msg { public string id, text; public float readyAt; public bool repeat; }
     readonly List<Msg> queue = new List<Msg>();
     bool introPending, introShowing;   // introShowing: 컷 판(인트로·엔딩)이 떠 있음
     bool endingPending; float endingAt;
@@ -149,12 +154,12 @@ public class StoryManager : MonoBehaviour
 
     bool Seen(string id) => S.story.Contains(id);
 
-    /// 무전 예약(같은 id는 한 번만). delay초 뒤부터 뜰 수 있음
-    public void Push(string id, float delay = 0f)
+    /// 무전 예약(같은 id는 한 번만). delay초 뒤부터 뜰 수 있음. repeat=true면 S.story에 남기지 않아 다음에도 뜬다(화성 이벤트)
+    public void Push(string id, float delay = 0f, bool repeat = false)
     {
-        if (G == null || Seen(id) || !LINES.TryGetValue(id, out var text)) return;
+        if (G == null || (!repeat && Seen(id)) || !LINES.TryGetValue(id, out var text)) return;
         foreach (var m in queue) if (m.id == id) return;
-        queue.Add(new Msg { id = id, text = text, readyAt = Time.unscaledTime + delay });
+        queue.Add(new Msg { id = id, text = text, readyAt = Time.unscaledTime + delay, repeat = repeat });
     }
 
     // 폴링 사건: 처음 일어났는지. boot=true면 옛 저장 판정(지난 일로 볼지)
@@ -226,7 +231,7 @@ public class StoryManager : MonoBehaviour
 
     void ShowCard(Msg m)
     {
-        if (!Seen(m.id)) S.story.Add(m.id);
+        if (!m.repeat && !Seen(m.id)) S.story.Add(m.id);
         curMsg = m; m.readyAt = 0;
         float w = Mathf.Min(470f, CanvasW - 32f);
         var bg = UIKit.Panel(HUD.I.transform, "storyCard", UIKit.Navy); bg.raycastTarget = true;

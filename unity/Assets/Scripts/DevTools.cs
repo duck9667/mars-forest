@@ -115,7 +115,8 @@ public class DevTools : MonoBehaviour
         if (q != null && Pads.Get(q.key) != null && Pads.Get(q.key).menu && G.PadReq(q.key) && !G.PadMaxed(q.key) && G.S.bells >= G.PadRemain(q.key)) PadManager.I.Buy(q.key);
         // 돔 좌석 팁이 병값×3 이상 쌓였으면 빈손일 때 들러 수거(좌석 r34 안, 좌석 충돌 r16 밖)
         int seatTip = 0; int seatI = DomeSystem.I != null && G.Carry == 0 && G.pend == 0 ? DomeSystem.I.RichestSeat(out seatTip) : -1;
-        if (seatI >= 0 && seatTip >= G.BottlePrice * 3)
+        if (key == "event") { }   // 화성 이벤트 물건(시간 제한)을 주우러 가는 중이면 좌석 팁·발판 쇼핑으로 끊지 않는다
+        else if (seatI >= 0 && seatTip >= G.BottlePrice * 3)
         {
             // 돔 울타리가 막은 뒤로 뒷줄 좌석(y 890) 뒤쪽은 못 들어가므로 화단·분수 사이 앞쪽 안쪽 자리(좌석에서 r34 안)에서 걷는다
             var st = WorldMap.SEATS[seatI];
