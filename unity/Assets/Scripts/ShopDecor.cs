@@ -33,6 +33,7 @@ public class ShopDecor : MonoBehaviour
     const float TS = 26f, TX0 = 26f, TX1 = 370f, TY0 = 430f, TY1 = 550f, TILE_H = 0.16f;
 
     Transform root, awn, neon, lights; bool built;
+    readonly List<GameObject> poleExt = new List<GameObject>();   // 차양 기둥 위 깃대·깃발(보라 깃발 장식 전엔 숨김)
     Renderer awnBase;
     class Strip { public Transform t; public Renderer r; public bool dark; public float x, kick; public Vector3 basePos; }
     readonly List<Strip> stripes = new List<Strip>(), flaps = new List<Strip>();
@@ -85,8 +86,10 @@ public class ShopDecor : MonoBehaviour
         {
             Prim.Cyl(root, "foot", P(x, POLE_Y, 1.5f), 9, 3, STEEL);
             Prim.Cyl(root, "pole", P(x, POLE_Y, 28.5f), 4, 57, POLE);
-            Prim.Cyl(root, "flagpole", P(x, POLE_Y, 73.5f), 2, 34, DARK);
-            Prim.Sphere(root, "tip", P(x, POLE_Y, 91f), 4.5f, GOLDC);
+            Prim.Sphere(root, "poleTip", P(x, POLE_Y, 58.5f), 4f, GOLDC);
+            // 기둥 위 깃대·깃발은 보라 깃발 장식을 샀을 때만(기본 화면은 목표 그림처럼 차양 기둥 끝 금 구슬만, 깃발은 서쪽 하나)
+            poleExt.Add(Prim.Cyl(root, "flagpole", P(x, POLE_Y, 73.5f), 2, 34, DARK));
+            poleExt.Add(Prim.Sphere(root, "tip", P(x, POLE_Y, 91f), 4.5f, GOLDC));
         }
     }
 
@@ -112,7 +115,7 @@ public class ShopDecor : MonoBehaviour
     // 깃발 3개: 차양 기둥 위 2 + 매장 서쪽 단독 깃대 1. 천은 두 마디(바깥 마디가 더 펄럭)
     void BuildFlags()
     {
-        foreach (float x in POLE_X) flags.Add(MakeFlag(P(x, POLE_Y, 88f), 8f, 10f));
+        foreach (float x in POLE_X) { var f = MakeFlag(P(x, POLE_Y, 88f), 8f, 10f); flags.Add(f); poleExt.Add(f.pivot.gameObject); }
         Prim.Cyl(root, "foot", P(FLAG3.x, FLAG3.y, 2f), 11, 4, STEEL);
         Prim.Cyl(root, "flagpole", P(FLAG3.x, FLAG3.y, 39f), 3, 74, DARK);
         Prim.Sphere(root, "tip", P(FLAG3.x, FLAG3.y, 77f), 5, GOLDC);
@@ -319,6 +322,7 @@ public class ShopDecor : MonoBehaviour
         if (!built) Build();
         PaintAwning(Has("awning"));
         PaintFlags(Has("flag"));
+        foreach (var o in poleExt) o.SetActive(Has("flag"));
         neon.gameObject.SetActive(Has("neon"));
         foreach (var p in plants) p.gameObject.SetActive(Has("plant"));
         lights.gameObject.SetActive(Has("lights")); pool.SetActive(Has("lights"));
@@ -401,6 +405,7 @@ public class ShopDecor : MonoBehaviour
     // 깃발: 하나씩 한 바퀴 돌며 보라로
     IEnumerator CoFlags()
     {
+        foreach (var o in poleExt) o.SetActive(true);
         for (int i = 0; i < flags.Count; i++) { StartCoroutine(CoFlagSpin(flags[i])); AudioManager.I.Play("whoosh", 1.1f + i * 0.15f, 0.6f); yield return new WaitForSeconds(0.15f); }
     }
     IEnumerator CoFlagSpin(Flag f)

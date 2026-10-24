@@ -23,6 +23,9 @@ public class Stations : MonoBehaviour
     int lastMeltQ = -1, lastBottles = -1, lastShelf = -1, lastShelfO2 = -1, lastShelfFood = -1, lastCash = -1;
     float coreT;
 
+    // 카운터 칸 받침판(물 하늘색·산소 흰빛·식량 밀색): 진한 원색 판은 상판을 덮은 색 블록처럼 보여 옅은 톤으로, 둘레에 상판이 테처럼 남게
+    static readonly Color[] SHELF_MARK = { GameConfig.Hex("7fc3e8"), GameConfig.Hex("e3e9ee"), GameConfig.Hex("eed29b") };
+    static readonly Color ICE_SIDE = GameConfig.Hex("86c8ee"), ICE_TOP = GameConfig.Hex("cdeefc");
     void Awake() { I = this; }
 
     void Start()
@@ -43,9 +46,11 @@ public class Stations : MonoBehaviour
             var g = new GameObject("spot" + i); g.transform.SetParent(root, false); g.transform.position = WorldMap.W2U(sp);
             spotRoots[i] = g.transform;
             var pile = new GameObject("pile"); pile.transform.SetParent(g.transform, false);
-            Prim.Box(pile.transform, "a", new Vector3(0, 1.8f * GameConfig.K, 0), new Vector3(26, 3.6f, 18), GameConfig.Hex("a9dcf5"));
-            Prim.Box(pile.transform, "b", new Vector3(2f * GameConfig.K, 5.4f * GameConfig.K, -1.5f * GameConfig.K), new Vector3(22, 3.6f, 16), GameConfig.ICE);
-            Prim.Box(pile.transform, "c", new Vector3(-1.5f * GameConfig.K, 9f * GameConfig.K, 1.5f * GameConfig.K), new Vector3(18, 3.6f, 13), GameConfig.Hex("e4f6ff"));
+            // 얼음 덩어리(목표 그림처럼 하늘색 큰 덩어리 하나 + 밝은 윗면 + 옆 작은 조각): 예전 흰 판 3장은 소파처럼 보였다
+            pile.transform.localRotation = Quaternion.Euler(0, (i * 37) % 24 - 12, 0);
+            Prim.Box(pile.transform, "a", new Vector3(0, 5.5f * GameConfig.K, 0), new Vector3(22, 11, 16), ICE_SIDE);
+            Prim.Box(pile.transform, "b", new Vector3(0, 11.3f * GameConfig.K, 0), new Vector3(20, 1.2f, 14), ICE_TOP);
+            Prim.Box(pile.transform, "c", new Vector3(13f * GameConfig.K, 3f * GameConfig.K, 6f * GameConfig.K), new Vector3(8, 6, 7), ICE_SIDE).transform.localRotation = Quaternion.Euler(0, 25, 0);
             spotViews[i] = pile.transform; spotShown[i] = true;
         }
         // 해빙기
@@ -60,7 +65,7 @@ public class Stations : MonoBehaviour
         trayAnchor = new GameObject("tray").transform; trayAnchor.SetParent(bottlerView, false); trayAnchor.position = WorldMap.W2U(b.x, b.y, 52);
         // 카운터(선반)
         var c = WorldMap.STN["counter"];
-        counterView = Machine("counter", c, GameConfig.Hex("d89a62"), 40).transform;
+        counterView = Machine("counter", c, GameConfig.Hex("d9b38a"), 40).transform;   // 밝은 나무 몸통 + 크림 상판(목표 그림)
         shelfAnchor = new GameObject("shelf").transform; shelfAnchor.SetParent(counterView, false);
         shelfO2Anchor = new GameObject("shelfO2").transform; shelfO2Anchor.SetParent(counterView, false);
         shelfFoodAnchor = new GameObject("shelfFood").transform; shelfFoodAnchor.SetParent(counterView, false);
@@ -68,7 +73,7 @@ public class Stations : MonoBehaviour
         {
             // 칸 받침판: 더미보다 조금 넓은 얇은 판(물 파랑·산소 흰빛·식량 노랑을 한 톤 어둡게), 칸 사이는 상판이 보이게 띄운다
             string kind = GameState.SUPPLY_KINDS[i];
-            var mk = Prim.Box(counterView, "mark_" + kind, Local(counterView, SectionX(i), c.y, SHELF_H + MARK_T / 2), new Vector3(c.w / 3f - 6, MARK_T, c.h - 4), Color.Lerp(Items.ColorOf(kind), new Color(0.2f, 0.25f, 0.35f), 0.25f));
+            var mk = Prim.Box(counterView, "mark_" + kind, Local(counterView, SectionX(i), c.y, SHELF_H + MARK_T / 2), new Vector3(c.w / 3f - 8, MARK_T, c.h - 10), SHELF_MARK[i]);
             Prim.NoShadow(mk);
             shelfMarks[i] = mk.transform;
         }
@@ -170,7 +175,7 @@ public class Stations : MonoBehaviour
 
         // 시각 동기화
         if (S.meltQ != lastMeltQ) { lastMeltQ = S.meltQ; Items.SyncStack(meltAnchor, "ice", S.meltQ, 2, 1, 16, 0, GameConfig.MELT_VIS_MAX); }
-        if (S.bottles != lastBottles) { lastBottles = S.bottles; Items.SyncStack(trayAnchor, "bottle", S.bottles, 6, 4, 10, 10, GameConfig.BOTTLE_CAP); }
+        if (S.bottles != lastBottles) { lastBottles = S.bottles; Items.SyncStack(trayAnchor, "bottle", S.bottles, TRAY_COLS, TRAY_ROWS, 15, 11, GameConfig.BOTTLE_CAP); }
         // 표지는 열린 종류만(식량은 산소보다 늦게 열린다)
         if (shelfSplit && shelfMarks[2].gameObject.activeSelf != G.KindOpen("food")) shelfMarks[2].gameObject.SetActive(G.KindOpen("food"));
         if (S.shelf != lastShelf) { lastShelf = S.shelf; Items.SyncStack(shelfAnchor, "bottle", S.shelf, ShelfCols, 3, 15, 12, 36); }
@@ -180,7 +185,9 @@ public class Stations : MonoBehaviour
     }
 
     public static int Bills(int cash) => Mathf.Min(GameConfig.BILL_MAX, Mathf.CeilToInt(cash / 12f));
-    public Vector3 TrayTop() => trayAnchor.position + Vector3.up * (Mathf.Max(0, G.S.bottles - 1) / 24 + 1) * Items.ITEM_H["bottle"] * GameConfig.K;
+    // 병입기 산출 받침대(동쪽 32×42)에 물통 2×3을 한 층으로 쌓는다(StationDress.Bottler)
+    public const int TRAY_COLS = 2, TRAY_ROWS = 3;
+    public Vector3 TrayTop() => trayAnchor.position + Vector3.up * (Mathf.Max(0, G.S.bottles - 1) / (TRAY_COLS * TRAY_ROWS) + 1) * Items.ITEM_H["bottle"] * GameConfig.K;
     public Vector3 ShelfTop() => ShelfTop("bottle");
     public Vector3 ShelfTop(string kind) => AnchorOf(kind).position + Vector3.up * (G.ShelfOf(kind) / ShelfLayer + 1) * Items.ITEM_H[kind] * GameConfig.K;
     // 그 칸으로 날아가는 중인 수

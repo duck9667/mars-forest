@@ -11,7 +11,7 @@ public class PadManager : MonoBehaviour
 
     public class PadView
     {
-        public PadDef def; public Transform root, disc, prog, progRim, ring; public WorldLabels.Label label; public bool shown; public float coinT;
+        public PadDef def; public Transform root, disc, prog, progRim, ring; public Material edgeMat; public WorldLabels.Label label; public bool shown; public float coinT;
     }
     public readonly Dictionary<string, PadView> views = new Dictionary<string, PadView>();
     public HashSet<string> visSet = new HashSet<string>();
@@ -20,6 +20,8 @@ public class PadManager : MonoBehaviour
     public System.Action OnChanged;
 
     void Awake() { I = this; }
+    // 발판 고리: 살 수 있으면 밝은 금, 아직이면 같은 금색을 반쯤 비치게(금색은 상호작용 표시라 늘 같은 색 계열)
+    static readonly Color PAD_EDGE = GameConfig.Hex("ffcf4a"), PAD_EDGE_DIM = new Color(0.95f, 0.76f, 0.31f, 0.6f);
 
     void Start()
     {
@@ -29,15 +31,21 @@ public class PadManager : MonoBehaviour
             var v = new PadView { def = d };
             v.root = new GameObject("pad_" + d.id).transform; v.root.SetParent(transform, false);
             v.root.position = WorldMap.W2U(d.pos);
-            v.disc = Prim.Cyl(v.root, "disc", new Vector3(0, 0.03f, 0), 60, 3, GameConfig.Hex("fff4dc")).transform;
+            // 발판(목표 그림 docs/art/target_base_v1.png): 크림 원판 대신 옅은 금빛 바닥 + 늘 보이는 금색 고리. 살 수 있으면 고리가 밝아지고 바깥 고리가 숨 쉰다.
+            // 바닥은 반투명이라 아래 땅·길 색이 비쳐 어느 바닥에서도 같은 발판으로 읽힌다
+            var glow = GameConfig.GOLD; glow.a = 0.2f;
+            v.disc = Prim.Cyl(v.root, "disc", new Vector3(0, 0.02f, 0), 58, 0.4f, Color.white).transform;
+            v.disc.GetComponent<Renderer>().sharedMaterial = Mats.TransShared(glow);
             Prim.NoShadow(v.disc.gameObject);
-            // 진행 채움: 크림 원판 위에 금색이 차오른다(가장자리는 살짝 진한 금). 예전 남색 원판은 부분 납입 때 검은 구멍처럼 보였다.
-            // 크림 원판 윗면(0.105)에 거의 붙여 얇게 깐다: 높이 차가 크면 포스트 외곽선이 진한 테를 그린다
-            v.progRim = Prim.Cyl(v.root, "progRim", new Vector3(0, 0.107f, 0), 52, 0.2f, GameConfig.Hex("e0a93a")).transform;
+            // 진행 채움: 가운데서 금색이 차오른다(가장자리는 살짝 진한 금). 바닥에 거의 붙여 얇게(높이 차가 크면 포스트 외곽선이 진한 테를 그린다)
+            v.progRim = Prim.Cyl(v.root, "progRim", new Vector3(0, 0.035f, 0), 52, 0.2f, GameConfig.Hex("e0a93a")).transform;
             Prim.NoShadow(v.progRim.gameObject);
-            v.prog = Prim.Cyl(v.root, "prog", new Vector3(0, 0.111f, 0), 52, 0.2f, GameConfig.Hex("ffd96a")).transform;
+            v.prog = Prim.Cyl(v.root, "prog", new Vector3(0, 0.04f, 0), 52, 0.2f, GameConfig.Hex("ffd96a")).transform;
             Prim.NoShadow(v.prog.gameObject);
-            v.ring = Prim.Ring(v.root, new Vector3(0, 0.2f, 0), 34, GameConfig.GOLD).transform;
+            var edge = Prim.Ring(v.root, new Vector3(0, 0.06f, 0), 30, PAD_EDGE_DIM);
+            v.edgeMat = edge.GetComponent<Renderer>().sharedMaterial;
+            var halo = GameConfig.Hex("ffe08a"); halo.a = 0.55f;
+            v.ring = Prim.Ring(v.root, new Vector3(0, 0.05f, 0), 35, halo).transform;
             // 가격표(원본 .sg): 남색 패널, 1줄 [발판 아이콘] 이름 Lv.n / 2줄 [벨] 남은 가격. 살 수 있으면 금색(.sg.ok)
             v.label = WorldLabels.I.Add(() => v.root.position + Vector3.up * 0.6f, "", 22, Color.white, new Vector2(0, 52), true, new Color(0.13f, 0.12f, 0.22f, 0.9f));
             v.label.SetIcon(UIKit.PadIcon(d.id));
@@ -122,7 +130,8 @@ public class PadManager : MonoBehaviour
             v.progRim.localScale = new Vector3(rim, 0.1f, rim) * GameConfig.K;
             bool afford = S.bells >= cost - prog;
             v.ring.gameObject.SetActive(afford);
-            if (afford) v.ring.localScale = Vector3.one * 34 * GameConfig.K * (1 + Mathf.Sin(Time.time * 1000f / 250f) * 0.04f);
+            v.edgeMat.color = afford ? PAD_EDGE : PAD_EDGE_DIM;
+            if (afford) v.ring.localScale = Vector3.one * 35 * GameConfig.K * (1 + Mathf.Sin(Time.time * 1000f / 250f) * 0.05f);
             // 가격표: 멀면 [아이콘]+[벨]가격만(옆 발판 가격표와 겹치지 않게 좁게), 플레이어가 가까이(100) 오면 이름·레벨까지
             bool close = Vector2.Distance(pl.pos, v.def.pos) < 100f;
             v.label.Set(close ? v.def.name + " Lv." + (G.PadLv(id) + 1) : "");

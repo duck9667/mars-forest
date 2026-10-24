@@ -304,43 +304,50 @@ public class SettleStations : MonoBehaviour
         ModelLib.Put(v, "barrel", 14, 14, 14, -40, PLATE, -22, 0.5f, ModelLib.SK(0x8fae4a, ModelLib.COL.steelD));
     }
 
-    // 온실: 투명 비닐 반원통(아치형 하우스) + 흰 아치 살 5개, 안에 흙 두둑 2줄과 초록 작물 14포기, 동쪽 물탱크에서 파이프
+    // 온실: 남북으로 놓인 유리 터널(목표 그림 docs/art/target_north_v1.png). 카메라가 남쪽에서 보므로 아치 살이 반원으로 또렷하게 읽힌다
+    // (예전 동서 터널은 살이 위에서 세로줄로 보여 격자처럼 보였다). 안에 흙 두둑 3줄과 작물 12포기, 동쪽 물탱크에서 파이프
     void BuildGreen()
     {
         var v = View(3, new Vector2(-38, 28), new Vector2(38, 28));
-        const float R = 32f, LEN = 112f, CY = -16f;   // 목표 그림처럼 높고 둥근 유리 터널(위에서 격자로 보이지 않게 살은 적고 가늘게)
-        foreach (float by in new[] { CY - 8, CY + 8 }) Prim.Box(v, "bed", L(0, by, PLATE + 2), new Vector3(LEN - 10, 4, 12), GameConfig.SOIL);
-        for (int r = 0; r < 2; r++)
-            for (int j = 0; j < 7; j++)
+        const float R = 36f, LEN = 60f, CX = -20f, CY = -14f;   // 터널 앞 끝(y 16)은 투입 쟁반 바로 뒤
+        foreach (float bx in new[] { CX - 16, CX, CX + 16 }) Prim.Box(v, "bed", L(bx, CY, PLATE + 2), new Vector3(10, 4, LEN - 8), GameConfig.SOIL);
+        for (int r = 0; r < 3; r++)
+            for (int j = 0; j < 4; j++)
             {
-                var c = new GameObject("crop").transform; c.SetParent(v, false); c.localPosition = L(-45 + j * 15, CY - 8 + r * 16, PLATE + 4);
+                var c = new GameObject("crop").transform; c.SetParent(v, false); c.localPosition = L(CX - 16 + r * 16, CY - 22 + j * 14.5f, PLATE + 4);
                 Prim.Cyl(c, "stem", new Vector3(0, 3 * GameConfig.K, 0), 1.8f, 6, GameConfig.Hex("4f8a3a"));
                 Prim.Sphere(c, "leaf", new Vector3(0, 8 * GameConfig.K, 0), 9, GameConfig.Hex("4f9a3a"));
                 Prim.Sphere(c, "top", new Vector3(1.5f * GameConfig.K, 11 * GameConfig.K, -1f * GameConfig.K), 5.5f, GameConfig.Hex("7cc35a"));
                 crops.Add(c);
             }
-        // 비닐(투명 반원통, 바깥 면만) — 깊이를 안 써서 외곽선이 생기지 않고 안의 작물이 비친다
-        var film = new GameObject("film"); film.transform.SetParent(v, false); film.transform.localPosition = L(0, CY, PLATE);
-        film.transform.localScale = Vector3.one * GameConfig.K;
+        // 유리(투명 반원통) — 깊이를 안 써서 외곽선이 생기지 않고 안의 작물이 비친다. 메시는 축 x라 세로로 돌린다
+        var film = new GameObject("film"); film.transform.SetParent(v, false); film.transform.localPosition = L(CX, CY, PLATE);
+        film.transform.localScale = Vector3.one * GameConfig.K; film.transform.localRotation = Quaternion.Euler(0, 90, 0);
         film.AddComponent<MeshFilter>().sharedMesh = TunnelMesh(R, LEN, 20);
-        var mr = film.AddComponent<MeshRenderer>(); var fc = GameConfig.Hex("eef8ff"); fc.a = 0.38f; mr.sharedMaterial = Mats.TransShared(fc);   // 유리 터널이 형태로 읽히게(너무 투명하면 살만 격자로 보인다)
+        var mr = film.AddComponent<MeshRenderer>(); var fc = GameConfig.Hex("eef8ff"); fc.a = 0.3f; mr.sharedMaterial = Mats.TransShared(fc);
         mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; mr.receiveShadows = false;
-        // 아치 살: 반원을 8토막 상자로
-        const int SEG = 8; float segL = Mathf.PI * R / SEG * 1.08f;
-        foreach (float ax in new[] { -LEN / 2, -LEN / 6, LEN / 6, LEN / 2 })
+        // 아치 살 3개(앞·가운데·뒤): 반원을 10토막 상자로
+        const int SEG = 10; float segL = Mathf.PI * R / SEG * 1.08f;
+        foreach (float ay in new[] { CY + LEN / 2, CY, CY - LEN / 2 })
             for (int j = 0; j < SEG; j++)
             {
                 float a = Mathf.PI * (j + 0.5f) / SEG;
-                var rib = Prim.Box(v, "rib", L(ax, CY - Mathf.Cos(a) * R, PLATE + Mathf.Sin(a) * R), new Vector3(1.6f, 1.6f, segL), WHITE);
-                rib.transform.localRotation = Quaternion.Euler(90f - a * Mathf.Rad2Deg, 0, 0);
+                var rib = Prim.Box(v, "rib", L(CX - Mathf.Cos(a) * R, ay, PLATE + Mathf.Sin(a) * R), new Vector3(segL, 2f, 2f), WHITE);
+                rib.transform.localRotation = Quaternion.Euler(0, 0, 90f - a * Mathf.Rad2Deg);
             }
-        foreach (float sy in new[] { CY - R, CY + R }) Prim.Box(v, "sill", L(0, sy, PLATE + 1.5f), new Vector3(LEN + 4, 3, 2.2f), WHITE);   // 용마루는 뺐다(위에서 세로줄로 보임)
-        Prim.Box(v, "door", L(-LEN / 2 - 1, CY + 2, PLATE + 10), new Vector3(1.5f, 20, 14), GameConfig.NAVY);
-        // 물탱크·파이프 (물은 S.water에서 끌어 온다)
-        Prim.Cyl(v, "wtank", L(66, CY - 6, PLATE + 12), 14, 24, WHITE);
-        Prim.Cyl(v, "wband", L(66, CY - 6, PLATE + 16), 15, 5, PIPE);
-        Prim.Sphere(v, "wdome", L(66, CY - 6, PLATE + 24), 14, WHITE);
-        Prim.Box(v, "wpipe", L(58, CY - 6, PLATE + 6), new Vector3(12, 2.5f, 2.5f), PIPE);
+        foreach (float sx in new[] { CX - R, CX + R }) Prim.Box(v, "sill", L(sx, CY, PLATE + 1.5f), new Vector3(3, 3, LEN + 3), WHITE);
+        // 앞쪽 아치 문(흰 문틀 + 남색 문)
+        float fy = CY + LEN / 2 + 1;
+        Prim.Box(v, "door", L(CX, fy, PLATE + 11), new Vector3(14, 22, 1.2f), GameConfig.Hex("9cc4da"));   // 유리문(남색 문은 검은 네모로 튀었다)
+        Prim.Box(v, "doorL", L(CX - 8, fy + 0.3f, PLATE + 11), new Vector3(2, 22, 1.6f), WHITE);
+        Prim.Box(v, "doorR", L(CX + 8, fy + 0.3f, PLATE + 11), new Vector3(2, 22, 1.6f), WHITE);
+        Prim.Box(v, "doorT", L(CX, fy + 0.3f, PLATE + 23), new Vector3(18, 2.4f, 1.6f), WHITE);
+        // 물탱크(동쪽)·파이프 (물은 S.water에서 끌어 온다)
+        Prim.Cyl(v, "wtank", L(40, -26, PLATE + 14), 20, 28, WHITE);
+        Prim.Cyl(v, "wband", L(40, -26, PLATE + 18), 21, 5, PIPE);
+        Prim.Sphere(v, "wdome", L(40, -26, PLATE + 28), 20, WHITE);
+        Prim.Cyl(v, "wcap", L(40, -26, PLATE + 37.5f), 8, 2, PIPE);
+        Prim.Box(v, "wpipe", L(CX + R + 6, -26, PLATE + 5), new Vector3(16, 3, 3), PIPE);
     }
 
     // 축 x, 바닥 y=0인 반원통의 바깥 면(논리 단위; 뷰가 K로 줄인다)
