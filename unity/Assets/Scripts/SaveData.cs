@@ -7,6 +7,7 @@ using UnityEngine;
 [Serializable] public class PadEntry { public string id; public int lv; public float prog; }
 // §3.4 장식 6종(0/1, 프레스티지 후에도 유지)
 [Serializable] public class DecoSave { public int awning, neon, plant, lights, flag, tile; }
+[Serializable] public class MissionSave { public string id; public int goal, prog, reward; public bool done, claimed; }
 [Serializable] public class PlayerSave { public float x = 200, y = 450; public float dx = 0, dy = 1; public List<string> carry = new List<string>(); }
 
 [Serializable]
@@ -40,6 +41,10 @@ public class SaveData
     public float elecT, purT, mixT, grnT;
     public int supW, supO, supF, fertMade;               // 공급 누계(물·산소·식량)·비료 생산 누계
     public int stage = 0;                                // 정착 목표 단계(0~5, 5=정착 완료)
+    // ---- 2장 정착지 확장 (docs/chapter2-design.md) ----
+    public int pop = 0;                                  // 거주 구역에 사는 정착민 수
+    public List<string> story = new List<string>();      // 이미 본 서사 메시지 id
+    public List<MissionSave> missions = new List<MissionSave>(); public int missionDay = 0;   // 하루 미션 3개·발급한 날
 }
 
 public static class SaveSystem
@@ -86,6 +91,8 @@ public static class SaveSystem
         // 드릴 충돌은 저장된 레벨로 먼저 켜고 나서 위치를 검사해야 드릴 안에 갇힌 저장본을 구제할 수 있다
         if (d.deco == null) d.deco = new DecoSave();
         if (d.qskip == null) d.qskip = new List<int>();
+        if (d.story == null) d.story = new List<string>();
+        if (d.missions == null) d.missions = new List<MissionSave>();
         // Phase 2 저장(qv<3)은 우리·돔 목표(9·10번)를 보상 없이 건너뛰었다. 아직 그 발판이 없으면 9번으로 되돌리고,
         // 그 뒤 이미 보상받은 목표(11번 물병 300개 등)는 qskip에 넣어 다시 보상하지 않는다
         if (d.qv < 3)

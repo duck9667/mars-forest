@@ -7,7 +7,7 @@ public static class GameConfig
 {
     public const float K = 0.05f;              // 논리 20 = 1m
     public const float W = 400f, H = 1040f;
-    public const float Y_MIN = -390f;          // 생존 기지: 북쪽 확장(채굴장·산소동·토양 공장·온실). 세계 y = Y_MIN..H
+    public const float Y_MIN = -640f;          // 북쪽 확장: 생존 기지(채굴장·산소동·토양 공장·온실, y −380~10) + 2장 개척지(거주 구역·태양광 단지, y −620~−410). 세계 y = Y_MIN..H
     public const float DT_MAX = 0.05f;
 
     public static readonly int[] CARRY = { 20, 24, 28, 32, 36, 40, 48 };   // jake 요청(10/24): 처음부터 20개
@@ -127,14 +127,18 @@ public static class Pads
         new PadDef{ id="o2",      name="전기분해기",    icon="🫧", pos=new Vector2(214,28),   cost=l=>300f,  max=1, req=g=>g.PadLv("ice2")>=1, reqText="얼음밭 확장", zone=true, active=true },
         new PadDef{ id="mine",    name="레골리스 채굴장", icon="⛏", pos=new Vector2(52,28),   cost=l=>500f,  max=1, req=g=>g.PadLv("o2")>=1, reqText="전기분해기", zone=true, active=true },
         new PadDef{ id="soil",    name="토양 공장",     icon="🪴", pos=new Vector2(282,-20), cost=l=>700f,  max=1, req=g=>g.PadLv("mine")>=1, reqText="채굴장", zone=true, active=true },
+        // ---- 2장 정착지 확장 (docs/chapter2-design.md) ----
+        new PadDef{ id="solar",   name="태양광 단지",   icon="☀", pos=new Vector2(214,-395), cost=l=>1200f, max=1, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", zone=true, active=true },
+        new PadDef{ id="hab",     name="거주 구역",     icon="🏠", pos=new Vector2(60,-395),  cost=l=>1500f, max=1, req=g=>g.PadLv("farm")>=1, reqText="온실", zone=true, active=true },
+        new PadDef{ id="hq",      name="기지 본부",     icon="🏛", pos=new Vector2(140,960),  cost=l=>300f*Mathf.Pow(2.2f,l), max=5, req=g=>g.S.stage>=g.PadLv("hq"), reqText="정착 단계", active=true },
         new PadDef{ id="farm",    name="온실",         icon="🥔", pos=new Vector2(214,-110), cost=l=>1000f, max=1, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", zone=true, active=true },
     };
 
     // §3.1 노출 순서. n번째 등장 = 그 id의 Lv n 차례.
     public static readonly string[] ORDER =
     {
-        "cashier","bottler","ice2","melter","o2","shelf","runner","ads","bottler","mine","melter","soil","ads","drill","farm","pen","shelf","dome",
-        "runspd","bottler","melter","runner2","ads","shelf","runspd","bottler","melter","runspd","ads","bottler","melter","runspd","shelf"
+        "cashier","bottler","ice2","melter","hq","o2","shelf","runner","ads","bottler","mine","melter","hq","soil","ads","drill","farm","pen","hq","shelf","dome","solar","hab","hq",
+        "runspd","bottler","melter","runner2","ads","shelf","runspd","bottler","melter","runspd","ads","bottler","melter","runspd","shelf","hq"
     };
 
     static Dictionary<string, PadDef> _byId;

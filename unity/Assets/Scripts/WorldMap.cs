@@ -63,6 +63,9 @@ public static class WorldMap
         new Zone{ key="mine",   x0=16,  y0=-180, x1=236, y1=10,   floor=GameConfig.Hex("d6bca2"), sides="NESW", open=false, pad="mine" },
         new Zone{ key="o2",     x0=256, y0=-180, x1=380, y1=10,   floor=GameConfig.Hex("ddcbb8"), sides="NESW", open=false, pad="o2" },
         new Zone{ key="farm",   x0=16,  y0=-380, x1=236, y1=-210, floor=GameConfig.Hex("d8c8a8"), sides="NESW", open=false, pad="farm" },
+        // 2장 개척지(거주 구역·태양광 단지): 개척 길(y −410~−380) 너머
+        new Zone{ key="hab",    x0=16,  y0=-620, x1=236, y1=-410, floor=GameConfig.Hex("d8c8a8"), sides="NESW", open=false, pad="hab" },
+        new Zone{ key="solar",  x0=256, y0=-620, x1=380, y1=-410, floor=GameConfig.Hex("d4b496"), sides="NESW", open=false, pad="solar" },
         new Zone{ key="soil",   x0=256, y0=-380, x1=380, y1=-210, floor=GameConfig.Hex("d4b496"), sides="NESW", open=false, pad="soil" },
     };
     // 게이트(울타리 틈): 구역키, 변, 위치, 폭
@@ -81,9 +84,13 @@ public static class WorldMap
         new Gate{ zone="o2", side='S', at=318, w=60 }, new Gate{ zone="o2", side='N', at=300, w=60 }, new Gate{ zone="o2", side='W', at=-85, w=60 },
         new Gate{ zone="farm", side='S', at=126, w=70 }, new Gate{ zone="farm", side='E', at=-295, w=60 },
         new Gate{ zone="soil", side='S', at=318, w=60 }, new Gate{ zone="soil", side='W', at=-296, w=36 },
+        // 2장: 온실·토양 공장 북쪽 → 개척 길(y −410~−380) → 거주 구역·태양광 단지
+        new Gate{ zone="farm", side='N', at=126, w=70 }, new Gate{ zone="soil", side='N', at=318, w=60 },
+        new Gate{ zone="hab", side='S', at=126, w=70 }, new Gate{ zone="hab", side='E', at=-515, w=60 },
+        new Gate{ zone="solar", side='S', at=318, w=60 }, new Gate{ zone="solar", side='W', at=-515, w=60 },
     };
     // 북쪽(y<10)은 열린 구역 안·열린 통로만 통행. 통로(x 236~256)와 가운데 길은 옆 구역이 하나라도 열려야 한다
-    public const float NORTH_Y = 10f, MID_Y0 = -210f, MID_Y1 = -180f;
+    public const float NORTH_Y = 10f, MID_Y0 = -210f, MID_Y1 = -180f, ROAD3_Y0 = -410f, ROAD3_Y1 = -380f;   // 개척 길(2장)
     static bool In(Zone z, float x, float y, float m) => x >= z.x0 - m && x <= z.x1 + m && y >= z.y0 - m && y <= z.y1 + m;
     static bool NorthBlocked(float x, float y)
     {
@@ -93,7 +100,10 @@ public static class WorldMap
         bool aisle = x > 236 && x < 256;
         if (aisle && y >= MID_Y1) return !near;
         if (y >= MID_Y0 && y < MID_Y1) return !far;
-        if (aisle && y < MID_Y0) return !far;
+        bool far2 = openZones.Contains("hab") || openZones.Contains("solar");
+        if (aisle && y < MID_Y0 && y >= ROAD3_Y1) return !far;
+        if (y >= ROAD3_Y0 && y < ROAD3_Y1) return !far;      // 개척 길: 온실·토양 공장이 열리면 다닐 수 있다(2장 발판이 여기 있다)
+        if (aisle && y < ROAD3_Y0) return !far2;
         return true;
     }
     // 열린 구역(울타리가 보이는 구역)만 울타리 충돌. ZoneManager가 채운다. fenceVer는 봇 격자 재생성 신호
