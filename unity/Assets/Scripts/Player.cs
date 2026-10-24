@@ -79,8 +79,13 @@ public class Player : MonoBehaviour
         vel = v;
         if (walking)
         {
-            float nx = pos.x + v.x * dt; if (!WorldMap.Blocked(nx, pos.y)) pos.x = nx;
-            float ny = pos.y + v.y * dt; if (!WorldMap.Blocked(pos.x, ny)) pos.y = ny;
+            // 한 걸음이 울타리 두께(10)를 넘지 않게 4 단위로 나눠 검사(느린 프레임에서 벽 통과 방지)
+            int n = Mathf.Max(1, Mathf.CeilToInt(sp * dt / 4f)); float sdt = dt / n;
+            for (int k = 0; k < n; k++)
+            {
+                float nx = pos.x + v.x * sdt; if (!WorldMap.Blocked(nx, pos.y)) pos.x = nx;
+                float ny = pos.y + v.y * sdt; if (!WorldMap.Blocked(pos.x, ny)) pos.y = ny;
+            }
             dir = Vector2.Lerp(dir, inp.normalized, dt * 14f).normalized;
         }
         view.position = WorldMap.W2U(pos);
