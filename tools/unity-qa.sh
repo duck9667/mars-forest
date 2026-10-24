@@ -21,14 +21,14 @@ echo "== 실행 (자동 플레이, 스크린샷 → $OUT)"
 rm -f "$OUT"/shot_*.png
 BIN="$(ls "$APP/Contents/MacOS/"* | head -1)"   # 실행 파일명 = 제품명(화성 물병 가게)
 rm -f "$OUT/player.log"
-# 기본은 백그라운드 실행: open -g(앱을 활성화하지 않음)·-n(새 인스턴스, 병렬 QA끼리 안 섞임)·-W(끝날 때까지 대기).
-# 스크린샷은 게임 렌더 버퍼에서 찍으므로 창이 다른 창 뒤에 있어도 된다. QA_FOREGROUND=1이면 예전처럼 앞에서 실행.
+# 기본은 숨김 백그라운드 실행: open -g(앱을 활성화하지 않음)·-j(숨긴 채 실행: 화면에 창이 안 뜸)·-n(새 인스턴스, 병렬 QA끼리 안 섞임)·-W(끝날 때까지 대기).
+# 스크린샷은 게임 렌더 버퍼에서 찍으므로 창이 숨어 있어도 된다. 소리는 게임이 -shot 인자를 보고 끈다(Bootstrap). QA_FOREGROUND=1이면 예전처럼 앞에서 실행.
 if [ "${QA_FOREGROUND:-0}" = "1" ]; then
   # shellcheck disable=SC2086
   "$BIN" -wipe -autoplay -shot "$OUT" ${QA_ARGS:-} -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -logFile "$OUT/player.log" || true
 else
   # shellcheck disable=SC2086
-  open -g -n -W "$APP" --args -wipe -autoplay -shot "$OUT" ${QA_ARGS:-} -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -logFile "$OUT/player.log" || true
+  open -g -j -n -W "$APP" --args -wipe -autoplay -shot "$OUT" ${QA_ARGS:-} -screen-width 540 -screen-height 1170 -screen-fullscreen 0 -logFile "$OUT/player.log" || true
 fi
 echo "== 결과"
 grep -E "screenshot|QA done|Exception|error" "$OUT/player.log" | cut -c1-400 || true

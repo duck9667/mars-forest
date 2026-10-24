@@ -3,6 +3,7 @@ using UnityEngine;
 // 씬 파일 없이 런타임에 전부 조립한다(원본 단일 파일 구조와 같은 감각). Main.unity는 빈 씬이면 된다.
 public static class Bootstrap
 {
+    static bool wiped;
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     public static void Init()
     {
@@ -10,7 +11,10 @@ public static class Bootstrap
         Application.targetFrameRate = 60;
         QualitySettings.pixelLightCount = 6;
         Screen.sleepTimeout = SleepTimeout.NeverSleep;
-        if (DevArgs.Has("-wipe")) SaveSystem.Wipe();
+        if (DevArgs.Has("-wipe") && !wiped) SaveSystem.Wipe();   // 앱 실행당 1회(Restart 재조립 때 다시 지우지 않게)
+        wiped = true;
+        // QA(스크린샷 실행)·-mute면 소리를 끈다(사용자 작업 중 숨김 실행되는 QA가 시끄럽지 않게)
+        if (DevArgs.Has("-shot") || DevArgs.Has("-mute")) AudioListener.volume = 0f;
 
         var cam = Camera.main; if (cam != null) Object.Destroy(cam.gameObject);
         foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None)) Object.Destroy(l.gameObject);

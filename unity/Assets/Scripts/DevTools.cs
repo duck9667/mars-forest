@@ -7,9 +7,10 @@ using UnityEngine;
 public class DevTools : MonoBehaviour
 {
     GameState G => GameState.I;
-    string shotDir; bool autoplay; float t;
+    // 스크린샷 타이머·진행과 검증 인자 적용 여부는 Bootstrap.Restart(F5·프레스티지) 뒤에도 이어지도록 정적으로 둔다
+    string shotDir; bool autoplay; static float t;
     float[] SHOTS = { 2f, 10f, 25f, 45f, 70f, 100f };
-    int shotIdx;
+    static int shotIdx; static bool argsApplied;
 
     void Start()
     {
@@ -24,6 +25,8 @@ public class DevTools : MonoBehaviour
             for (int i = 0; i < parts.Length; i++) float.TryParse(parts[i], out arr[i]);
             SHOTS = arr;
         }
+        if (argsApplied) return;   // 아래 검증 인자는 앱 실행당 1회만(재조립 때 다시 적용하면 이주 결과를 덮는다)
+        argsApplied = true;
         // -rich: 검증용 시작 자금 2000, -bells N: 지정 금액
         if (DevArgs.Has("-rich")) G.AddBells(2000);
         var bells = DevArgs.Get("-bells"); if (!string.IsNullOrEmpty(bells) && float.TryParse(bells, out var bv)) G.AddBells(bv);
