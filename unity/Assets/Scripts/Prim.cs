@@ -40,8 +40,15 @@ public static class Mats
         solidCache[c] = m;
         return m;
     }
-    // 투명 재질은 개별 인스턴스(알파를 애니메이션하므로 캐시 안 함)
+    // 투명 재질은 개별 인스턴스(알파를 애니메이션하므로 캐시 안 함). 쓰는 쪽이 파괴할 때 Destroy(mat) 할 것
     public static Material Trans(Color c) => new Material(TransBase) { color = c };
+    // 알파가 고정인 투명 재질(접지 그림자 등)은 색별로 공유
+    static readonly Dictionary<Color, Material> transCache = new Dictionary<Color, Material>();
+    public static Material TransShared(Color c)
+    {
+        if (transCache.TryGetValue(c, out var m)) return m;
+        m = new Material(TransBase) { color = c }; transCache[c] = m; return m;
+    }
 }
 
 public static class Prim
@@ -78,7 +85,7 @@ public static class Prim
         go.transform.localPosition = new Vector3(0, 0.01f, 0);
         go.transform.localScale = new Vector3(dL, 0.2f, dL) * GameConfig.K;
         var c = GameConfig.Hex("3a1206"); c.a = 0.3f;
-        go.GetComponent<Renderer>().sharedMaterial = Mats.Trans(c);
+        go.GetComponent<Renderer>().sharedMaterial = Mats.TransShared(c);
         NoShadow(go);
         return go;
     }
@@ -132,9 +139,8 @@ public static class Items
     }
     public static GameObject Slab(Transform parent, string kind)
     {
-        var go = Prim.Box(parent, kind, Vector3.zero, new Vector3(14, 2.4f, 10), ColorOf(kind));
-        if (kind == "coin") { Object.Destroy(go); go = Prim.Cyl(parent, kind, Vector3.zero, 9, 1.8f, GameConfig.GOLD); }
-        return go;
+        if (kind == "coin") return Prim.Cyl(parent, kind, Vector3.zero, 9, 1.8f, GameConfig.GOLD);
+        return Prim.Box(parent, kind, Vector3.zero, new Vector3(14, 2.4f, 10), ColorOf(kind));
     }
     // 컨테이너 안 스택을 count에 맞춰 재구성(간단한 재빌드; 수십 개 수준이라 충분)
     public static void SyncStack(Transform anchor, string kind, int count, int cols, int rows, float gapX, float gapZ, int max)

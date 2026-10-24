@@ -4,10 +4,11 @@ using UnityEngine;
 public static class Bootstrap
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    static void Init()
+    public static void Init()
     {
         if (GameState.I != null) return;
         Application.targetFrameRate = 60;
+        QualitySettings.pixelLightCount = 6;
         Screen.sleepTimeout = SleepTimeout.NeverSleep;
         if (DevArgs.Has("-wipe")) SaveSystem.Wipe();
 

@@ -26,7 +26,7 @@ public class CameraRig : MonoBehaviour
 
     public void Shake(float a) { shakeA = Mathf.Max(shakeA, a); }
 
-    public float ViewH => 2f * cam.orthographicSize / GameConfig.K;
+    public float ViewH => 2f * cam.orthographicSize / GameConfig.K / DIR.y;   // 직교 높이를 지면 투영 길이로(고도 ≈55°, DIR.y=0.819)
 
     void LateUpdate()
     {

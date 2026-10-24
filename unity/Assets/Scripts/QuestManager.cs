@@ -105,14 +105,13 @@ public class QuestManager : MonoBehaviour
         float el = 0;
         while (el < 0.5f) { el += Time.deltaTime; brt.localScale = Vector3.one * Mathf.Max(0.001f, JuiceFX.EaseOutBack(Mathf.Clamp01(el / 0.5f))); yield return null; }
         brt.localScale = Vector3.one;
-        // 0.4s 후 동전 14개 HUD로 + 보상
-        int per = Mathf.CeilToInt(q.reward / 14f), given = 0;
-        HUD.I.Coins(brt.position, () => HUD.I.BellsScreen(), 14, () => { int add = Mathf.Min(per, q.reward - given); given += add; G.AddBells(add); });
+        // 보상은 즉시 전액 가산(저장·종료 안전), 동전 14개는 표시용 연출
+        G.AddBells(q.reward);
+        HUD.I.Coins(brt.position, () => HUD.I.BellsScreen(), 14);
         yield return new WaitForSeconds(1.0f);
         el = 0;
         while (el < 0.25f) { el += Time.deltaTime; brt.localScale = Vector3.one * (1 - el / 0.25f); yield return null; }
         Destroy(box.gameObject);
-        if (given < q.reward) G.AddBells(q.reward - given);
         Refresh();
         if (AllDone) { AudioManager.I.Play("ding", 1.2f); }
     }

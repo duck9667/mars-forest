@@ -47,9 +47,9 @@ public class CustomerSystem : MonoBehaviour
         if (combo > 0 && Time.time - lastSaleT > 2f) { combo = 0; HUD.I?.SetCombo(0); }
         // 스폰 (§5.2)
         S.spawnT -= dt;
-        if (S.spawnT <= 0)
+        if (S.spawnT <= 0 && Waiting() < QueueCap)   // 실제로 스폰할 때만 타이머 재설정(줄이 꽉 차면 자리 나는 즉시)
         {
-            if (Waiting() < QueueCap) Spawn();
+            Spawn();
             S.spawnT = S.tut < 3 ? GameConfig.TUT_GAP : SpawnGap * Random.Range(0.7f, 1.3f);
         }
         for (int i = list.Count - 1; i >= 0; i--)
@@ -130,15 +130,8 @@ public class CustomerSystem : MonoBehaviour
                     bool arrived = MoveTo(c, target, GameConfig.CUST_WALK, dt);
                     Bob(c, !arrived);
                     if (arrived) c.view.rotation = Quaternion.LookRotation(new Vector3(0, 0, 1), Vector3.up); // 카운터(북쪽) 보기
-                    if (qi == 0)
+                    if (qi == 0 && !c.bought)
                     {
-                        // 인내 (§5.2): 튜토리얼 후에만
-                        if (S.tut >= 3 && !c.bought)
-                        {
-                            c.wait += dt;
-                            if (c.wait > GameConfig.CUST_WARN && !c.angry) { c.angry = true; c.bubble.Set("병 ×" + c.want + " !"); c.bubble.text.color = GameConfig.Hex("e03c3c"); }
-                            if (c.wait > GameConfig.CUST_PATIENCE) { S.lost++; c.bubble.Show(false); c.st = Customer.St.Leave; AudioManager.I.Play("no"); break; }
-                        }
                         bool canPay = arrived && S.shelf >= c.want && (G.HasCashier || WorldMap.NearStn(Player.I.pos, "register", GameConfig.R_PAY));
                         if (canPay)
                         {
@@ -146,7 +139,17 @@ public class CustomerSystem : MonoBehaviour
                             c.bubble.bg.color = Color.Lerp(new Color(1, 0.98f, 0.92f, 0.95f), GameConfig.GOLD, c.pay / GameConfig.PAY_TIME);
                             if (c.pay >= GameConfig.PAY_TIME) Pay(c);
                         }
-                        else c.pay = 0;
+                        else
+                        {
+                            c.pay = 0;
+                            // 인내 (§5.2): 결제가 진행되지 않을 때만, 튜토리얼 후에만
+                            if (S.tut >= 3)
+                            {
+                                c.wait += dt;
+                                if (c.wait > GameConfig.CUST_WARN && !c.angry) { c.angry = true; c.bubble.Set("병 ×" + c.want + " !"); c.bubble.text.color = GameConfig.Hex("e03c3c"); }
+                                if (c.wait > GameConfig.CUST_PATIENCE) { S.lost++; c.bubble.Show(false); c.st = Customer.St.Leave; AudioManager.I.Play("no"); break; }
+                            }
+                        }
                     }
                     if (c.bought)
                     {
@@ -179,10 +182,11 @@ public class CustomerSystem : MonoBehaviour
         S.shelf -= want;
         int price = G.BottlePrice;
         float earnF = price * want;
-        if (c.vip) earnF = earnF * 3 + price * 2;                       // VIP ×3 + 팁
+        int tip = c.vip ? price * 2 : 0;                                 // VIP 팁은 콤보 배수 밖
+        if (c.vip) earnF *= 3;                                           // VIP ×3
         combo = Time.time - lastSaleT < 2f ? combo + 1 : 1; lastSaleT = Time.time;
         if (combo >= 3) earnF *= 1 + 0.1f * Mathf.Min(combo, 5);        // 콤보 최대 +50%
-        int earn = Mathf.RoundToInt(earnF);
+        int earn = Mathf.RoundToInt(earnF) + tip;
         S.cash += earn; S.sold += want; S.custs++;
         HUD.I?.SetCombo(combo);
         bool big = c.vip || want >= 3 || combo >= 3;

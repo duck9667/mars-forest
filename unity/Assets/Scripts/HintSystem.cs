@@ -49,13 +49,13 @@ public class HintSystem : MonoBehaviour
         if (top == "bottle" && S.shelf + G.shelfPend < G.ShelfCap) return Cnt();
         if (top == "bottle") return G.HasCashier ? Cnt() : P("register");
         if (S.cash > 0 && (!G.HasCashier || S.cash > price * 4)) return P("register");
-        if (S.bottles > 0 && G.Carry == 0) return P("bottler");
+        if (S.bottles > 0 && G.Carry == 0 && S.shelf + G.shelfPend < G.ShelfCap && G.PadLv("runner") == 0) return P("bottler");   // 뽀삐가 있으면 운반은 뽀삐 몫
         if (CustomerSystem.I.AnyWaitingToPay() && !G.HasCashier) return P("register");
         // 다음 발판: sold≥1 & bells≥남은 금액의 50%
-        if (S.sold >= 1)
+        if (S.sold >= 1 && PadManager.I.visOrder.Count > 0)
         {
-            var v = PadManager.I.NearestVisible(Player.I.pos);
-            if (v != null && S.bells >= G.PadRemain(v.def.id) * 0.5f) { targetKey = "pad:" + v.def.id; return v.def.pos; }
+            string id = PadManager.I.visOrder[0];   // ORDER상 차례인 발판
+            if (S.bells >= G.PadRemain(id) * 0.5f) { targetKey = "pad:" + id; return Pads.Get(id).pos; }
         }
         if (S.meltQ == 0 && anyOpen && G.Carry == 0) return Ice();
         if (S.bottles > 0) return P("bottler");

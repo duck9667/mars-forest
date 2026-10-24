@@ -89,7 +89,7 @@ public class PadDef
     public bool zone;      // 구역 발판
     public bool active;    // 이번 Phase에 포함
 
-    public float Cost(int lv) => Mathf.Round(cost(lv));
+    public float Cost(int lv) => Mathf.Floor(cost(lv) + 0.5f);   // JS Math.round와 같은 반올림(은행가 반올림 아님: hand Lv2 = 123)
 }
 
 public static class Pads

@@ -42,7 +42,7 @@ public static class StationDress
         foreach (Transform c in view) if (c.name == "body" || c.name == "top") c.gameObject.SetActive(false);
         var g = new GameObject("models").transform;
         g.SetParent(view, false);
-        g.localPosition = WorldMap.W2U(s.x, s.y, 0f);
+        g.position = WorldMap.W2U(s.x, s.y, 0f);   // 월드 기준(view 피벗이 스테이션 중심)
         Prim.Box(g, "plate", new Vector3(0f, plateH / 2 * GameConfig.K, 0f), new Vector3(w, plateH, h), ModelLib.C(ModelLib.COL.steelD));
         return g;
     }

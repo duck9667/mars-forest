@@ -28,7 +28,7 @@ public class RunnerSystem : MonoBehaviour
     {
         while (runners.Count < Want)
         {
-            var r = new Runner { pos = WorldMap.RunnerLoad + new Vector2(0, runners.Count * 24) };
+            var r = new Runner { pos = WorldMap.RunnerLoad + new Vector2(-runners.Count * 24, 0) };
             BuildView(r); runners.Add(r);
             JuiceFX.I.Pop(r.view, 0.001f, 0.6f); JuiceFX.I.Ring(r.view.position, GameConfig.GOLD, 30);
         }
@@ -70,7 +70,7 @@ public class RunnerSystem : MonoBehaviour
         float dt = Mathf.Min(Time.deltaTime, GameConfig.DT_MAX);
         for (int i = 0; i < runners.Count; i++)
         {
-            var r = runners[i]; Vector2 offs = new Vector2(0, i * 24); // 두 번째 뽀삐는 한 칸 아래에서 작업
+            var r = runners[i]; Vector2 offs = new Vector2(-i * 24, 0); // 두 번째 뽀삐는 한 칸 서쪽에서 작업(카운터 AABB 밖)
             bool moving = false;
             switch (r.st)
             {
@@ -82,7 +82,7 @@ public class RunnerSystem : MonoBehaviour
                     r.t += dt; r.stepT += dt;
                     if (r.stepT >= GameConfig.RUNNER_LOAD_T && S.bottles > 0 && r.carry < GameConfig.RUNNER_CAP)
                     {
-                        r.stepT = 0; S.bottles--; r.carry++;
+                        r.stepT = 0; r.t = 0; S.bottles--; r.carry++;   // 출발 대기 1.5s는 마지막 적재 기준
                         int idx = r.carry - 1; var rr = r;
                         ArcFlyer.I.FlyItem("bottle", Stations.I.TrayTop(), () => rr.stack.position + Vector3.up * (idx / 4 + 0.5f) * Items.ITEM_H["bottle"] * GameConfig.K, null, 0.25f, 30f);
                         AudioManager.I.Play("put", 1.3f, 0.4f);

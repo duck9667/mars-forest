@@ -23,6 +23,7 @@ public class TutorialManager : MonoBehaviour
         HUD.UI.Anchor(handText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, -290), new Vector2(400, 40));
         bool show = S.tut < 3;
         hand.gameObject.SetActive(show); handText.gameObject.SetActive(show);
+        if (S.tut >= 3 && S.handShown == 0) padHandT = 0;   // 저장된 게임을 이어서 할 때도 발판 손 포인터
     }
 
     public void Advance(int step)

@@ -19,7 +19,7 @@ public class ZoneManager : MonoBehaviour
     void Awake() { I = this; }
 
     // §4.3 모서리 가로등: 열린 구역 모서리마다(중복 제거). 밤에 전구 발광 + 바닥빛(point light)
-    class Lamp { public Transform root; public Renderer bulb; public Light light; public Material mat; }
+    class Lamp { public Transform root; public Renderer bulb; public Light light; public Material mat, pool; }
     readonly List<Lamp> lamps = new List<Lamp>();
     readonly HashSet<Vector2> lampSpots = new HashSet<Vector2>();
 
@@ -40,10 +40,18 @@ public class ZoneManager : MonoBehaviour
             var root = new GameObject("lamp").transform; root.SetParent(transform, false); root.position = WorldMap.W2U(c);
             Prim.Box(root, "post", new Vector3(0, 22 * GameConfig.K, 0), new Vector3(3, 44, 3), GameConfig.Hex("3b3a52"));
             var bulb = Prim.Sphere(root, "bulb", new Vector3(0, 46 * GameConfig.K, 0), 7, GameConfig.Hex("fff1c2"));
-            var r = bulb.GetComponent<Renderer>(); r.material = new Material(r.sharedMaterial); Prim.NoShadow(bulb);
+            var r = bulb.GetComponent<Renderer>(); Prim.NoShadow(bulb);
+            // 발광 변형이 빌드에 포함되도록 Resources/Mats/Emissive.mat(ProjectSetup이 _EMISSION 켜서 생성)을 복제
+            var emBase = Resources.Load<Material>("Mats/Emissive");
+            var em = emBase != null ? new Material(emBase) : new Material(r.sharedMaterial);
+            em.color = GameConfig.Hex("fff1c2"); r.sharedMaterial = em;
             var lt = new GameObject("light").AddComponent<Light>(); lt.transform.SetParent(root, false); lt.transform.localPosition = new Vector3(0, 46 * GameConfig.K, 0);
-            lt.type = LightType.Point; lt.color = GameConfig.Hex("ffd27a"); lt.range = 140 * GameConfig.K; lt.intensity = 0; lt.shadows = LightShadows.None;
-            lamps.Add(new Lamp { root = root, bulb = r, light = lt, mat = r.material });
+            lt.type = LightType.Point; lt.color = GameConfig.Hex("ffd27a"); lt.range = 140 * GameConfig.K; lt.intensity = 0; lt.shadows = LightShadows.None; lt.enabled = false;
+            // 바닥빛 원판(원본: opacity night*0.33). 포인트 라이트는 픽셀 라이트 수 제한으로 대부분 안 그려지므로 원판이 주역
+            var pool = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(pool.GetComponent<Collider>()); pool.name = "pool";
+            pool.transform.SetParent(root, false); pool.transform.localPosition = new Vector3(0, 0.04f, 0); pool.transform.localScale = new Vector3(60, 0.2f, 60) * GameConfig.K;
+            var pc = GameConfig.Hex("ffd27a"); pc.a = 0f; var pm = Mats.Trans(pc); pool.GetComponent<Renderer>().sharedMaterial = pm; Prim.NoShadow(pool);
+            lamps.Add(new Lamp { root = root, bulb = r, light = lt, mat = em, pool = pm });
         }
     }
 
@@ -52,10 +60,13 @@ public class ZoneManager : MonoBehaviour
         float night = DayNight.I != null ? DayNight.I.night : 0f;
         if (lamps.Count == 0) return;
         Color em = GameConfig.Hex("ffd27a") * (night * 1.6f);
+        var pc = GameConfig.Hex("ffd27a"); pc.a = night * 0.33f;
+        bool on = night > 0.05f;
         foreach (var l in lamps)
         {
-            l.light.intensity = night * 1.6f;
-            if (night > 0.05f) { l.mat.EnableKeyword("_EMISSION"); l.mat.SetColor("_EmissionColor", em); } else l.mat.DisableKeyword("_EMISSION");
+            l.light.enabled = on; l.light.intensity = night * 1.6f;
+            l.mat.SetColor("_EmissionColor", on ? em : Color.black);
+            l.pool.color = pc;
         }
     }
 
@@ -137,23 +148,16 @@ public class ZoneManager : MonoBehaviour
         var z = v.z; float gx = (z.x0 + z.x1) / 2, gy = z.y1, gw = 70; char side = 'S';
         foreach (var g in WorldMap.GATES) if (g.zone == z.key) { gx = g.side == 'N' || g.side == 'S' ? g.at : (g.side == 'W' ? z.x0 : z.x1); gy = g.side == 'N' ? z.y0 : g.side == 'S' ? z.y1 : g.at; gw = g.w; side = g.side; }
         if (z.key == "ice2") { gx = 126; gy = z.y1; gw = 70; side = 'S'; }
-        var arch = new GameObject("arch").transform; arch.SetParent(v.root, false);
-        float w = gw + 10, h = 38; bool horiz = side == 'N' || side == 'S';
+        // 피벗은 게이트 중심(팝이 제자리에서), 자식은 로컬 오프셋
+        var arch = new GameObject("arch").transform; arch.SetParent(v.root, false); arch.position = WorldMap.W2U(gx, gy, 0);
+        float w = gw + 10, h = 38, k = GameConfig.K; bool horiz = side == 'N' || side == 'S';
         var col = GameConfig.NAVY;
-        if (horiz)
-        {
-            Prim.Box(arch, "l", WorldMap.W2U(gx - w / 2, gy, h / 2), new Vector3(5, h, 5), col);
-            Prim.Box(arch, "r", WorldMap.W2U(gx + w / 2, gy, h / 2), new Vector3(5, h, 5), col);
-            Prim.Box(arch, "top", WorldMap.W2U(gx, gy, h), new Vector3(w + 5, 5, 5), col);
-        }
-        else
-        {
-            Prim.Box(arch, "l", WorldMap.W2U(gx, gy - w / 2, h / 2), new Vector3(5, h, 5), col);
-            Prim.Box(arch, "r", WorldMap.W2U(gx, gy + w / 2, h / 2), new Vector3(5, h, 5), col);
-            Prim.Box(arch, "top", WorldMap.W2U(gx, gy, h), new Vector3(5, 5, w + 5), col);
-        }
-        var lockBox = Prim.Box(arch, "lock", WorldMap.W2U(gx, gy, h - 9), new Vector3(10, 12, 4), GameConfig.GOLD);
-        Prim.Box(lockBox.transform, "shackle", new Vector3(0, 8 * GameConfig.K, 0), new Vector3(7, 6, 3), GameConfig.GOLD);
+        Vector3 across = horiz ? new Vector3(1, 0, 0) : new Vector3(0, 0, -1);   // 게이트 변 방향(논리 x 또는 y)
+        Prim.Box(arch, "l", -across * w / 2 * k + Vector3.up * h / 2 * k, new Vector3(5, h, 5), col);
+        Prim.Box(arch, "r", across * w / 2 * k + Vector3.up * h / 2 * k, new Vector3(5, h, 5), col);
+        Prim.Box(arch, "top", Vector3.up * h * k, horiz ? new Vector3(w + 5, 5, 5) : new Vector3(5, 5, w + 5), col);
+        Prim.Box(arch, "lock", Vector3.up * (h - 9) * k, new Vector3(10, 12, 4), GameConfig.GOLD);
+        Prim.Box(arch, "shackle", Vector3.up * (h - 9 + 8) * k, new Vector3(7, 6, 3), GameConfig.GOLD);
         return arch;
     }
 
@@ -186,7 +190,7 @@ public class ZoneManager : MonoBehaviour
         if (v.outline) v.outline.gameObject.SetActive(false);
         if (v.arch) v.arch.gameObject.SetActive(false);
         var z = v.z; float cx = (z.x0 + z.x1) / 2, cy = (z.y0 + z.y1) / 2; Vector3 center = WorldMap.W2U(cx, cy, 0);
-        v.floor.gameObject.SetActive(true); JuiceFX.I.Pop(v.floor, 0.001f, 0.7f);
+        v.floor.gameObject.SetActive(true); JuiceFX.I.Pop(v.floor, 0.001f, 0.7f, 0.35f);   // 되튐 0.35 (§4.3)
         v.fence.gameObject.SetActive(true);
         for (int i = 0; i < v.parts.Count; i++) v.parts[i].position = v.finalPos[i] + Vector3.down * 22 * GameConfig.K;
         JuiceFX.I.Ring(center, Color.white, 60); JuiceFX.I.Ring(center, GameConfig.GOLD, 30);

@@ -226,7 +226,8 @@ public class Player : MonoBehaviour
     {
         G.collectingCash = true;
         int amount = S.cash; S.cash = 0;
-        int n = Stations.Bills(amount); float per = amount / (float)n; var st = Stations.I;
+        G.AddBells(amount);   // 저장·종료 안전: 전액을 즉시 가산하고 비행은 연출만
+        int n = Stations.Bills(amount); var st = Stations.I;
         bool big = amount >= G.BottlePrice * 8;
         for (int i = 0; i < n; i++)
         {
@@ -236,7 +237,6 @@ public class Player : MonoBehaviour
             var go = Items.Slab(ArcFlyer.I.transform, "bill");
             ArcFlyer.I.Fly(go, from, () => body.position + Vector3.up * 1.4f, 0.22f, 30f, () =>
             {
-                G.AddBells(per);
                 AudioManager.I.PlayHz("coin", 1100 * Mathf.Pow(1.06f, Mathf.Min(12, idx)), 1100, 0.5f);
             });
             yield return new WaitForSeconds(0.04f);

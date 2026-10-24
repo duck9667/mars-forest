@@ -20,6 +20,14 @@ public static class ProjectSetup
             var m = new Material(Shader.Find("Standard")); m.SetFloat("_Glossiness", 0.05f); m.SetFloat("_Metallic", 0f);
             AssetDatabase.CreateAsset(m, "Assets/Resources/Mats/Base.mat");
         }
+        if (!File.Exists("Assets/Resources/Mats/Emissive.mat"))
+        {
+            // 가로등·창문 등 발광용: _EMISSION 키워드를 켠 재질 에셋이 있어야 셰이더 변형이 빌드에 포함된다
+            var m = new Material(Shader.Find("Standard")); m.SetFloat("_Glossiness", 0.05f); m.SetFloat("_Metallic", 0f);
+            m.EnableKeyword("_EMISSION"); m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            m.SetColor("_EmissionColor", Color.black);
+            AssetDatabase.CreateAsset(m, "Assets/Resources/Mats/Emissive.mat");
+        }
         if (!File.Exists("Assets/Resources/Mats/Trans.mat"))
         {
             var sh = Shader.Find("Legacy Shaders/Transparent/Diffuse") ?? Shader.Find("Transparent/Diffuse");

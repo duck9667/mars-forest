@@ -43,7 +43,7 @@ public class Stations : MonoBehaviour
         // 제빙기
         var m = WorldMap.STN["melter"];
         melterView = Machine("melter", m, GameConfig.Hex("7f98b8"), 50).transform;
-        meltCore = Prim.Sphere(melterView, "core", WorldMap.W2U(m.x + 24, m.y - 4, 56), 16, GameConfig.Hex("9fe0ff"));
+        meltCore = Prim.Sphere(melterView, "core", Local(melterView, m.x + 24, m.y - 4, 56), 16, GameConfig.Hex("9fe0ff"));
         Prim.NoShadow(meltCore);
         meltAnchor = new GameObject("meltQ").transform; meltAnchor.SetParent(melterView, false); meltAnchor.position = WorldMap.W2U(m.x - 22, m.y + 2, 52);
         meltLbl = WorldLabels.I.Add(() => WorldMap.W2U(m.x - 30, m.y - 16, 70), "", 20, Color.white, Vector2.zero);
@@ -61,7 +61,7 @@ public class Stations : MonoBehaviour
         // 계산대(지폐)
         var r = WorldMap.STN["register"];
         registerView = Machine("register", r, GameConfig.Hex("5b6b8c"), 30).transform;
-        Prim.Box(registerView, "screen", WorldMap.W2U(r.x, r.y + 6, 34), new Vector3(24, 14, 3), GameConfig.Hex("c9f0ff"));
+        Prim.Box(registerView, "screen", Local(registerView, r.x, r.y + 6, 34), new Vector3(24, 14, 3), GameConfig.Hex("c9f0ff"));
         cashAnchor = new GameObject("cash").transform; cashAnchor.SetParent(registerView, false); cashAnchor.position = WorldMap.W2U(r.x + WorldMap.REG_SPOT.x, r.y + WorldMap.REG_SPOT.y, 0);
         cashLbl = WorldLabels.I.Add(() => cashAnchor.position + Vector3.up * 1.2f, "", 24, GameConfig.GOLD, Vector2.zero);
         // 얼음 드릴 (설치 전 숨김)
@@ -81,14 +81,17 @@ public class Stations : MonoBehaviour
         drillView.gameObject.SetActive(WorldMap.drillInstalled);
     }
 
+    // 그룹 피벗은 스테이션 중심(JuiceFX 스쿼시·팝이 제자리에서 일어나도록). 자식은 로컬 오프셋 = W2U(목표) - W2U(중심)
     GameObject Machine(string name, WorldMap.Stn s, Color col, float hL)
     {
         var g = new GameObject(name); g.transform.SetParent(transform, false);
-        Prim.Box(g.transform, "body", WorldMap.W2U(s.x, s.y, hL / 2), new Vector3(s.w, hL, s.h), col);
+        g.transform.position = WorldMap.W2U(s.x, s.y, 0);
+        Prim.Box(g.transform, "body", new Vector3(0, hL / 2 * GameConfig.K, 0), new Vector3(s.w, hL, s.h), col);
         // 윗판은 몸체보다 밝은 톤으로 살짝 안쪽에(몸체 색이 테두리로 보이게)
-        Prim.Box(g.transform, "top", WorldMap.W2U(s.x, s.y, hL + 1f), new Vector3(s.w - 8, 2, s.h - 8), Color.Lerp(col, Color.white, 0.3f));
+        Prim.Box(g.transform, "top", new Vector3(0, (hL + 1f) * GameConfig.K, 0), new Vector3(s.w - 8, 2, s.h - 8), Color.Lerp(col, Color.white, 0.3f));
         return g;
     }
+    static Vector3 Local(Transform view, float x, float y, float h) => WorldMap.W2U(x, y, h) - view.position;
 
     public Vector3 SpotWorld(int i) => WorldMap.W2U(WorldMap.ICE_SPOTS[i], 6);
     public int SpotCount => G.PadLv("ice2") >= 1 ? ALL_SPOTS : GameConfig.BASE_SPOTS;

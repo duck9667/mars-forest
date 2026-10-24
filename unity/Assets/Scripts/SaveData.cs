@@ -22,7 +22,7 @@ public class SaveData
     public bool muted = false;
     public float spawnT = GameConfig.FIRST_SPAWN;
     public float clock = 0; public int day = 1;
-    public float rushT = 0;
+    public float rushT = 0, drillT = 0;
     public int quest = 0, prestige = 0, custN = 0, lost = 0;
     public int tut = 0, handShown = 0, qv = 2;
 }
@@ -67,6 +67,8 @@ public static class SaveSystem
         if (d.p.carry == null) d.p.carry = new List<string>();
         if (d.spots == null || d.spots.Length < 12) d.spots = new float[12];
         if (d.sold >= 1) { d.tut = 3; d.handShown = 1; }
+        // 드릴 충돌은 저장된 레벨로 먼저 켜고 나서 위치를 검사해야 드릴 안에 갇힌 저장본을 구제할 수 있다
+        foreach (var e in d.pads) if (e.id == "drill") WorldMap.drillInstalled = e.lv >= 1;
         if (WorldMap.Blocked(d.p.x, d.p.y)) { d.p.x = WorldMap.PLAYER_START.x; d.p.y = WorldMap.PLAYER_START.y; }
         // 비활성·요구조건 미충족 발판의 부분 납입금 환불
         for (int i = d.pads.Count - 1; i >= 0; i--)

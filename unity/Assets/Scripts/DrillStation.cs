@@ -6,7 +6,7 @@ public class DrillStation : MonoBehaviour
 {
     GameState G => GameState.I;
     SaveData S => G.S;
-    Transform bit; float t, drillT;
+    Transform bit; float t;
 
     void Start()
     {
@@ -18,10 +18,13 @@ public class DrillStation : MonoBehaviour
     {
         var st = Stations.I; if (st == null || st.drillView == null) return;
         st.RefreshZoneGated();
+        // 원본 completePad: 설치 순간 플레이어가 드릴 충돌 상자 안이면 남쪽으로 밀어낸다
+        var dd = WorldMap.STN["drill"];
+        if (Player.I != null && WorldMap.Blocked(Player.I.pos.x, Player.I.pos.y)) Player.I.pos = new Vector2(Player.I.pos.x, dd.y + dd.h / 2 + 9);
         if (bit == null)
         {
             var d = WorldMap.STN["drill"];
-            bit = Prim.Cyl(st.drillView, "bit", WorldMap.W2U(d.x, d.y, 80), 10, 40, GameConfig.Hex("5b6b8c")).transform;
+            bit = Prim.Cyl(st.drillView, "bit", WorldMap.W2U(d.x, d.y, 80) - st.drillView.position, 10, 40, GameConfig.Hex("5b6b8c")).transform;
             StationDress.DressDrill(st.drillView);
         }
         if (fx) { JuiceFX.I.Pop(st.drillView, 0.001f, 0.6f); JuiceFX.I.Dust(WorldMap.W2U(WorldMap.STN["drill"].x, WorldMap.STN["drill"].y, 2), 8); }
@@ -33,10 +36,10 @@ public class DrillStation : MonoBehaviour
         float dt = Mathf.Min(Time.deltaTime, GameConfig.DT_MAX);
         t += dt;
         if (bit != null) { bit.Rotate(0, 720 * dt, 0); bit.position = WorldMap.W2U(WorldMap.STN["drill"].x, WorldMap.STN["drill"].y, 80 + Mathf.Sin(t * 6f) * 6f); }
-        drillT += dt;
-        if (drillT >= GameConfig.DRILL_PERIOD)
+        S.drillT += dt;
+        if (S.drillT >= GameConfig.DRILL_PERIOD)
         {
-            drillT = 0;
+            S.drillT = 0;
             if (S.meltQ < GameConfig.MELT_CAP) StartCoroutine(Fire());
         }
     }

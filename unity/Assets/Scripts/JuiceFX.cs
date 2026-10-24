@@ -29,18 +29,26 @@ public class JuiceFX : MonoBehaviour
         if (t != null) t.localScale = b; busy.Remove(t);
     }
 
-    // from→1 easeOutBack, 바닥 0.35
-    public void Pop(Transform t, float from = 0.001f, float dur = GameConfig.POP_T) { if (t != null) StartCoroutine(CoPop(t, from, dur)); }
-    IEnumerator CoPop(Transform t, float from, float dur)
+    // from→1 easeOutBack(되튐 진폭 c, 원본 기본 1.70158 / 구역 바닥 0.35). 같은 Transform에 겹쳐 호출되면 이전 팝을 끊고 기준 스케일을 복원한다
+    readonly Dictionary<Transform, (Coroutine co, Vector3 baseScale)> pops = new Dictionary<Transform, (Coroutine, Vector3)>();
+    public void Pop(Transform t, float from = 0.001f, float dur = GameConfig.POP_T, float c = 1.70158f)
     {
-        var b = t.localScale; float el = 0;
+        if (t == null) return;
+        Vector3 b = t.localScale;
+        if (pops.TryGetValue(t, out var prev)) { if (prev.co != null) StopCoroutine(prev.co); b = prev.baseScale; t.localScale = b; }
+        var co = StartCoroutine(CoPop(t, b, from, dur, c));
+        pops[t] = (co, b);
+    }
+    IEnumerator CoPop(Transform t, Vector3 b, float from, float dur, float c)
+    {
+        float el = 0;
         while (el < dur && t != null)
         {
             el += Time.deltaTime; float k = Mathf.Clamp01(el / dur);
-            float s = Mathf.Max(0.35f, Mathf.LerpUnclamped(from, 1f, EaseOutBack(k)));
+            float s = Mathf.Max(0.001f, Mathf.LerpUnclamped(from, 1f, EaseOutBack(k, c)));
             t.localScale = b * s; yield return null;
         }
-        if (t != null) t.localScale = b;
+        if (t != null) { t.localScale = b; pops.Remove(t); }
     }
 
     // 링: 0.6s, 스케일 1+2.2k, 페이드
@@ -48,14 +56,14 @@ public class JuiceFX : MonoBehaviour
     IEnumerator CoRing(Vector3 pos, Color c, float rL)
     {
         var go = Prim.Ring(transform, pos + Vector3.up * 0.02f, rL, c);
-        var mat = go.GetComponent<Renderer>().material; float el = 0;
+        var mat = go.GetComponent<Renderer>().sharedMaterial; float el = 0;   // Prim.Ring이 만든 고유 인스턴스
         while (el < 0.6f)
         {
             el += Time.deltaTime; float k = el / 0.6f;
             go.transform.localScale = Vector3.one * rL * GameConfig.K * (1 + 2.2f * k);
             var cc = c; cc.a = 1 - k; mat.color = cc; yield return null;
         }
-        Destroy(go);
+        Destroy(mat); Destroy(go);
     }
 
     // 동전 팝: n개 튀김, 중력 380, 바닥 반발 −0.4, 0.9s
@@ -104,7 +112,7 @@ public class JuiceFX : MonoBehaviour
             go.transform.position = p; go.transform.localScale = Vector3.one * (6 + 14 * k) * GameConfig.K;
             var cc = c; cc.a = 0.55f * (1 - k); mat.color = cc; yield return null;
         }
-        Destroy(go);
+        Destroy(mat); Destroy(go);
     }
 
     public void Shake(float a) { if (CameraRig.I) CameraRig.I.Shake(a); }

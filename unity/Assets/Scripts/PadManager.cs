@@ -56,7 +56,7 @@ public class PadManager : MonoBehaviour
         }
         if (next.Count < GameConfig.VIS_MAX)
         {
-            foreach (var d in Pads.ALL.Where(p => p.active && !p.menu && !next.Contains(p.id) && !G.PadMaxed(p.id) && G.PadReq(p.id)).OrderBy(p => G.PadRemain(p.id)))
+            foreach (var d in Pads.ALL.Where(p => p.active && !p.menu && !next.Contains(p.id) && !G.PadMaxed(p.id) && G.PadReq(p.id)).OrderBy(p => G.PadCost(p.id)))
             {
                 next.Add(d.id); if (next.Count >= GameConfig.VIS_MAX) break;
             }

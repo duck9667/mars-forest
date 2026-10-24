@@ -62,7 +62,7 @@ public class GameState : MonoBehaviour
     // ---- 파생값 (§1.2) ----
     public int CarryMax => GameConfig.CARRY[Mathf.Min(6, PadLv("hand"))] + 3 * Mathf.Min(2, S.prestige);
     public int ShelfCap => 8 + PadLv("shelf") * 7;
-    public int BottlePrice => Mathf.RoundToInt((12 + PadLv("price") * 6) * Mathf.Pow(1.5f, S.prestige));
+    public int BottlePrice => Mathf.FloorToInt((12 + PadLv("price") * 6) * Mathf.Pow(1.5f, S.prestige) + 0.5f);
     public float MeltTime => 1.6f / (1 + PadLv("melter") * 0.35f);
     public float BottleTime => 1.6f / (1 + PadLv("bottler") * 0.35f);
     public float BaseGap => Mathf.Max(2f, 6.5f - PadLv("ads") * 0.9f);
