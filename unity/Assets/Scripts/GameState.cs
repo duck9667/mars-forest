@@ -61,12 +61,15 @@ public class GameState : MonoBehaviour
     public bool PadMaxed(string id) => PadLv(id) >= Pads.Get(id).max;
 
     // ---- 파생값 (§1.2) ----
-    public int CarryMax => GameConfig.CARRY[Mathf.Min(6, PadLv("hand"))] + 3 * Mathf.Min(2, S.prestige);
+    public int CarryMax => GameConfig.CARRY[Mathf.Min(6, PadLv("hand"))] + 3 * Mathf.Min(2, S.prestige) + HQSystem.CarryBonus(this);   // 본부 Lv1 +4
     public int ShelfCap => 8 + PadLv("shelf") * 7;
-    public int BottlePrice => Mathf.FloorToInt((12 + PadLv("price") * 6) * Mathf.Pow(1.5f, S.prestige) + 0.5f);
-    public float MeltTime => 1.6f / (1 + PadLv("melter") * 0.35f);
-    public float BottleTime => 1.6f / (1 + PadLv("bottler") * 0.35f);
-    public float BaseGap => Mathf.Max(2f, 6.5f - PadLv("ads") * 0.9f);
+    public int BottlePrice => Mathf.FloorToInt((12 + PadLv("price") * 6) * Mathf.Pow(1.5f, S.prestige) * HQSystem.PriceMul(this) + 0.5f);   // 본부 Lv2 ×1.1
+    public float MeltTime => 1.6f / (1 + PadLv("melter") * 0.35f) / MachineSpeedMul;
+    public float BottleTime => 1.6f / (1 + PadLv("bottler") * 0.35f) / MachineSpeedMul;
+    public float BaseGap => Mathf.Max(2f, 6.5f - PadLv("ads") * 0.9f) * HQSystem.GapMul(this);   // 본부 Lv3 정착민 도착 간격 ×0.9
+    // 공용 기계 속도 배율(곱셈 훅): 해빙기·병입기·생존 기지 시설(SettleStations) 처리 시간을 이 값으로 나눈다.
+    // 본부 Lv4 몫(×1.1)만 여기서 곱한다. 다른 배율(전력 등)은 이 줄에 곱해 넣는다
+    public float MachineSpeedMul => HQSystem.SpeedMul(this);
     public float Speed => GameConfig.BASE_SPEED + GameConfig.SPEED_PER_LV * PadLv("spd");
     public bool HasCashier => PadLv("cashier") >= 1;
 

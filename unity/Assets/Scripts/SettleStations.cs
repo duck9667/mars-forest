@@ -129,7 +129,7 @@ public class SettleStations : MonoBehaviour
             bool can = Q(i) > 0 && Out(i) < GameConfig.SETTLE_OUT_CAP && (i != 3 || S.water >= GREEN_WATER);
             if (!can) { t = 0; continue; }
             t += dt;
-            if (t >= TIMES[i])
+            if (t >= TIMES[i] / G.MachineSpeedMul)   // 공용 기계 속도 배율(본부 Lv4 등)
             {
                 t = 0; Q(i)--; Out(i)++;
                 if (i == 3) S.water -= GREEN_WATER;

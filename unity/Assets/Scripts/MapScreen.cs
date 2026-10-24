@@ -5,9 +5,9 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // 지도 화면(정착 목표): HUD "정착 n/5" 알약을 누르면 열린다. 화면 막 + 남색 판 하나.
-//  · 위: [깃발] 정착 목표 [n/5] · 닫기(X)
+//  · 위: [깃발] 정착 목표 [n/5] [본부 기지 Lv.n] · 닫기(X)
 //  · 왼쪽: 전체 맵(논리 x 0~400, y Y_MIN~1040, 북쪽 위)을 위에서 본 그림. 구역 사각형(열림 = 구역 바닥색, 잠김 = 어둡게 + 자물쇠),
-//    지금 단계에 필요한 구역은 금테 펄스, 시설 아이콘, 얼음·레골리스 더미 점, 착륙장, 플레이어 점(맥동 링)
+//    지금 단계에 필요한 구역은 금테 펄스, 시설 아이콘, 얼음·레골리스 더미 점, 착륙장, 기지 본부(Lv0이면 흐리게), 플레이어 점(맥동 링)
 //  · 오른쪽: 5단계 체크리스트(완료 ✓ / 지금 단계는 항목별 진행 막대 / 다음 단계는 흐리게), 정착 완료면 "새 정착지로" 안내 버튼
 // 세로 화면 기준(참조 540×1170) 판 520×950. 더 낮은 화면(태블릿 등)에서는 판 전체를 줄여 맞춘다.
 // 검증 인자: -map [초] (그 초에 지도 열기, 기본 0.8초)
@@ -18,7 +18,7 @@ public class MapScreen : MonoBehaviour
     SettlementManager SM => SettlementManager.I;
 
     Canvas canvas; GameObject root; RectTransform panel, mapRt, listRt, meRt, meRing;
-    CanvasGroup focusCg; float refreshT, openT; int builtStage = -1;
+    CanvasGroup focusCg; float refreshT, openT; int builtStage = -1, builtHq = -1;
     public bool IsOpen => root != null;
 
     const float S = 0.6f;                       // 논리 1 → UI 0.6
@@ -97,7 +97,7 @@ public class MapScreen : MonoBehaviour
     {
         for (int i = panel.childCount - 1; i >= 0; i--) Destroy(panel.GetChild(i).gameObject);
         items.Clear();
-        builtStage = SM != null ? SM.Stage : 0;
+        builtStage = SM != null ? SM.Stage : 0; builtHq = G.PadLv("hq");
         BuildTitle();
         BuildMap();
         BuildList();
@@ -112,6 +112,10 @@ public class MapScreen : MonoBehaviour
         UIKit.IconImg(row.transform, "flag", 34);
         var t = UIKit.Text(row.transform, "정착 목표", 32, Color.white); UIKit.Stroke(t, UIKit.EDGE, 2.2f);
         UIKit.Chip(row.transform, "prog", done ? UIKit.SignOk : UIKit.Pill, done ? "crown" : null, 24, st + "/" + SettlementManager.COUNT, 24, out _, out _, 4);
+        // 기지 본부 레벨: [본부 그림] 기지 Lv.n
+        var hq = UIKit.Chip(row.transform, "hq", UIKit.Pill, null, 0, "기지 Lv." + builtHq, 20, out _, out _, 3);
+        var hic = UIKit.RT(hq.transform, "ic_hq").gameObject.AddComponent<Image>(); hic.sprite = Glyph("hq"); hic.preserveAspect = true; hic.raycastTarget = false;
+        var hle = hic.gameObject.AddComponent<LayoutElement>(); hle.preferredWidth = hle.minWidth = hle.preferredHeight = hle.minHeight = 26; hic.transform.SetSiblingIndex(0);
         var close = UIKit.RoundButton(panel, "close", UIKit.Gray, 48, "close", 26, Close, out _);
         var crt = close.GetComponent<RectTransform>(); crt.anchorMin = crt.anchorMax = new Vector2(1, 1); crt.pivot = new Vector2(1, 1); crt.anchoredPosition = new Vector2(-14, -12);
     }
@@ -184,6 +188,10 @@ public class MapScreen : MonoBehaviour
         var pad = UIKit.RoundPanel(mapRt, "lander", Dot, 30); pad.color = UIKit.Hex("c3cfe6"); Place(pad, M(WorldMap.LANDER.x, WorldMap.LANDER.y), new Vector2(30, 30));
         var fl = UIKit.IconImg(pad.transform, "flag", 20); var frt = fl.rectTransform; frt.anchorMin = frt.anchorMax = new Vector2(0.5f, 0.5f); frt.anchoredPosition = new Vector2(0, 1);
         var ll = UIKit.Text(mapRt, "착륙장", 14, Color.white); UIKit.Stroke(ll, UIKit.EDGE, 1.4f); Place(ll, M(WorldMap.LANDER.x + 62, WorldMap.LANDER.y), new Vector2(80, 20));
+        // 기지 본부: 착륙장 동쪽 터. 아직 짓기 전(Lv0)엔 흐리게
+        var hqi = UIKit.RT(mapRt, "hq").gameObject.AddComponent<Image>(); hqi.sprite = Glyph("hq"); hqi.preserveAspect = true; hqi.raycastTarget = false;
+        Place(hqi, M(HQSystem.POS.x, HQSystem.POS.y), new Vector2(34, 34));
+        if (builtHq < 1) hqi.color = new Color(1, 1, 1, 0.35f);
 
         // 플레이어: 맥동 링 + 흰 점
         var ring = UIKit.RoundPanel(mapRt, "meRing", Soft, 24); ring.color = new Color(1f, 0.85f, 0.35f, 0.6f); meRing = Place(ring, Vector2.zero, new Vector2(24, 24));
@@ -372,7 +380,7 @@ public class MapScreen : MonoBehaviour
         float pop = openT < 0.25f ? Mathf.Lerp(0.88f, 1f, JuiceFX.EaseOutBack(openT / 0.25f)) : 1f;
         panel.localScale = Vector3.one * fit * pop;
         // 단계가 바뀌었으면 다시 만들고, 아니면 0.25s마다 값만
-        if (SM != null && SM.Stage != builtStage) { Build(); return; }
+        if ((SM != null && SM.Stage != builtStage) || G.PadLv("hq") != builtHq) { Build(); return; }
         refreshT += dt; if (refreshT >= 0.25f) { refreshT = 0; RefreshItems(); }
         UpdateMe();
         float k = (Time.unscaledTime * 1.2f) % 1f;
@@ -380,7 +388,7 @@ public class MapScreen : MonoBehaviour
         if (focusCg != null) focusCg.alpha = 0.55f + 0.45f * (0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 5f));
     }
 
-    // ---- 그림 아이콘(UIKit에 없는 것: 지도·산소통·흙더미·비료 자루·새싹). 24 격자 → 96px, 아래 1.5 그림자 ----
+    // ---- 그림 아이콘(UIKit에 없는 것: 지도·산소통·흙더미·비료 자루·새싹·기지 본부). 24 격자 → 96px, 아래 1.5 그림자 ----
     static readonly Dictionary<string, Sprite> glyphs = new Dictionary<string, Sprite>();
     public static Sprite MapIcon() => Glyph("map");
     public static Sprite Glyph(string key)
@@ -441,6 +449,24 @@ public class MapScreen : MonoBehaviour
                     p.Poly(body, H("8fae4a")); p.Poly(neck, H("a9c862"));
                     p.Seg(V(9.2f, 8.5f), V(14.8f, 8.5f), 1.6f * s, H("5a3a10"));
                     p.Circle(12 * s, 15 * s, 2.2f * s, H("cfe39a"));
+                    break;
+                }
+            case "hq":   // 기지 본부: 콘크리트 터 위 흰 돔 건물 + 관제탑(유리 관제실) + 안테나 빨간 점
+                {
+                    var dome = new List<Vector2>();
+                    for (int i = 0; i <= 12; i++) { float a = Mathf.PI * i / 12f; dome.Add(V(10 - Mathf.Cos(a) * 7.5f, 18 - Mathf.Sin(a) * 7.5f)); }
+                    var d = dome.ToArray();
+                    p.Seg(V(5, 11), V(5, 4), 1.2f * s, H("3a4a66"), w * 0.6f); p.Circle(5 * s, 3.6f * s, 1.5f * s, H("3a4a66"), w * 0.6f);
+                    p.RRect(2 * s, 17.5f * s, 20 * s, 4 * s, 1.2f * s, H("6b5a48"), w);
+                    p.Poly(d, H("3a4a66"), w);
+                    p.RRect(14.5f * s, 6 * s, 4.5f * s, 12 * s, 0.8f * s, H("3a4a66"), w); p.RRect(13 * s, 4 * s, 7.5f * s, 4 * s, 1.2f * s, H("3a4a66"), w);
+                    p.Seg(V(5, 11), V(5, 4), 1.2f * s, H("c9c1b4")); p.Circle(5 * s, 3.6f * s, 1.5f * s, H("ff5a3c"));
+                    p.RRect(2 * s, 17.5f * s, 20 * s, 4 * s, 1.2f * s, H("d9c8b2"));
+                    p.Poly(d, H("f6f1e8"));
+                    p.RRect(14.5f * s, 6 * s, 4.5f * s, 12 * s, 0.8f * s, H("f6f1e8"));
+                    p.RRect(13 * s, 4 * s, 7.5f * s, 4 * s, 1.2f * s, H("6fc3f0"));
+                    p.RRect(8 * s, 14 * s, 4 * s, 4 * s, new Vector4(1.5f * s, 1.5f * s, 0, 0), H("f07a3a"));
+                    p.Seg(V(3.2f, 15.2f), V(16.8f, 15.2f), 0.9f * s, H("f07a3a"));
                     break;
                 }
             case "leaf":   // 새싹 화분(온실)
