@@ -54,6 +54,8 @@ iOS:
 # 단독 앱(Xcode 프로젝트 unity/Builds/iOS) — BuildScript.BuildIOS
 # 꿈마을 화성 탭용 UnityFramework.framework(Unity as a Library) — Data를 프레임워크에 넣는 후처리(Editor/IOSUaaLPostProcess.cs) 포함
 tools/build-unity-framework.sh     # → unity/Builds/UnityFramework/UnityFramework.framework (꿈마을은 tools/sync_mars_unity.sh로 받아감)
+# 단독 앱 실기기 설치(Xcode 계정 로그인 없이도, 받아 둔 프로파일·인증서로 직접 서명)
+tools/ios-install.sh               # SKIP_UNITY=1이면 Unity 빌드 건너뜀
 ```
 
 페이싱 목표(원본 README): 첫 판매 0:30, 첫 발판 0:50, 첫 구역 확장 2:30 전후. 봇은 사람보다 효율적이라 실플레이는 더 느리다.
