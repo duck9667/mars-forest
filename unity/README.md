@@ -24,6 +24,7 @@
 | `RunnerSystem` · `DrillStation` · `AdsSign` | 뽀삐 상태기계(적재→하역), 드릴 2초마다 얼음 2장, 간판 입간판 (§5.1) |
 | `QuestManager` | 목표 12개 순차, 업그레이드 시트 목표 탭에서만 표시(상단 칩 없음), 달성 즉시 보상·저장, qskip (§6.1) |
 | `SettleStations` · `MachineKit` | 생존 기지 생산 체인(레골리스 더미·전기분해기·토양 정화기·비료 배합기·온실, docs/settlement-design.md), 기계 공통 문법(받침판→투입부→움직이는 가공부→산출 받침대, MachineAnim) |
+| `Frontier` | 2장 개척지(docs/chapter2-design.md D): 거주 구역 돔 주택 8채(정착민 3명 중 1명 입주 → S.pop, 상한 32, 창 불·도착 간격 −최대 20%·하루 세금), 태양광 단지(패널 낱장 기울기·배터리 막대, 낮·배터리 동안 기계 속도 ×1.2 → `GameState.MachineSpeedMul`). 검증 인자 `-pop N`·`-batt f` |
 | `SettlementManager` · `MapScreen` | 정착 목표 5단계(물 확보→숨 쉴 공기→흙 살리기→첫 수확→정착 완료)·보상, 지도 화면(구역 상태·시설·플레이어·단계별 진행 막대), HUD "정착 n/5" 알약 |
 | `PenSystem` · `DomeSystem` | 먼지 토끼 우리(토끼·소품·팁 적립·수거), 휴게 돔(조립·좌석 예약·경로·팁·수거) (§5.1·§5.2) |
 | `DecoManager` · `ShopDecor` | 장식 6종 구매·매장 시각물(차양·네온·선인장·줄전구·깃발·체크 바닥) (§3.4) |

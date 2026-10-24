@@ -209,6 +209,7 @@ public class CustomerSystem : MonoBehaviour
     // §5.2 휴게 돔: 결제·점프가 끝나면 빈 좌석을 예약해 seatPath로 걸어가고, 없으면 기존대로 퇴장
     void AfterPurchase(Customer c)
     {
+        if (Frontier.I != null && Frontier.I.TryMoveIn(c)) return;   // 2장: 일부(3명 중 1명)는 거주 구역 집으로 걸어가 산다(경유점·상태는 Frontier가 채움)
         var dome = DomeSystem.I;
         if (dome != null && dome.TryReserveSeat(out int s)) { c.seat = s; c.wp = dome.SeatPath(s, c.pos); c.st = Customer.St.ToSeat; }
         else c.st = Customer.St.Leave;

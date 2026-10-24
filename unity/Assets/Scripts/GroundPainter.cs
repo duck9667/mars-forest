@@ -323,7 +323,10 @@ public class GroundPainter
         p.TilePath(14f, nY0, 372f, nY1 - nY0);
         float mY0 = WorldMap.MID_Y0, mY1 = WorldMap.MID_Y1, mMid = (mY0 + mY1) / 2f;
         p.TilePath(16f, mY0, 364f, mY1 - mY0);
-        p.TilePath(236f, GameConfig.Y_MIN + 10f, 20f, nY0 - GameConfig.Y_MIN - 10f, 20f);
+        // 7c) 2장 개척 길(y −410~−380): 온실·토양 공장 북쪽, 거주 구역·태양광 단지 앞(발판 두 개가 이 길 위에 있다)
+        p.TilePath(16f, WorldMap.ROAD3_Y0, 364f, WorldMap.ROAD3_Y1 - WorldMap.ROAD3_Y0);
+        // 통로(x 236~256)는 맨 북쪽(거주 구역·태양광 단지 사이)까지
+        p.TilePath(236f, GameConfig.Y_MIN + 20f, 20f, nY0 - GameConfig.Y_MIN - 20f, 20f);
 
         // 9) 착륙장: 원 r58 흰 .14 채움 + 테두리 .55 폭4, 안쪽 r34 폭3, "H" 폭4 .5
         p.Disc(E.x, E.y, 58f, Color.white, 0.14f);
@@ -361,6 +364,9 @@ public class GroundPainter
             var g = new GroundPainter(0f, 0f, w, h, 2f, 31 + z.key.Length * 7 + (int)z.x0, ZONE_GROUND);
             g.Grain(0.025f);
             g.EdgeShade(10f, 0.10f, C(90, 35, 15));
+            // 2장 개척지: 구역 안 길(크림 타일, Frontier.Walks)은 구역 바닥에 같이 그린다(해제 때 바닥과 함께 나타남)
+            var walks = Frontier.Walks(z.key);
+            if (walks != null) foreach (var r in walks) g.TilePath(r.x - z.x0, r.y - z.y0, r.width, r.height, 12f);
             return g.ToTexture(false);
         }
         var p = new GroundPainter(0f, 0f, w, h, 2f, 31 + z.key.Length * 7 + (int)z.x0, PATH_TILE);

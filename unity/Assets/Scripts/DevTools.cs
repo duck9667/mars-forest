@@ -104,7 +104,7 @@ public class DevTools : MonoBehaviour
     // 카운터+계산대처럼 가로로 긴 장애물은 직진으로 못 지나므로 Blocked() 위 격자 BFS로 경로를 잡는다(8단위 격자, 0.4초마다 재계산).
     // 봇 정책: 빈손이고 가장 가까운 노출 발판을 바로 살 수 있으면 힌트보다 발판을 우선한다(QA에서 발판·구역을 밟기 위해).
     float holdT, stuckT, escapeT; Vector2 lastPos, escapeDir;
-    const float CELL = 8f, GY0 = -392f; const int GW = 51, GH = 180;   // x 0..400, y -392..1040 (생존 기지 북쪽 확장 포함)
+    const float CELL = 8f, GY0 = GameConfig.Y_MIN; const int GW = 51, GH = (int)((GameConfig.H - GameConfig.Y_MIN) / CELL) + 1;   // x 0..400, y Y_MIN(−640)..1040 (생존 기지·2장 개척지 포함)
     readonly List<Vector2> path = new List<Vector2>(); float pathT; Vector2 pathTarget;
     void Bot()
     {
@@ -167,7 +167,10 @@ public class DevTools : MonoBehaviour
     int[] prev = new int[GW * GH]; bool[] blockedCell = new bool[GW * GH]; bool gridBuilt; bool gridDrill, gridDome; int gridFence = -1;
     void BuildGrid()
     {
-        for (int y = 0; y < GH; y++) for (int x = 0; x < GW; x++) blockedCell[y * GW + x] = WorldMap.Blocked(x * CELL, GY0 + y * CELL);
+        // 칸 중심만 보면 게이트 가장자리 칸(예: 온실 북쪽 게이트 x 96)이 열린 칸으로 잡혀, 점 하나인 플레이어가 울타리 끝에 걸려 맴돈다(개척 길에서 확인).
+        // 중심 ±2를 같이 봐서 게이트 가장자리 칸은 막고(가운데 통로 x 248 칸은 그대로 열림) 경로가 틈 가운데로 지나가게 한다
+        static bool B(float x, float y) => WorldMap.Blocked(x, y) || WorldMap.Blocked(x - 2, y) || WorldMap.Blocked(x + 2, y) || WorldMap.Blocked(x, y - 2) || WorldMap.Blocked(x, y + 2);
+        for (int y = 0; y < GH; y++) for (int x = 0; x < GW; x++) blockedCell[y * GW + x] = B(x * CELL, GY0 + y * CELL);
         gridBuilt = true; gridDrill = WorldMap.drillInstalled; gridDome = WorldMap.domeOpen; gridFence = WorldMap.fenceVer;
     }
     void FindPath(Vector2 from, Vector2 to)

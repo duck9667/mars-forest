@@ -78,8 +78,9 @@ public class CameraRig : MonoBehaviour
             float vy = velL != null ? velL().y : 0f;
             lead = Mathf.Lerp(lead, Mathf.Clamp(vy * 0.22f, -50f, 50f), dt * 3f);
             float ty = pl.y + lead + viewH * 0.04f;
-            // 세로 제한: 위는 놀이 경계(Y_MIN+6)보다 110 바깥(북쪽 메사 띠)까지, 아래는 착륙장 아래 50까지
-            ty = Mathf.Clamp(ty, GameConfig.Y_MIN - 100f + viewH * 0.5f, GameConfig.H - viewH * 0.5f + 50f);
+            // 세로 제한: 위는 놀이 경계(Y_MIN+6)보다 170 바깥(북쪽 메사 띠 위)까지, 아래는 착륙장 아래 50까지.
+            // 2장 개척지(y −620~−410)는 맨 위라 예전 110이면 화면 위 1/3에 몰려 HUD에 가렸다 → 170으로 늘려 개척지가 화면 가운데 가까이 오게
+            ty = Mathf.Clamp(ty, GameConfig.Y_MIN - 170f + viewH * 0.5f, GameConfig.H - viewH * 0.5f + 50f);
             camY = snapped ? Mathf.Lerp(camY, ty, dt * 5f) : ty;
             // x: 기본(zoom 1)은 200 고정, 확대하면 플레이어를 따라가되 맵 가장자리(0~400) 밖은 10만큼만 보이게
             float minX = halfW - 10f, maxX = 400f - halfW + 10f;
