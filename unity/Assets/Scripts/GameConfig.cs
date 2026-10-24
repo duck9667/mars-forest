@@ -130,7 +130,7 @@ public static class Pads
         // ---- 2장 정착지 확장 (docs/chapter2-design.md) ----
         new PadDef{ id="solar",   name="태양광 단지",   icon="☀", pos=new Vector2(214,-395), cost=l=>1200f, max=1, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", zone=true, active=true },
         new PadDef{ id="hab",     name="거주 구역",     icon="🏠", pos=new Vector2(60,-395),  cost=l=>1500f, max=1, req=g=>g.PadLv("farm")>=1, reqText="온실", zone=true, active=true },
-        new PadDef{ id="hq",      name="기지 본부",     icon="🏛", pos=new Vector2(140,960),  cost=l=>300f*Mathf.Pow(2.2f,l), max=5, req=g=>g.S.stage>=g.PadLv("hq"), reqText="정착 단계", active=true },
+        new PadDef{ id="hq",      name="기지 본부",     icon="🏛", pos=new Vector2(270,966),  cost=l=>300f*Mathf.Pow(2.2f,l), max=5, req=g=>g.S.stage>=g.PadLv("hq"), reqText="정착 단계", active=true },   // 발판은 본부 터(HQSystem.POS) 서쪽, 착륙장 원 북동쪽
         new PadDef{ id="farm",    name="온실",         icon="🥔", pos=new Vector2(214,-110), cost=l=>1000f, max=1, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", zone=true, active=true },
     };
 

@@ -376,6 +376,13 @@ public class UpgradeSheet : MonoBehaviour
         r.pips = UIKit.Pips(r.bg.transform, 0, d.max);
         var prt = r.pips.GetComponent<RectTransform>(); UIKit.Anchor(prt, new Vector2(0, 0.5f), new Vector2(88, -15), new Vector2(240, 12));
         var fit = r.pips.gameObject.AddComponent<ContentSizeFitter>(); fit.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        // 기지 본부: 핍 오른쪽에 다음 레벨 보너스 한 줄(짧게)
+        if (d.id == "hq")
+        {
+            r.sub = UIKit.Text(r.bg.transform, "", 16, UIKit.SUB, TextAnchor.MiddleLeft);
+            UIKit.Anchor(r.sub.rectTransform, new Vector2(0, 0.5f), new Vector2(88 + d.max * 19 + 8, -14), new Vector2(150, 22));
+            r.sub.resizeTextForBestFit = true; r.sub.resizeTextMinSize = 11; r.sub.resizeTextMaxSize = 16;
+        }
         // 구매 버튼(파랑 [벨] 가격 / 회색 잠김 / 금색 MAX)
         r.buy = BuyBtn(r, UIKit.Blue, "bell", () => OnBuyPad(d, stat));
         return r;
@@ -398,6 +405,7 @@ public class UpgradeSheet : MonoBehaviour
             SetBtn(r.buy, st, label, maxed ? "check" : !req ? "lock" : "bell", !req ? (label.Length > 9 ? 15 : 17) : 24, !req ? 20 : 26);
             r.buy.interactable = !maxed && req;
         }
+        if (r.sub != null && d.id == "hq") { string nb = maxed ? "보너스 5개 모두" : "다음: " + HQSystem.BonusText(lv + 1); if (r.sub.text != nb) r.sub.text = nb; }
         r.lv = lv; r.maxed = maxed; r.req = req; r.can = can; r.vis = vis; r.label = label; r.state = 0;
     }
     void OnBuyPad(PadDef d, bool stat)

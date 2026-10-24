@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 // HUD: 벨 필(아이콘+숫자, 펀치), 설정 버튼(톱니, 소리·진동 토글 패널), 며칠째 필, 업그레이드 버튼(금색·점·바운스), 콤보/러시 배지, 화면 플래시, 동전 비행(coinsToHud)
-// 상단 배치: 1행 벨(좌)·지도 알약 "정착 n/5"(톱니 왼쪽)·설정(우) / 2행 며칠째(좌)·러시(중앙)·콤보(우)
+// 상단 배치: 1행 벨(좌)·지도 알약 "기지 Lv.n · 정착 n/5"(톱니 왼쪽)·설정(우) / 2행 며칠째(좌)·러시(중앙)·콤보(우)
 public class HUD : MonoBehaviour
 {
     public static HUD I;
@@ -15,7 +15,7 @@ public class HUD : MonoBehaviour
     Text comboText, rushText; RectTransform comboRt, rushRt; int lastCombo;
     Text dayText; int lastDay = -1;
     GameObject settings; Button sndBtn, vibBtn;
-    Image mapBg; Text mapText; RectTransform mapRt; int lastStage = -1; Coroutine mapPulse;
+    Image mapBg; Text mapText; RectTransform mapRt; int lastStage = -1, lastHq = -1; Coroutine mapPulse;
 
     // 예전 호출부 호환용 얇은 래퍼(UIKit로 위임)
     public static class UI
@@ -54,8 +54,9 @@ public class HUD : MonoBehaviour
         // 1행 우: 설정 버튼(둥근 남색 버튼 52, 톱니) → 소리·진동 토글 패널
         var gear = UIKit.RoundButton(transform, "settingsBtn", UIKit.Pill, 52, "gear", 30, ToggleSettings, out _);
         var mrt = gear.GetComponent<RectTransform>(); mrt.anchorMin = mrt.anchorMax = new Vector2(1, 1); mrt.pivot = new Vector2(1, 1); mrt.anchoredPosition = new Vector2(-16, -26);
-        // 1행 우(톱니 왼쪽): 지도 알약 [지도] 정착 n/5 → 지도 화면(MapScreen). 단계가 바뀌면 잠깐 금색으로 반짝
+        // 1행 우(톱니 왼쪽): 지도 알약 [지도] 기지 Lv.n · 정착 n/5 → 지도 화면(MapScreen). 단계·본부 레벨이 바뀌면 잠깐 금색으로 반짝
         mapBg = UIKit.Chip(transform, "mapBtn", UIKit.Pill, null, 0, "정착 0/5", 22, out mapText, out _, 5);
+        mapText.supportRichText = true;   // "기지 Lv.n" 부분만 조금 작게(<size>)
         var mic = UIKit.RT(mapBg.transform, "ic_map").gameObject.AddComponent<Image>(); mic.sprite = MapScreen.MapIcon(); mic.preserveAspect = true; mic.raycastTarget = false;
         var mle = mic.gameObject.AddComponent<LayoutElement>(); mle.preferredWidth = mle.minWidth = mle.preferredHeight = mle.minHeight = 30; mic.transform.SetSiblingIndex(0);
         mapRt = mapBg.rectTransform; mapRt.anchorMin = mapRt.anchorMax = new Vector2(1, 1); mapRt.pivot = new Vector2(1, 1); mapRt.anchoredPosition = new Vector2(-78, -26);
@@ -154,12 +155,15 @@ public class HUD : MonoBehaviour
         bool bounce = menuBuyable && G.S.tut >= 3 && G.PadLv("hand") == 0 && G.PadLv("spd") == 0 && G.PadLv("price") == 0;
         upRt.anchoredPosition = new Vector2(0, 36 + (bounce ? Mathf.Abs(Mathf.Sin(Time.time * 4f)) * 10f : 0));
         if (G.S.day != lastDay) { lastDay = G.S.day; dayText.text = Mathf.Max(1, lastDay) + "일째"; }
-        int stg = SettlementManager.I != null ? SettlementManager.I.Stage : 0;
-        if (stg != lastStage)
+        int stg = SettlementManager.I != null ? SettlementManager.I.Stage : 0, hq = G.PadLv("hq");
+        if (stg != lastStage || hq != lastHq)
         {
-            lastStage = stg; bool done = stg >= SettlementManager.COUNT;
-            mapText.text = done ? "정착 완료" : "정착 " + stg + "/" + SettlementManager.COUNT;
+            bool hqUp = lastHq >= 0 && hq > lastHq;
+            lastStage = stg; lastHq = hq; bool done = stg >= SettlementManager.COUNT;
+            // 본부 레벨은 한 알약 앞쪽에 조금 작게(벨 알약과 겹치지 않게 폭을 아낀다)
+            mapText.text = "<size=18>기지 Lv." + hq + "</size> · " + (done ? "정착 완료" : "정착 " + stg + "/" + SettlementManager.COUNT);
             if (mapPulse == null) { mapBg.sprite = UIKit.Panel9(done ? UIKit.SignOk : UIKit.Pill); mapText.color = done ? UIKit.SignOk.text : Color.white; MapStroke(!done); }
+            if (hqUp) PulseMap();
         }
     }
 
