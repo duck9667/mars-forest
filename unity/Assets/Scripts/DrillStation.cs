@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-// §5.1 얼음 드릴: 설치 후 drillT 2.0s마다 얼음 2장(0.15s 차, 0.9s 아크, lift 140)을 meltQ<40일 때 제빙기로
+// §5.1 얼음 드릴: 설치 후 drillT 2.0s마다 얼음 2장(0.15s 차, 0.9s 아크, lift 140)을 meltQ<40일 때 해빙기로
 public class DrillStation : MonoBehaviour
 {
     GameState G => GameState.I;

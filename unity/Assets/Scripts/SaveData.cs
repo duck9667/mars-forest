@@ -22,6 +22,8 @@ public class SaveData
     public float[] spots = new float[12];
     public long savedAt = 0;
     public bool muted = false;
+    public bool vibrate = true;   // 설정: 진동(햅틱) 켜기
+    public float zoom = 1f;       // 카메라 확대 배율(1=기본, 클수록 가까이)
     public float spawnT = GameConfig.FIRST_SPAWN;
     public float clock = 0; public int day = 1;
     public float rushT = 0, drillT = 0;

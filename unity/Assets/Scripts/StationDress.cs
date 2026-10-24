@@ -7,7 +7,7 @@ public static class StationDress
 {
     public static void Dress(Stations st)
     {
-        // 제빙기: 바닥판 96×5×64 + 소형 격납고·물탱크(파란 띠)·파이프·굴뚝
+        // 해빙기: 바닥판 96×5×64 + 소형 격납고·물탱크(파란 띠)·파이프·굴뚝
         var m = WorldMap.STN["melter"];
         var gm = Group(st.melterView, m, 96, 64);
         var reM = ModelLib.SK(ModelLib.COL.orange);

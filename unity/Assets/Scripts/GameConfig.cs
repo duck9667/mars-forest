@@ -9,11 +9,11 @@ public static class GameConfig
     public const float W = 400f, H = 1040f;
     public const float DT_MAX = 0.05f;
 
-    public static readonly int[] CARRY = { 6, 9, 12, 16, 20, 26, 32 };
+    public static readonly int[] CARRY = { 20, 24, 28, 32, 36, 40, 48 };   // jake 요청(10/24): 처음부터 20개
     public const int BOTTLE_CAP = 24;
     public const int MELT_VIS_MAX = 10;        // 제빙 큐 시각화 상한(2열)
     public const int BILL_MAX = 24;
-    public const int STACK_MAX = 40;
+    public const int STACK_MAX = 60;
 
     // 근접 반경·쿨다운 (§1.1)
     public const float R_ICE = 40f, CD_ICE = 0.09f;
@@ -56,7 +56,7 @@ public static class GameConfig
     public const float SQUASH_T = 0.32f, POP_T = 0.55f;
 
     // 튜토리얼 말풍선 (§6.2)
-    public static readonly string[] TUT = { "얼음을 주워요", "제빙기에 넣어요", "카운터에 올려요" };
+    public static readonly string[] TUT = { "얼음을 주워요", "해빙기에 넣어요", "카운터에 올려요" };
 
     // 색
     public static readonly Color BG = Hex("c9552b");
@@ -101,7 +101,7 @@ public static class Pads
         new PadDef{ id="price",   name="프리미엄 라벨", icon="🏷", pos=new Vector2(134,598), cost=l=>200f*Mathf.Pow(1.9f,l),  max=5, req=g=>g.S.sold>=10, reqText="판매 10", menu=true, active=true },
         new PadDef{ id="cashier", name="삐걱 고용",    icon="🤖", pos=new Vector2(360,598), cost=l=>150f,                   max=1, req=g=>g.S.sold>=3, reqText="판매 3", active=true },
         new PadDef{ id="bottler", name="병입기 속도",  icon="🧴", pos=new Vector2(290,372), cost=l=>80f*Mathf.Pow(1.7f,l),   max=6, req=g=>g.S.sold>=3, reqText="판매 3", active=true },
-        new PadDef{ id="melter",  name="제빙기 속도",  icon="❄", pos=new Vector2(290,192), cost=l=>70f*Mathf.Pow(1.7f,l),   max=6, req=g=>g.PadLv("ice2")>=1, reqText="얼음밭 확장", active=true },
+        new PadDef{ id="melter",  name="해빙기 속도",  icon="❄", pos=new Vector2(290,192), cost=l=>70f*Mathf.Pow(1.7f,l),   max=6, req=g=>g.PadLv("ice2")>=1, reqText="얼음밭 확장", active=true },
         new PadDef{ id="shelf",   name="선반 칸",      icon="🧊", pos=new Vector2(134,452), cost=l=>120f*Mathf.Pow(1.8f,l),  max=4, req=g=>g.PadLv("ice2")>=1, reqText="얼음밭 확장", active=true },
         // ---- Phase 2 ----
         new PadDef{ id="ice2",    name="얼음밭 확장",  icon="🧊", pos=new Vector2(126,220), cost=l=>120f,  max=1, req=g=>g.PadLv("bottler")>=1, reqText="병입기 Lv.1", zone=true, active=true },

@@ -46,7 +46,7 @@ public class HintSystem : MonoBehaviour
             targetKey = "ice:" + best; return WorldMap.ICE_SPOTS[best];
         }
         bool iceFull = G.Carry + G.pend >= G.CarryMax;
-        if (top == "ice" || G.pendK == "ice") return (iceFull || !anyOpen) ? P("melter") : Ice();   // 얼음 가득/밭 비었음→제빙기, 아니면 계속 줍기
+        if (top == "ice" || G.pendK == "ice") return (iceFull || !anyOpen) ? P("melter") : Ice();   // 얼음 가득/밭 비었음→해빙기, 아니면 계속 줍기
         if (top == "bottle" && S.shelf + G.shelfPend < G.ShelfCap) return Cnt();
         if (top == "bottle") return G.HasCashier ? Cnt() : P("register");
         if (S.cash > 0 && (!G.HasCashier || S.cash > price * 4)) return P("register");

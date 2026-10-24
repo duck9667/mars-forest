@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// §1 코어 루프의 고정 스테이션: 얼음 더미 8 · 제빙기 · 병입기 · 카운터(선반) · 계산대(지폐 더미)
+// §1 코어 루프의 고정 스테이션: 얼음 더미 8 · 해빙기 · 병입기 · 카운터(선반) · 계산대(지폐 더미)
 public class Stations : MonoBehaviour
 {
     public static Stations I;
@@ -40,7 +40,7 @@ public class Stations : MonoBehaviour
             Prim.Box(pile.transform, "c", new Vector3(-1.5f * GameConfig.K, 9f * GameConfig.K, 1.5f * GameConfig.K), new Vector3(18, 3.6f, 13), GameConfig.Hex("e4f6ff"));
             spotViews[i] = pile.transform; spotShown[i] = true;
         }
-        // 제빙기
+        // 해빙기
         var m = WorldMap.STN["melter"];
         melterView = Machine("melter", m, GameConfig.Hex("7f98b8"), 50).transform;
         meltCore = Prim.Sphere(melterView, "core", Local(melterView, m.x + 24, m.y - 4, 56), 16, GameConfig.Hex("9fe0ff"));

@@ -163,7 +163,7 @@ public class Player : MonoBehaviour
                 actT = GameConfig.CD_ICE; return;
             }
         }
-        // 2. 제빙기에 넣기
+        // 2. 해빙기에 넣기
         if (G.CarryTop == "ice" && WorldMap.NearStn(pos, "melter", GameConfig.R_MELT))
         {
             PopTop();
