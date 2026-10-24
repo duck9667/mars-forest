@@ -26,6 +26,15 @@ public static class ProjectSetup
             var m = new Material(sh);
             AssetDatabase.CreateAsset(m, "Assets/Resources/Mats/Trans.mat");
         }
+        if (!File.Exists("Assets/Resources/Mats/Emissive.mat"))
+        {
+            // Standard 의 _EMISSION 변형을 빌드에 포함시키기 위한 재질. 런타임에 EnableKeyword("_EMISSION") 만 하면(가로등 전구·제빙 코어)
+            // 에셋 재질 중 그 키워드를 쓰는 게 없어 변형이 잘려 나가고 발광이 안 보인다.
+            var m = new Material(Shader.Find("Standard")); m.SetFloat("_Glossiness", 0.05f); m.SetFloat("_Metallic", 0f);
+            m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", Color.white);
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            AssetDatabase.CreateAsset(m, "Assets/Resources/Mats/Emissive.mat");
+        }
         if (!File.Exists(SCENE))
         {
             Directory.CreateDirectory("Assets/Scenes");
@@ -47,7 +56,25 @@ public static class ProjectSetup
         PlayerSettings.runInBackground = true;
         PlayerSettings.iOS.targetOSVersionString = "15.0";
         PlayerSettings.colorSpace = ColorSpace.Linear;
+        EnsureHdr();
         AssetDatabase.SaveAssets();
         Debug.Log("Mars: 프로젝트 셋업 완료");
+    }
+
+    // PostFX(ACES 톤매핑·블룸)는 1 이상의 값이 살아 있어야 하므로 모든 티어에서 카메라 HDR 을 켠다 (기본 티어 설정은 모바일 Tier1 이 꺼져 있음)
+    static void EnsureHdr()
+    {
+        try
+        {
+            foreach (var grp in new[] { BuildTargetGroup.Standalone, BuildTargetGroup.iOS })
+                foreach (UnityEngine.Rendering.GraphicsTier tier in System.Enum.GetValues(typeof(UnityEngine.Rendering.GraphicsTier)))
+                {
+                    var ts = UnityEditor.Rendering.EditorGraphicsSettings.GetTierSettings(grp, tier);
+                    if (ts.hdr && ts.hdrMode == UnityEngine.Rendering.CameraHDRMode.FP16) continue;
+                    ts.hdr = true; ts.hdrMode = UnityEngine.Rendering.CameraHDRMode.FP16;
+                    UnityEditor.Rendering.EditorGraphicsSettings.SetTierSettings(grp, tier, ts);
+                }
+        }
+        catch (System.Exception e) { Debug.LogWarning("HDR 티어 설정 건너뜀: " + e.Message); }
     }
 }
