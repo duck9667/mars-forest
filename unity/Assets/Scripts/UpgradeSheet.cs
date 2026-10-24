@@ -7,8 +7,8 @@ using UnityEngine.UI;
 // §3.3 하단 업그레이드 시트(원본 #sheet .tabs/.row/.buy, 976~1000행). 탭 3개:
 //  · 업그레이드: ① 이주 카드(sold≥60 or prestige>0, §6.3 2회 탭 확인 3s) ② 스탯 3줄(hand·spd·price, 레벨 핍) ③ 시설 카드(구역·메뉴 제외; 노출 중 금테 → 구매 가능 → 잠김 → MAX)
 //  · 장식: sold≥60부터 탭이 보인다. §3.4 DECOS 6 카드(견본 그림·이름·설명·가격 / 보유 시 금색 "보유")
-//  · 목표: 상단 목표 칩으로만 진입(그 탭에 있는 동안만 탭 단추가 보인다). §6.1 목표 12개(완료 체크 / 현재 진행 바·v/g / 이후 잠김, 보상 상자+벨)
-// 탭이 하나뿐이면(장식 전, 업그레이드 탭) 탭 바 대신 제목. 구역 발판(zone)은 월드 발판에서만 해제하므로 시트에 안 올린다.
+//  · 목표: 탭 바에 항상 보인다(상단 목표 칩은 없앰). §6.1 목표 12개(완료 체크 / 현재 진행 바·v/g / 이후 잠김, 보상 상자+벨)
+// 탭은 최소 2개(업그레이드·목표)라 탭 바가 늘 보인다. 구역 발판(zone)은 월드 발판에서만 해제하므로 시트에 안 올린다.
 // 행은 key로 캐싱해 구성이 바뀔 때만 다시 만들고, 상태 갱신은 dirty → LateUpdate 프레임당 1회(납입 중 OnBellsChanged 매 프레임 발화 대비)
 // + 열려 있는 동안 0.25s 폴링(판매·목표·테라 진행처럼 이벤트가 없는 값).
 // 검증 인자: -sheettab upgrade|deco|quest[@초] (기본 3초 뒤 그 탭으로 시트를 연다)
@@ -189,7 +189,7 @@ public class UpgradeSheet : MonoBehaviour
         bool decoOn = DecoOn; int n = 0;
         foreach (var tb in tabs)
         {
-            bool show = tb.id == UP || (tb.id == DECO && decoOn) || (tb.id == QUEST && tab == QUEST);
+            bool show = tb.id == UP || (tb.id == DECO && decoOn) || tb.id == QUEST;   // 목표 탭은 상단 칩이 없어졌으니 항상 보인다
             if (tb.btn.gameObject.activeSelf != show) tb.btn.gameObject.SetActive(show);
             if (show) n++;
             int st = tb.id == tab ? 1 : 0;

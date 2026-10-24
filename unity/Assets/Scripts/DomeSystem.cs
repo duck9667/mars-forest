@@ -22,7 +22,7 @@ public class DomeSystem : MonoBehaviour
     class Seat
     {
         public Vector2 p; public bool used; public int tip, tipN;
-        public Transform bench, pile; public GameObject[] coins; public WorldLabels.Label chip;
+        public Transform bench, pile; public GameObject[] coins;
     }
     readonly Seat[] seats = new Seat[6];
     Transform root, pad, glassGroup, beacon, spout, glint;
@@ -55,7 +55,6 @@ public class DomeSystem : MonoBehaviour
     void OnDestroy()
     {
         if (G != null) G.OnPadLevel -= OnPad;
-        foreach (var s in seats) if (s != null && s.chip != null && WorldLabels.I != null) WorldLabels.I.Remove(s.chip);
         foreach (var m in owned) if (m != null) Destroy(m);
     }
 
@@ -134,7 +133,6 @@ public class DomeSystem : MonoBehaviour
         SyncCoins(s);
         s.pile.gameObject.SetActive(true);
         if (!was) JuiceFX.I.Pop(s.pile, 0.001f, 0.45f); else JuiceFX.I.Squash(s.pile, 0.8f);
-        s.chip.Set("+" + s.tip); s.chip.Show(true); JuiceFX.I.Pop(s.chip.rt, 0.3f, 0.4f);
         JuiceFX.I.CoinPop(s.pile.position + Vector3.up * 0.25f, 3);
         AudioManager.I.Play("coin", 1.45f, 0.35f);
     }
@@ -197,11 +195,7 @@ public class DomeSystem : MonoBehaviour
                 s.coins[c] = co;
             }
             pile.gameObject.SetActive(false);
-            var sp = s;
-            // 금액 칩: 배경 없는 작은 금색 글자(갈색 외곽선) + 동전 아이콘 — 좌석 6개가 동시에 떠도 돔을 가리지 않게
-            s.chip = WorldLabels.I.Add(() => sp.pile.position + Vector3.up * 0.45f, "", 16, UIKit.GOLD, Vector2.zero);
-            s.chip.SetStyle(null); s.chip.text.color = UIKit.GOLD; UIKit.Stroke(s.chip.text, UIKit.GOLD_D, 2f);
-            s.chip.SetIcon("coin"); s.chip.Show(false);
+            // 금액 칩은 두지 않는다: 동전 더미로 보인다 (jake 피드백 10/24)
         }
 
         // 화단 2 (Kenney 나무 타일) — 나무 상자 38×6×38 위. 원본 gardenRe는 20896b(원뿔 나무 옆면)를 황갈로 바꿔 나무가 갈색 원뿔로 보여서
@@ -386,7 +380,7 @@ public class DomeSystem : MonoBehaviour
     {
         var s = seats[i]; int n = s.tip; s.tip = 0; s.tipN = 0;
         Vector3 from = s.pile.position + Vector3.up * 0.2f;
-        s.pile.gameObject.SetActive(false); s.chip.Show(false);
+        s.pile.gameObject.SetActive(false);
         G.AddBells(n);   // 저장·종료 안전: 즉시 가산, 비행은 연출
         StartCoroutine(CoFlyCoins(from, 3));
         var cam = Camera.main;
