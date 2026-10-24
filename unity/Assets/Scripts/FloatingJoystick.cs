@@ -3,6 +3,7 @@ using UnityEngine.UI;
 
 // §2.1 플로팅 조이스틱: 아무 곳 터치에 베이스 표시, 지름 120/50, 최대 반경 45, 데드존 6, 아날로그 출력.
 // 출력 Vector2는 논리 좌표 방향(화면 아래 = +y). 키보드 WASD/화살표는 정규화 벡터.
+// 두 번째 손가락이 닿으면 조이스틱을 끊고(핀치 확대는 CameraRig) 손가락을 모두 뗄 때까지 다시 잡지 않는다.
 public class FloatingJoystick : MonoBehaviour
 {
     public static FloatingJoystick I;
@@ -13,6 +14,7 @@ public class FloatingJoystick : MonoBehaviour
 
     Canvas canvas; RectTransform baseRt, knobRt; Image baseImg, knobImg;
     int pointerId = -99; Vector2 origin;
+    bool pinching;   // 핀치 중(두 손가락 이상 닿은 뒤 아직 다 떼지 않음)
 
     void Awake()
     {
@@ -63,6 +65,11 @@ public class FloatingJoystick : MonoBehaviour
 
         if (suppressed) { pointerId = -99; Show(false); Active = false; Value = kb.normalized; return; }
         if (Override.HasValue) { Value = Override.Value; return; }
+
+        // 핀치: 두 번째 손가락이 닿는 순간 조이스틱을 끊고, 손가락을 다 뗄 때까지 무시
+        if (Input.touchCount >= 2) pinching = true;
+        else if (Input.touchCount == 0) pinching = false;
+        if (pinching) { pointerId = -99; Show(false); Active = false; Value = kb.normalized; return; }
 
         // 터치 우선, 없으면 마우스
         bool down = false, held = false; Vector2 pos = Vector2.zero;
