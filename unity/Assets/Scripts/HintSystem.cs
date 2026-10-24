@@ -51,6 +51,8 @@ public class HintSystem : MonoBehaviour
         if (S.cash > 0 && (!G.HasCashier || S.cash > price * 4)) return P("register");
         if (S.bottles > 0 && G.Carry == 0 && S.shelf + G.shelfPend < G.ShelfCap && G.PadLv("runner") == 0) return P("bottler");   // 뽀삐가 있으면 운반은 뽀삐 몫
         if (CustomerSystem.I.AnyWaitingToPay() && !G.HasCashier) return P("register");
+        // 토끼 팁 ≥ price*4 → 우리 팁 자리 (§6.2)
+        if (S.penTip >= price * 4 && G.PadLv("pen") >= 1) { targetKey = "pen"; return WorldMap.PEN_TIP; }
         // 다음 발판: sold≥1 & bells≥남은 금액의 50%
         if (S.sold >= 1 && PadManager.I.visOrder.Count > 0)
         {
