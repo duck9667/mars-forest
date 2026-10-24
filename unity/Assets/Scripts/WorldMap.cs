@@ -53,7 +53,41 @@ public static class WorldMap
         new Gate{ zone="melt", side='W', at=150, w=70 },
         new Gate{ zone="bottle", side='W', at=330, w=70 }, new Gate{ zone="bottle", side='S', at=322, w=70 },
         new Gate{ zone="dome", side='N', at=106, w=60 }, new Gate{ zone="pen", side='N', at=330, w=60 },
+        // 울타리가 실제로 막으므로 얼음밭 → 가운데 통로(x 236~256) → 해빙기 W(y150)·병입기 W(y330)로 바로 이어지는 E변 게이트
+        new Gate{ zone="ice", side='E', at=250, w=60 }, new Gate{ zone="ice2", side='E', at=120, w=60 },
     };
+    // 열린 구역(울타리가 보이는 구역)만 울타리 충돌. ZoneManager가 채운다. fenceVer는 봇 격자 재생성 신호
+    public static readonly HashSet<string> openZones = new HashSet<string>();
+    public static int fenceVer;
+    public static void SetZoneOpen(string key, bool open)
+    {
+        if (open ? openZones.Add(key) : openZones.Remove(key)) fenceVer++;
+    }
+    public static void ClearZones() { openZones.Clear(); fenceVer++; }
+    const float FENCE_HW = 5f;      // 울타리 충돌 반폭(논리). 8 격자에서도 두 칸이 막히고 가운데 통로(236~256)는 한 칸 남는다
+    const float GATE_POST = 4f;     // 게이트 굵은 기둥(7) 몫만큼 틈을 좁힌다
+
+    // 열린 구역의 울타리 변(게이트 틈 제외) 선분 충돌. 줄 난간(qL/qR)은 충돌 없음
+    static bool FenceBlocked(float x, float y)
+    {
+        foreach (var z in ZONES)
+        {
+            if (!openZones.Contains(z.key)) continue;
+            if (x < z.x0 - FENCE_HW || x > z.x1 + FENCE_HW || y < z.y0 - FENCE_HW || y > z.y1 + FENCE_HW) continue;
+            foreach (char side in z.sides)
+            {
+                bool horiz = side == 'N' || side == 'S';
+                float fixedV = side == 'N' ? z.y0 : side == 'S' ? z.y1 : side == 'W' ? z.x0 : z.x1;
+                float across = horiz ? y : x, along = horiz ? x : y;
+                if (Mathf.Abs(across - fixedV) > FENCE_HW) continue;
+                bool inGate = false;
+                foreach (var g in GATES)
+                    if (g.zone == z.key && g.side == side && Mathf.Abs(along - g.at) < g.w / 2 - GATE_POST) { inGate = true; break; }
+                if (!inGate) return true;
+            }
+        }
+        return false;
+    }
 
     // §4.2 휴게 돔·토끼 우리·착륙선
     public static readonly Vector2 DOME = new Vector2(108, 838);
@@ -85,7 +119,7 @@ public static class WorldMap
         return Mathf.Abs(p.x - s.x) < s.w / 2 + r && Mathf.Abs(p.y - s.y) < s.h / 2 + r;
     }
 
-    // §2 blocked(): 경계 + STN AABB(+10 x / +8 y). 울타리는 충돌 없음(넘어다님). 드릴은 설치 후만.
+    // §2 blocked(): 경계 + STN AABB(+10 x / +8 y) + 열린 구역 울타리(게이트 틈만 통과, jake 피드백 "울타리를 왜 넘어가냐"). 드릴은 설치 후만.
     public static bool Blocked(float x, float y)
     {
         if (x < 14 || x > 386 || y < 30 || y > 1024) return true;
@@ -104,6 +138,7 @@ public static class WorldMap
         }
         if (x > 338 && y > 358 && y < 404) return true;                 // 병입 구역 드럼통
         if ((p - LANDER).sqrMagnitude < 34 * 34) return true;            // 착륙선
+        if (FenceBlocked(x, y)) return true;
         return false;
     }
 

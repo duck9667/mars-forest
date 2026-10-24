@@ -16,7 +16,7 @@ public class ZoneManager : MonoBehaviour
     readonly Dictionary<string, ZView> views = new Dictionary<string, ZView>();
     static readonly Color POST = GameConfig.Hex("8a5a3c"), RAIL = GameConfig.Hex("a8724a");
 
-    void Awake() { I = this; }
+    void Awake() { I = this; WorldMap.ClearZones(); }   // 이주(Restart) 뒤 새 씬은 열림 상태를 처음부터
 
     // §4.3 모서리 가로등: 열린 구역 모서리마다(중복 제거). 밤에 전구 발광 + 바닥빛(point light)
     class Lamp { public Transform root; public Renderer bulb; public Light light; public Material mat, pool; }
@@ -30,6 +30,14 @@ public class ZoneManager : MonoBehaviour
         if (PadManager.I != null) PadManager.I.OnChanged += RefreshArches;
         RefreshArches();
         foreach (var v in views.Values) if (v.open) AddLamps(v.z);
+        StartCoroutine(UnstickPlayer());
+    }
+
+    // 울타리 충돌 이전 저장본은 플레이어가 울타리 선 위에 저장돼 있을 수 있다 → 시작 자리로
+    IEnumerator UnstickPlayer()
+    {
+        yield return null;
+        if (Player.I != null && WorldMap.Blocked(Player.I.pos.x, Player.I.pos.y)) Player.I.pos = WorldMap.PLAYER_START;
     }
 
     void AddLamps(WorldMap.Zone z)
@@ -81,6 +89,7 @@ public class ZoneManager : MonoBehaviour
         v.fence = new GameObject("fence").transform; v.fence.SetParent(v.root, false);
         BuildFence(v);
         v.open = z.open || (z.pad != null && G.PadLv(z.pad) >= 1);
+        WorldMap.SetZoneOpen(z.key, v.open);
         if (!v.open)
         {
             v.floor.gameObject.SetActive(false); v.fence.gameObject.SetActive(false);
@@ -182,6 +191,10 @@ public class ZoneManager : MonoBehaviour
     IEnumerator Unlock(ZView v)
     {
         v.open = true;
+        WorldMap.SetZoneOpen(v.z.key, true);
+        // 해제 순간 플레이어가 새 울타리 선 위에 있으면 안쪽으로 밀어 낸다
+        if (Player.I != null && WorldMap.Blocked(Player.I.pos.x, Player.I.pos.y))
+            Player.I.pos = Vector2.MoveTowards(Player.I.pos, new Vector2((v.z.x0 + v.z.x1) / 2, (v.z.y0 + v.z.y1) / 2), 12f);
         if (v.outline) v.outline.gameObject.SetActive(false);
         if (v.arch) v.arch.gameObject.SetActive(false);
         var z = v.z; float cx = (z.x0 + z.x1) / 2, cy = (z.y0 + z.y1) / 2; Vector3 center = WorldMap.W2U(cx, cy, 0);

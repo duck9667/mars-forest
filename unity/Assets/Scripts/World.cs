@@ -1,30 +1,20 @@
 using UnityEngine;
 
-// §4·§7.2 환경: 바닥·구역 바닥·울타리(인스턴싱 대신 Phase 1은 개별 메시)·바위·조명. Phase 1은 낮밤 없음(정오 고정).
+// §4·§7.2 환경: 바닥·줄 난간·먼지·테두리(메사)·조명. Phase 1은 낮밤 없음(정오 고정).
 public class World : MonoBehaviour
 {
     void Start()
     {
-        float k = GameConfig.K;
         // 바닥(여유 폭 포함): 원본처럼 코드로 그린 텍스처(흙·균열·크레이터·바퀴 자국·손님 길 점선·착륙장 원과 H). GroundPainter 참고.
         GroundPainter.GroundQuad(transform);
         // 구역 바닥·울타리는 ZoneManager가 만든다 (해제 연출 때문에 부품 단위 관리)
         // 줄 난간 qL/qR: x=186/246, y 570~676 레일
         Rail(186, 570, 676); Rail(246, 570, 676);
         // 착륙장 원 r58(입구)은 지면 텍스처에 그려져 있다
-        // 환경 연출: 떠다니는 먼지 입자 + 돌풍 + 먼지 회오리 2개
+        // 환경 연출: 가장자리에만 옅은 먼지 + 가끔 지나가는 먼지 회오리 (DustFX)
         new GameObject("DustFX").AddComponent<DustFX>().transform.SetParent(transform, false);
-        // 바위: 고정 시드 (모델 파이프라인이 붙으면 WorldDress가 교체)
+        // 테두리: 메사 절벽 + 포인트 바위 (WorldDress)
         var rocks = new GameObject("rocks").transform; rocks.SetParent(transform, false);
-        var rnd = new System.Random(11);
-        for (int i = 0; i < 26; i++)
-        {
-            float x = (float)rnd.NextDouble() * 520 - 60, y = (float)rnd.NextDouble() * 1100 - 30;
-            if (x > 0 && x < 400 && y > 30 && y < 1024) { i--; continue; }
-            float s = 10 + (float)rnd.NextDouble() * 22;
-            var r = Prim.Sphere(rocks, "rock", WorldMap.W2U(x, y, s * 0.3f), s, GameConfig.Hex("b3683e"));
-            r.transform.localScale = new Vector3(s, s * 0.7f, s * 0.85f) * k;
-        }
         Lights();
         WorldDress.Dress(transform, rocks);
     }
