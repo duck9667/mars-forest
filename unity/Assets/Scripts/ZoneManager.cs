@@ -76,21 +76,16 @@ public class ZoneManager : MonoBehaviour
     {
         var v = new ZView { z = z };
         v.root = new GameObject("zone_" + z.key).transform; v.root.SetParent(transform, false);
-        float cx = (z.x0 + z.x1) / 2, cy = (z.y0 + z.y1) / 2;
-        v.floor = Prim.Box(v.root, "floor", WorldMap.W2U(cx, cy, 0.5f), new Vector3(z.x1 - z.x0, 1, z.y1 - z.y0), z.floor).transform;
+        // 바닥: 코드로 그린 텍스처 판(색 면 + 타일 명암 + 점선 테두리, GroundPainter.PaintFloor). 접지 그림자(0.01m)보다 낮게 0.1
+        v.floor = GroundPainter.FloorQuad(v.root, z, 0.1f).transform;
         v.fence = new GameObject("fence").transform; v.fence.SetParent(v.root, false);
         BuildFence(v);
         v.open = z.open || (z.pad != null && G.PadLv(z.pad) >= 1);
         if (!v.open)
         {
             v.floor.gameObject.SetActive(false); v.fence.gameObject.SetActive(false);
-            // 점선 윤곽 대신 어두운 반투명 평면 + 자물쇠 아치(차례가 오면 표시)
-            var c = new Color(0.1f, 0.05f, 0.02f, 0.18f);
-            var og = GameObject.CreatePrimitive(PrimitiveType.Cube); Destroy(og.GetComponent<Collider>());
-            og.name = "outline"; og.transform.SetParent(v.root, false);
-            og.transform.position = WorldMap.W2U(cx, cy, 0.3f); og.transform.localScale = new Vector3(z.x1 - z.x0, 0.4f, z.y1 - z.y0) * GameConfig.K;
-            og.GetComponent<Renderer>().sharedMaterial = Mats.Trans(c); Prim.NoShadow(og);
-            v.outline = og.transform;
+            // 원본처럼 점선 윤곽(살짝 어두운 면 + 크림색 점선 투명 판) + 자물쇠 아치(차례가 오면 표시)
+            v.outline = GroundPainter.DashQuad(v.root, z, 0.12f).transform;
             v.arch = BuildArch(v);
             v.outline.gameObject.SetActive(false); v.arch.gameObject.SetActive(false);
         }
