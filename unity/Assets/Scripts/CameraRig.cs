@@ -12,6 +12,8 @@ public class CameraRig : MonoBehaviour
     public const float ZOOM_MIN = 1f, ZOOM_MAX = 2.2f;   // 실제 배율 범위(1 = 예전 기본 화면, 핀치로 가장 넓게)
     // 기본 배율 1.4(2026-10-25). 저장값 S.zoom은 "기본 대비 배율"로 읽는다: 저장 1(옛 기본·새 저장 기본) → 실제 1.4
     public const float ZOOM_BASE = 1.4f;
+    // 아래 여유(논리): 화면 아래 업그레이드 버튼(화면 높이 약 12%)이 착륙장·본부를 가리지 않게 맵 끝(H)보다 이만큼 더 내려간다(예전 50)
+    const float BOTTOM_PAD = 130f;
     static bool zoomArgDone;   // -zoom 검증 인자는 실행당 1회(Restart 뒤 유지)
     bool snapped;              // 첫 추적 프레임에 바로 맞췄는지
     float pinchD = -1f;        // 직전 프레임 두 손가락 거리(픽셀), -1이면 핀치 아님
@@ -78,9 +80,9 @@ public class CameraRig : MonoBehaviour
             float vy = velL != null ? velL().y : 0f;
             lead = Mathf.Lerp(lead, Mathf.Clamp(vy * 0.22f, -50f, 50f), dt * 3f);
             float ty = pl.y + lead + viewH * 0.04f;
-            // 세로 제한: 위는 놀이 경계(Y_MIN+6)보다 170 바깥(북쪽 메사 띠 위)까지, 아래는 착륙장 아래 50까지.
+            // 세로 제한: 위는 놀이 경계(Y_MIN+6)보다 170 바깥(북쪽 메사 띠 위)까지, 아래는 착륙장 아래 BOTTOM_PAD까지.
             // 2장 개척지(y −620~−410)는 맨 위라 예전 110이면 화면 위 1/3에 몰려 HUD에 가렸다 → 170으로 늘려 개척지가 화면 가운데 가까이 오게
-            ty = Mathf.Clamp(ty, GameConfig.Y_MIN - 170f + viewH * 0.5f, GameConfig.H - viewH * 0.5f + 50f);
+            ty = Mathf.Clamp(ty, GameConfig.Y_MIN - 170f + viewH * 0.5f, GameConfig.H - viewH * 0.5f + BOTTOM_PAD);
             camY = snapped ? Mathf.Lerp(camY, ty, dt * 5f) : ty;
             // x: 기본(zoom 1)은 200 고정, 확대하면 플레이어를 따라가되 맵 가장자리(0~400) 밖은 10만큼만 보이게
             float minX = halfW - 10f, maxX = 400f - halfW + 10f;

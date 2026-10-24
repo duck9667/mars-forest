@@ -12,13 +12,14 @@ public class DayNight : MonoBehaviour
     struct Key { public float p; public Color sun; public float sunI; public Color sky, ground; public float hemi; public Color bg; public float night; }
     static Key K(float p, string sun, float sunI, string sky, string ground, float hemi, string bg, float night)
         => new Key { p = p, sun = GameConfig.Hex(sun), sunI = sunI, sky = GameConfig.Hex(sky), ground = GameConfig.Hex(ground), hemi = hemi, bg = GameConfig.Hex(bg), night = night };
+    // 밤(0.58~0.78): 예전 태양 8fa0e8×1.05·땅빛 3a2a50은 화면이 탁한 남보라로 가라앉아(2026-10-25 다듬기) 달빛을 밝히고 땅빛을 보라 기 도는 밤색으로 올렸다
     static readonly Key[] DAYK =
     {
         K(0.00f, "fff0dc", 1.9f,  "fff1e2", "a8482a", 1.05f, "c9552b", 0f),
         K(0.32f, "ffe6c8", 1.85f, "ffe9d4", "a8482a", 1.05f, "c9552b", 0f),
         K(0.46f, "ffb47c", 1.6f,  "ffc8a4", "8a3a24", 1.05f, "b84a2a", 0.3f),
-        K(0.58f, "8fa0e8", 1.05f, "7080c8", "3a2a50", 1.2f,  "4e2436", 1f),
-        K(0.78f, "8fa0e8", 1.05f, "7080c8", "3a2a50", 1.2f,  "4e2436", 1f),
+        K(0.58f, "a8b6ec", 1.45f, "8e9cd8", "64486a", 1.3f,  "4e2436", 1f),
+        K(0.78f, "a8b6ec", 1.45f, "8e9cd8", "64486a", 1.3f,  "4e2436", 1f),
         K(0.90f, "ffc4a0", 1.6f,  "ffd4bc", "8a4034", 1.05f, "b84a2a", 0.3f),
         K(1.00f, "fff0dc", 1.9f,  "fff1e2", "a8482a", 1.05f, "c9552b", 0f),
     };
