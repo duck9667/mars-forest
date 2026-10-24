@@ -144,7 +144,7 @@ public class HUD : MonoBehaviour
         // 메뉴 스탯 살 수 있으면 점
         bool dot = false;
         foreach (var d in Pads.ALL) if (d.active && d.menu && !G.PadMaxed(d.id) && G.PadReq(d.id) && G.S.bells >= G.PadRemain(d.id)) dot = true;
-        upDot.gameObject.SetActive(dot); menuBuyable = dot;
+        upDot.gameObject.SetActive(dot || (MissionBoard.I != null && MissionBoard.I.AnyClaimable)); menuBuyable = dot;   // 점: 메뉴 스탯 구매 가능 또는 받을 미션 보상
     }
 
     bool menuBuyable;

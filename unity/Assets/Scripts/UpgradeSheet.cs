@@ -7,7 +7,8 @@ using UnityEngine.UI;
 // §3.3 하단 업그레이드 시트(원본 #sheet .tabs/.row/.buy, 976~1000행). 탭 3개:
 //  · 업그레이드: ① 이주 카드(sold≥60 or prestige>0, §6.3 2회 탭 확인 3s) ② 스탯 3줄(hand·spd·price, 레벨 핍) ③ 시설 카드(구역·메뉴 제외; 노출 중 금테 → 구매 가능 → 잠김 → MAX)
 //  · 장식: sold≥60부터 탭이 보인다. §3.4 DECOS 6 카드(견본 그림·이름·설명·가격 / 보유 시 금색 "보유")
-//  · 목표: 탭 바에 항상 보인다(상단 목표 칩은 없앰). §6.1 목표 12개(완료 체크 / 현재 진행 바·v/g / 이후 잠김, 보상 상자+벨)
+//  · 목표: 탭 바에 항상 보인다(상단 목표 칩은 없앰). 위쪽 "오늘의 미션"(MissionBoard: 3줄 이름·진행 바·보상·[받기] + 보너스 상자) → 아래 "목표"
+//    §6.1 목표 12개(완료 체크 / 현재 진행 바·v/g / 이후 잠김, 보상 상자+벨). 받을 미션이 있으면 목표 탭에 빨간 점
 // 탭은 최소 2개(업그레이드·목표)라 탭 바가 늘 보인다. 구역 발판(zone)은 월드 발판에서만 해제하므로 시트에 안 올린다.
 // 행은 key로 캐싱해 구성이 바뀔 때만 다시 만들고, 상태 갱신은 dirty → LateUpdate 프레임당 1회(납입 중 OnBellsChanged 매 프레임 발화 대비)
 // + 열려 있는 동안 0.25s 폴링(판매·목표·테라 진행처럼 이벤트가 없는 값).
@@ -28,11 +29,12 @@ public class UpgradeSheet : MonoBehaviour
     class TabBtn { public string id; public Button btn; public Image dot; public int state = -1; }
     readonly List<TabBtn> tabs = new List<TabBtn>();
 
-    enum Kind { Pad, Prest, Deco, Quest }
+    enum Kind { Pad, Prest, Deco, Quest, Header, Mission }
     class Row
     {
         public Kind kind; public string key;
         public PadDef d; public bool stat; public DecoDef deco; public int qi = -1;
+        public int mi = -1; public Image icon;   // 미션 번호(S.missions 안, 보너스 포함)·아이콘
         public Image bg, tile, barFill; public RectTransform barTrack; public Transform pips; public Button buy; public Text name, sub, tag; public CanvasGroup cg;
         public int lv = -1, state = -1; public bool maxed, req, can, vis; public string label;
     }
@@ -65,7 +67,7 @@ public class UpgradeSheet : MonoBehaviour
             var b = UIKit.Button(tabBar, "tab_" + id, UIKit.Gray, new Vector2(100, 56), TabLabel(id), 22, () => SetTab(tid), TabIcon(id), 24);
             b.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
             var tb = new TabBtn { id = id, btn = b };
-            if (id == DECO)
+            if (id == DECO || id == QUEST)
             {
                 tb.dot = UIKit.IconImg(b.transform, "dot", 22); Destroy(tb.dot.GetComponent<LayoutElement>());
                 var drt2 = tb.dot.rectTransform; drt2.anchorMin = drt2.anchorMax = new Vector2(1, 1); drt2.pivot = new Vector2(0.5f, 0.5f); drt2.anchoredPosition = new Vector2(-6, -6);
@@ -196,7 +198,8 @@ public class UpgradeSheet : MonoBehaviour
             if (st != tb.state) { tb.state = st; SetBtn(tb.btn, st == 1 ? UIKit.Gold : UIKit.Gray, TabLabel(tb.id), TabIcon(tb.id), 22, 24); }
             if (tb.dot != null)
             {
-                bool dot = tb.id == DECO && tab != DECO && DecoManager.I != null && DecoManager.I.AnyAffordable();
+                bool dot = tb.id == DECO ? tab != DECO && DecoManager.I != null && DecoManager.I.AnyAffordable()
+                         : tab != QUEST && MissionBoard.I != null && MissionBoard.I.AnyClaimable;   // 목표 탭: 받을 미션 보상
                 if (tb.dot.gameObject.activeSelf != dot) tb.dot.gameObject.SetActive(dot);
             }
         }
@@ -217,7 +220,17 @@ public class UpgradeSheet : MonoBehaviour
             foreach (var d in Pads.ALL.Where(p => p.active && !p.menu && !p.zone).OrderBy(Rank)) k.Add("pad:" + d.id);
         }
         else if (tab == DECO) foreach (var d in DecoManager.DECOS) k.Add("deco:" + d.id);
-        else for (int i = 0; i < QuestManager.QUESTS.Length; i++) k.Add("quest:" + i);
+        else
+        {
+            bool mis = MissionBoard.I != null && MissionBoard.I.Active;
+            if (mis)
+            {
+                k.Add("hdr:mis");
+                for (int i = 0; i < G.S.missions.Count; i++) k.Add("mis:" + i);
+                k.Add("hdr:quest");
+            }
+            for (int i = 0; i < QuestManager.QUESTS.Length; i++) k.Add("quest:" + i);
+        }
         return k;
     }
 
@@ -238,12 +251,12 @@ public class UpgradeSheet : MonoBehaviour
         foreach (var r in rows) UpdateRow(r);
         if (resetScroll) ScrollToStart();
     }
-    // 맨 위로. 목표 탭은 진행 중인 목표가 위에서 두 번째 줄에 오도록
+    // 맨 위로. 목표 탭은 오늘의 미션이 있으면 맨 위, 없으면 진행 중인 목표가 위에서 두 번째 줄에 오도록
     void ScrollToStart()
     {
         scroll.StopMovement();
         float y = 0;
-        if (tab == QUEST && QuestManager.I != null)
+        if (tab == QUEST && QuestManager.I != null && !(MissionBoard.I != null && MissionBoard.I.Active))
         {
             LayoutRebuilder.ForceRebuildLayoutImmediate(list);
             int cur = Mathf.Min(G.S.quest, QuestManager.QUESTS.Length - 1);
@@ -259,6 +272,8 @@ public class UpgradeSheet : MonoBehaviour
         var parts = key.Split(':');
         if (parts[0] == "pad") { var d = Pads.Get(parts[1]); return MakePad(d, d.menu); }
         if (parts[0] == "deco") return MakeDeco(DecoManager.Def(parts[1]));
+        if (parts[0] == "hdr") return MakeHeader(key, parts[1] == "mis" ? "오늘의 미션" : "목표");
+        if (parts[0] == "mis") return MakeMission(int.Parse(parts[1]));
         return MakeQuest(int.Parse(parts[1]));
     }
 
@@ -500,6 +515,84 @@ public class UpgradeSheet : MonoBehaviour
         if (st == 1) UIKit.SetBar(r.barFill, (float)v / q.goal, 190);
     }
 
+    // 소제목 줄("오늘의 미션" · 오른쪽 남은 시간 / "목표"): 카드 없이 글자만
+    Row MakeHeader(string key, string text)
+    {
+        var r = new Row { key = key, kind = Kind.Header };
+        r.bg = HUD.UI.Panel(list, key, Color.clear); r.bg.raycastTarget = true;
+        r.bg.gameObject.AddComponent<LayoutElement>().preferredHeight = 34;
+        r.name = UIKit.Text(r.bg.transform, text, 22, Color.white, TextAnchor.MiddleLeft); UIKit.Stroke(r.name, UIKit.EDGE, 1.6f);
+        var nrt = r.name.rectTransform; nrt.anchorMin = new Vector2(0, 0); nrt.anchorMax = new Vector2(1, 1); nrt.offsetMin = new Vector2(6, 0); nrt.offsetMax = new Vector2(-6, 0);
+        if (key == "hdr:mis")
+        {
+            r.sub = UIKit.Text(r.bg.transform, "", 17, UIKit.SUB, TextAnchor.MiddleRight);
+            var srt = r.sub.rectTransform; srt.anchorMin = new Vector2(0, 0); srt.anchorMax = new Vector2(1, 1); srt.offsetMin = new Vector2(6, 0); srt.offsetMax = new Vector2(-8, 0);
+        }
+        return r;
+    }
+    void UpdateHeader(Row r)
+    {
+        if (r.sub == null || MissionBoard.I == null) return;
+        int sec = Mathf.CeilToInt(MissionBoard.I.SecondsLeft);
+        string s = "남은 시간 " + sec / 60 + ":" + (sec % 60).ToString("00");
+        if (r.sub.text != s) r.sub.text = s;
+    }
+
+    // 오늘의 미션 카드: 아이콘 · 이름 · 진행 바 v/g · [+보상](진행 중) / [받기](완료) / [완료](받음). 마지막 줄은 보너스 상자
+    Row MakeMission(int i)
+    {
+        var r = Card("mis:" + i, Kind.Mission, ROW_H); r.mi = i;
+        r.tile = UIKit.Panel(r.bg.transform, "tile", UIKit.Tile); UIKit.Anchor(r.tile.rectTransform, new Vector2(0, 0.5f), new Vector2(14, 1), new Vector2(60, 63));
+        r.icon = UIKit.RT(r.tile.transform, "icon").gameObject.AddComponent<Image>(); r.icon.preserveAspect = true; r.icon.raycastTarget = false;
+        var irt = r.icon.rectTransform; irt.anchorMin = irt.anchorMax = new Vector2(0.5f, 0.5f); irt.pivot = new Vector2(0.5f, 0.5f); irt.sizeDelta = new Vector2(40, 40); irt.anchoredPosition = new Vector2(0, 1.5f);
+        r.name = Name(r, "", 16);
+        r.sub = Sub(r, "", -8);
+        var tr = UIKit.ProgressBar(r.bg.transform, "bar", new Vector2(190, 10), out r.barFill); r.barTrack = tr.rectTransform;
+        UIKit.Anchor(r.barTrack, new Vector2(0, 0.5f), new Vector2(88, -30), new Vector2(190, 10));
+        r.buy = BuyBtn(r, UIKit.Gray, "bell", () => OnClaim(r), 150);
+        return r;
+    }
+    void UpdateMission(Row r)
+    {
+        var all = G.S.missions; if (r.mi < 0 || r.mi >= all.Count) return;
+        var m = all[r.mi]; bool bonus = m.id == MissionBoard.BONUS;
+        string label = m.id + ":" + m.goal + ":" + m.reward;
+        if (label != r.label)
+        {
+            // 하루가 바뀌어 같은 자리에 새 미션이 오면 이름·아이콘부터 다시
+            r.label = label; r.state = -1;
+            r.icon.sprite = MissionBoard.Icon(MissionBoard.IconOf(m));
+            r.name.text = MissionBoard.NameOf(m);
+        }
+        int st = m.claimed ? 2 : m.done ? 1 : 0;
+        string icon = bonus ? "chest" : "bell";
+        if (st != r.state)
+        {
+            r.state = st;
+            SetCard(r, st == 2 ? UIKit.CardDone : st == 1 ? UIKit.CardCur : UIKit.Card);
+            r.tile.sprite = UIKit.Panel9(st == 2 ? UIKit.TileDark : UIKit.Tile);
+            r.barTrack.gameObject.SetActive(st == 0);
+            r.sub.rectTransform.anchoredPosition = new Vector2(88, st == 0 ? -8 : -15);
+            if (st == 2) SetBtn(r.buy, UIKit.Green, "완료", "check", 22, 26);
+            else if (st == 1) SetBtn(r.buy, UIKit.Gold, "받기", icon, 24, bonus ? 30 : 26);
+            else SetBtn(r.buy, UIKit.Gray, "+" + m.reward.ToString("N0"), icon, 22, bonus ? 26 : 22);
+            r.buy.interactable = st == 1;
+        }
+        string rw = m.reward.ToString("N0");
+        string s = st == 2 ? "받음" : st == 1 ? "완료! · 보상 " + rw + "벨"
+                 : bonus ? "미션 " + m.prog + " / " + m.goal + " · 보상 " + rw + "벨" : m.prog.ToString("N0") + " / " + m.goal.ToString("N0") + " · 보상 " + rw + "벨";
+        if (r.sub.text != s) r.sub.text = s;
+        r.sub.color = st == 2 ? UIKit.Hex("8fe08a") : st == 1 ? UIKit.GOLD : UIKit.SUB;
+        if (st == 0) UIKit.SetBar(r.barFill, m.goal > 0 ? (float)m.prog / m.goal : 0, 190);
+    }
+    void OnClaim(Row r)
+    {
+        var all = G.S.missions; if (MissionBoard.I == null || r.mi < 0 || r.mi >= all.Count) return;
+        if (!MissionBoard.I.Claim(all[r.mi], r.buy.transform.position)) { Wiggle(r.buy.transform); return; }
+        JuiceFX.I.Pop(r.bg.transform, 1.05f, 0.3f);
+        dirty = true;
+    }
+
     void UpdateRow(Row r)
     {
         switch (r.kind)
@@ -508,6 +601,8 @@ public class UpgradeSheet : MonoBehaviour
             case Kind.Prest: UpdatePrest(r); break;
             case Kind.Deco: UpdateDeco(r); break;
             case Kind.Quest: UpdateQuest(r); break;
+            case Kind.Header: UpdateHeader(r); break;
+            case Kind.Mission: UpdateMission(r); break;
         }
     }
 

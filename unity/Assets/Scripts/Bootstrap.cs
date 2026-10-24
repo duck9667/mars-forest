@@ -48,6 +48,7 @@ public static class Bootstrap
         new GameObject("Offline").AddComponent<OfflineEarnings>();
         new GameObject("DayNight").AddComponent<DayNight>();
         new GameObject("Quests").AddComponent<QuestManager>();
+        new GameObject("Missions").AddComponent<MissionBoard>();          // 하루 미션 3개(시트 목표 탭)
         new GameObject("Settlement").AddComponent<SettlementManager>();   // 정착 목표 5단계
         new GameObject("Map").AddComponent<MapScreen>();                  // 지도 화면(HUD 정착 알약)
         new GameObject("Tutorial").AddComponent<TutorialManager>();

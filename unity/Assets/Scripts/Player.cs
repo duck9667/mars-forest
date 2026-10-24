@@ -287,6 +287,7 @@ public class Player : MonoBehaviour
         if (n % 3 == 0) JuiceFX.I.Vibrate(6);
         if (n >= max) AudioManager.I.Play("ding", 1f, 0.7f);
         if (kind == "ice" && S.tut == 0 && n >= max) TutorialManager.I?.Advance(1);
+        MissionBoard.I?.Picked(kind);   // 하루 미션: 얼음·레골리스 줍기
     }
 
     // §1.2 수거 연출: 윗장부터 40ms 간격으로 플레이어에게 날림(0.22s), 도착마다 벨 가산

@@ -295,6 +295,7 @@ public class CustomerSystem : MonoBehaviour
         bool big = c.vip || want >= 3 || combo >= 3;
         if (big) { JuiceFX.I.Confetti(c.head.position + Vector3.up * 1.2f, c.vip ? 36 : 18); JuiceFX.I.Shake(c.vip ? 4 : 2); }
         if (c.vip) AudioManager.I.Play("up", 1.3f);
+        if (c.vip) MissionBoard.I?.Count("vip", 1);   // 하루 미션: VIP 받기
         c.bought = true; c.jumpT = 0; c.pay = 0;
         c.bubble.Show(false);
         for (int i = 0; i < want; i++)
