@@ -24,6 +24,7 @@ public class Player : MonoBehaviour
         pos = new Vector2(S.p.x, S.p.y); dir = new Vector2(S.p.dx, S.p.dy); if (dir.sqrMagnitude < 0.01f) dir = new Vector2(0, 1);
         BuildView();
         chip = WorldLabels.I.Add(() => ChipWorld(), "", 24, Color.white, Vector2.zero, true, new Color(0.12f, 0.1f, 0.2f, 0.85f));
+        chip.SetStyle(UIKit.Bubble);   // 원본처럼 흰 말풍선(UI 패스 D의 WorldLabels 스타일)
         chip.Show(false);
         if (CameraRig.I) { CameraRig.I.target = view; CameraRig.I.velL = () => vel; }
     }
