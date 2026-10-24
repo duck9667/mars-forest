@@ -260,13 +260,13 @@ public class SettleStations : MonoBehaviour
     {
         var v = View(1, new Vector2(-26, 16), new Vector2(26, 16));
         foreach (float lx in new[] { -38f, -24f }) Prim.Box(v, "leg", L(lx, -10, PLATE + 12), new Vector3(2.5f, 24, 2.5f), STEEL_D);
-        Prim.Box(v, "hopper", L(-31, -10, PLATE + 26), new Vector3(20, 8, 16), GameConfig.Hex("a8724a"));
+        Prim.Box(v, "hopper", L(-31, -10, PLATE + 26), new Vector3(20, 8, 16), MachineKit.SHELL);
         Prim.Box(v, "rego", L(-31, -10, PLATE + 30.2f), new Vector3(16, 1, 12), GameConfig.REGO);
         Prim.Box(v, "chute", L(-18, -10, PLATE + 22), new Vector3(10, 3, 7), STEEL_D).transform.localRotation = Quaternion.Euler(0, 0, -25);
         foreach (float sx in new[] { -10f, 30f }) Prim.Box(v, "stand", L(sx, -10, PLATE + 7), new Vector3(4, 14, 22), STEEL_D);
         drum = new GameObject("drum").transform; drum.SetParent(v, false); drum.localPosition = L(10, -10, PLATE + 19);
-        Prim.Cyl(drum, "shell", Vector3.zero, 26, 46, STEEL).transform.localRotation = Quaternion.Euler(0, 0, 90);
-        foreach (float bx in new[] { -16f, 16f }) Prim.Cyl(drum, "hoop", new Vector3(bx * GameConfig.K, 0, 0), 28, 3, STEEL_D).transform.localRotation = Quaternion.Euler(0, 0, 90);
+        Prim.Cyl(drum, "shell", Vector3.zero, 28, 46, MachineKit.SHELL_D).transform.localRotation = Quaternion.Euler(0, 0, 90);
+        foreach (float bx in new[] { -22f, 22f }) Prim.Cyl(drum, "hoop", new Vector3(bx * GameConfig.K, 0, 0), 31, 3, PIPE).transform.localRotation = Quaternion.Euler(0, 0, 90);
         for (int j = 0; j < 3; j++)
         {
             float a = j * 120f * Mathf.Deg2Rad;
@@ -282,16 +282,15 @@ public class SettleStations : MonoBehaviour
     void BuildMixer()
     {
         var v = View(2, new Vector2(-26, 16), new Vector2(26, 16));
-        Color bin = GameConfig.Hex("7a9a4a"), binD = GameConfig.Hex("5c7a36");
         foreach (var (lx, ly) in new[] { (2f, -20f), (26f, -20f), (2f, 0f), (26f, 0f) }) Prim.Box(v, "leg", L(lx, ly, PLATE + 16), new Vector3(2.5f, 32, 2.5f), STEEL_D);
-        Prim.Box(v, "bin", L(14, -10, PLATE + 38), new Vector3(32, 12, 26), bin);
-        Prim.Box(v, "rim", L(14, -10, PLATE + 44.6f), new Vector3(34, 1.4f, 28), binD);
-        Prim.Box(v, "fill", L(14, -10, PLATE + 45.6f), new Vector3(30, 1.2f, 24), GameConfig.SOIL);
-        var heap = Prim.Sphere(v, "heap", L(14, -10, PLATE + 46), 22, GameConfig.Hex("7a5638"));   // 호퍼 위로 솟은 흙 더미
+        // 원형 깔때기(목표 그림): 위가 넓은 원통 층을 쌓아 원뿔처럼, 윗테는 파랑
+        float[] fd = { 34f, 30f, 25f, 19f, 13f }; float[] fh = { 44f, 39f, 34f, 29f, 24.5f };
+        for (int f = 0; f < fd.Length; f++) Prim.Cyl(v, "funnel", L(14, -10, PLATE + fh[f]), fd[f], 5.2f, MachineKit.SHELL);
+        Prim.Cyl(v, "rim", L(14, -10, PLATE + 46.8f), 36, 1.6f, PIPE);
+        Prim.Cyl(v, "fill", L(14, -10, PLATE + 47.2f), 30, 1.2f, GameConfig.SOIL);
+        var heap = Prim.Sphere(v, "heap", L(14, -10, PLATE + 47.5f), 22, GameConfig.Hex("7a5638"));   // 호퍼 위로 솟은 흙 더미
         heap.transform.localScale = new Vector3(24, 9, 18) * GameConfig.K;
-        Prim.Box(v, "funnel1", L(14, -10, PLATE + 29), new Vector3(22, 6, 18), bin);
-        Prim.Box(v, "funnel2", L(14, -10, PLATE + 23.5f), new Vector3(12, 5, 10), binD);
-        Prim.Cyl(v, "tub", L(14, -10, PLATE + 5), 24, 10, STEEL);
+        Prim.Cyl(v, "tub", L(14, -10, PLATE + 5), 26, 10, MachineKit.SHELL_D);
         Prim.Cyl(v, "tubIn", L(14, -10, PLATE + 10.2f), 20, 0.6f, GameConfig.FERT);
         paddle = new GameObject("paddle").transform; paddle.SetParent(v, false); paddle.localPosition = L(14, -10, PLATE + 12);
         Prim.Box(paddle, "a", Vector3.zero, new Vector3(20, 1.6f, 3), DARK);
