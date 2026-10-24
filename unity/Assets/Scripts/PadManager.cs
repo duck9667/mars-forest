@@ -34,7 +34,9 @@ public class PadManager : MonoBehaviour
             v.prog = Prim.Cyl(v.root, "prog", new Vector3(0, 0.12f, 0), 52, 1.5f, GameConfig.NAVY).transform;
             Prim.NoShadow(v.prog.gameObject);
             v.ring = Prim.Ring(v.root, new Vector3(0, 0.2f, 0), 34, GameConfig.GOLD).transform;
-            v.label = WorldLabels.I.Add(() => v.root.position + Vector3.up * 0.6f, "", 22, Color.white, new Vector2(0, 44), true, new Color(0.13f, 0.12f, 0.22f, 0.9f));
+            // 가격표(원본 .sg): 남색 패널, 1줄 [발판 아이콘] 이름 Lv.n / 2줄 [벨] 남은 가격. 살 수 있으면 금색(.sg.ok)
+            v.label = WorldLabels.I.Add(() => v.root.position + Vector3.up * 0.6f, "", 22, Color.white, new Vector2(0, 52), true, new Color(0.13f, 0.12f, 0.22f, 0.9f));
+            v.label.SetIcon(UIKit.PadIcon(d.id));
             v.root.gameObject.SetActive(false); v.label.Show(false);
             views[d.id] = v;
         }
@@ -115,7 +117,9 @@ public class PadManager : MonoBehaviour
             bool afford = S.bells >= cost - prog;
             v.ring.gameObject.SetActive(afford);
             if (afford) v.ring.localScale = Vector3.one * 34 * GameConfig.K * (1 + Mathf.Sin(Time.time * 1000f / 250f) * 0.04f);
-            v.label.Set(v.def.name + " Lv." + (G.PadLv(id) + 1) + "\n" + Mathf.CeilToInt(cost - prog) + " 벨");
+            v.label.Set(v.def.name + " Lv." + (G.PadLv(id) + 1));
+            v.label.SetLine2(Mathf.CeilToInt(cost - prog).ToString("N0"), "bell");
+            v.label.SetStyle(afford ? UIKit.SignOk : UIKit.Sign);
         }
     }
 

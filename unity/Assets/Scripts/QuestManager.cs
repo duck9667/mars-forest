@@ -29,8 +29,9 @@ public class QuestManager : MonoBehaviour
     };
 
     float tickT, holdT, chestT;
-    // HUD 칩
-    RectTransform chip; Text title, prog; Image bar; Text reward;
+    // HUD 칩(원본 #qchip): [목표 아이콘] 제목 · 진행(금색) · 진행 바 · [상자] +보상
+    RectTransform chip; Image chipBg, qIcon; Text title, prog; Image bar; Text reward; Image chestIc; int lastQuest = -1;
+    const float BAR_W = 64f;
 
     void Awake() { I = this; }
 
@@ -47,30 +48,30 @@ public class QuestManager : MonoBehaviour
     void BuildChip()
     {
         var root = HUD.I.transform;
-        var panel = HUD.UI.Panel(root, "quest", new Color(0.13f, 0.12f, 0.22f, 0.9f));
-        chip = panel.rectTransform; HUD.UI.Anchor(chip, new Vector2(0.5f, 1), new Vector2(0, -120), new Vector2(360, 64));
-        title = HUD.UI.Label(panel.transform, "", 22, Color.white, TextAnchor.UpperLeft);
-        HUD.UI.Anchor(title.rectTransform, new Vector2(0, 1), new Vector2(14, -6), new Vector2(260, 28));
-        prog = HUD.UI.Label(panel.transform, "", 20, GameConfig.GOLD, TextAnchor.UpperRight);
-        HUD.UI.Anchor(prog.rectTransform, new Vector2(1, 1), new Vector2(-14, -6), new Vector2(90, 28));
-        var track = HUD.UI.Panel(panel.transform, "track", new Color(1, 1, 1, 0.15f));
-        HUD.UI.Anchor(track.rectTransform, new Vector2(0, 0), new Vector2(14, 10), new Vector2(240, 10));
-        bar = HUD.UI.Panel(track.transform, "bar", GameConfig.GOLD);
-        var brt = bar.rectTransform; brt.anchorMin = new Vector2(0, 0); brt.anchorMax = new Vector2(0, 1); brt.pivot = new Vector2(0, 0.5f); brt.anchoredPosition = Vector2.zero; brt.sizeDelta = new Vector2(0, 0);
-        reward = HUD.UI.Label(panel.transform, "", 20, GameConfig.GOLD, TextAnchor.LowerRight);
-        HUD.UI.Anchor(reward.rectTransform, new Vector2(1, 0), new Vector2(-14, 6), new Vector2(90, 24));
-        panel.raycastTarget = false;
+        // 2행 중앙: 남색 패널 한 줄 레이아웃, 내용 크기에 맞춤
+        chipBg = UIKit.Chip(root, "quest", UIKit.Navy, "bottle", 28, "", 21, out title, out qIcon, 7);
+        chip = chipBg.rectTransform; chip.anchorMin = chip.anchorMax = new Vector2(0.5f, 1); chip.pivot = new Vector2(0.5f, 1); chip.anchoredPosition = new Vector2(0, -94);
+        var le = chipBg.gameObject.AddComponent<LayoutElement>(); le.minHeight = 54;
+        prog = UIKit.Text(chipBg.transform, "", 22, UIKit.GOLD);
+        UIKit.ProgressBar(chipBg.transform, "track", new Vector2(BAR_W, 10), out bar);
+        chestIc = UIKit.IconImg(chipBg.transform, "chest", 26);
+        reward = UIKit.Text(chipBg.transform, "", 21, UIKit.GOLD);
     }
 
     public void Refresh()
     {
         var q = Current;
-        if (q == null) { title.text = "모든 목표 달성"; prog.text = "👑"; bar.rectTransform.sizeDelta = new Vector2(240, 0); reward.text = ""; return; }
+        if (q == null)
+        {
+            if (lastQuest != QUESTS.Length) { lastQuest = QUESTS.Length; chipBg.sprite = UIKit.Panel9(UIKit.SignOk); UIKit.SetIcon(qIcon, "crown"); title.color = prog.color = UIKit.SignOk.text; }
+            title.text = "모든 목표 달성"; prog.text = ""; UIKit.SetBar(bar, 1, BAR_W); reward.text = ""; chestIc.gameObject.SetActive(false); return;
+        }
+        if (lastQuest != S.quest) { lastQuest = S.quest; UIKit.SetIcon(qIcon, UIKit.PadIcon(q.key)); }
         int v = Mathf.Min(Value(q), q.goal);
-        title.text = "목표 " + (S.quest + 1) + "/" + QUESTS.Length + " · " + q.text;
+        title.text = q.text;
         prog.text = v + "/" + q.goal;
-        bar.rectTransform.sizeDelta = new Vector2(240f * v / q.goal, 0);
-        reward.text = "상자 +" + q.reward;
+        UIKit.SetBar(bar, (float)v / q.goal, BAR_W);
+        reward.text = "+" + q.reward;
     }
 
     void Update()
@@ -94,13 +95,14 @@ public class QuestManager : MonoBehaviour
     {
         chestT = 1.6f;
         S.quest++;
-        // 비차단 상자 팝 (UI 중앙)
-        var box = HUD.UI.Panel(HUD.I.transform, "chest", GameConfig.Hex("fff6e6"));
-        var brt = box.rectTransform; HUD.UI.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 120), new Vector2(300, 120));
-        box.raycastTarget = false;
-        var ol = box.gameObject.AddComponent<Outline>(); ol.effectColor = GameConfig.GOLD; ol.effectDistance = new Vector2(4, -4);
-        var t1 = HUD.UI.Label(box.transform, "목표 달성!", 30, GameConfig.NAVY, TextAnchor.UpperCenter); HUD.UI.Anchor(t1.rectTransform, new Vector2(0.5f, 1), new Vector2(0, -14), new Vector2(280, 40));
-        var t2 = HUD.UI.Label(box.transform, q.text + "  +" + q.reward + " 벨", 24, GameConfig.Hex("7a7f99"), TextAnchor.LowerCenter); HUD.UI.Anchor(t2.rectTransform, new Vector2(0.5f, 0), new Vector2(0, 14), new Vector2(280, 36));
+        // 비차단 상자 팝 (UI 중앙, 원본 #chestPop): 남색 패널에 "목표 달성! · 목표명" + [상자][벨] +보상(큰 금색 숫자)
+        var box = UIKit.Panel(HUD.I.transform, "chest", UIKit.Navy);
+        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 120), new Vector2(340, 136));
+        var t1 = UIKit.Text(box.transform, "목표 달성! · " + q.text, 24, Color.white); UIKit.Stroke(t1, UIKit.EDGE, 1.6f);
+        UIKit.Anchor(t1.rectTransform, new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(320, 36));
+        var row = UIKit.Row(box.transform, "row", 8); var rrt = row.GetComponent<RectTransform>(); UIKit.Anchor(rrt, new Vector2(0.5f, 0), new Vector2(0, 14), new Vector2(320, 64));
+        UIKit.IconImg(row.transform, "chest", 48); UIKit.IconImg(row.transform, "bell", 36);
+        var t2 = UIKit.Text(row.transform, "+" + q.reward, 44, UIKit.Hex("ffe58a")); UIKit.Stroke(t2, UIKit.Hex("7a3a00"), 3f); UIKit.DropShadow(t2, 3f, 0.35f);
         AudioManager.I.Play("up", 1.1f); JuiceFX.I.Flash(0.3f); JuiceFX.I.Shake(4); JuiceFX.I.Vibrate(30);
         float el = 0;
         while (el < 0.5f) { el += Time.deltaTime; brt.localScale = Vector3.one * Mathf.Max(0.001f, JuiceFX.EaseOutBack(Mathf.Clamp01(el / 0.5f))); yield return null; }

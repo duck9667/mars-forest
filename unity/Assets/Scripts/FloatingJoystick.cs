@@ -20,17 +20,18 @@ public class FloatingJoystick : MonoBehaviour
         canvas = gameObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 8;
         var sc = gameObject.AddComponent<CanvasScaler>(); sc.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
-        baseRt = MakeCircle("base", GameConfig.JOY_BASE, new Color(1, 1, 1, 0.22f), out baseImg);
-        knobRt = MakeCircle("knob", GameConfig.JOY_KNOB, new Color(1, 1, 1, 0.6f), out knobImg);
+        // 원본 #joy(반투명 흰 원 + 흰 테두리) · #knob(흰 그라데이션 + 남색 테두리 + 그림자). 스프라이트는 UIKit이 그린다
+        baseRt = MakeCircle("base", GameConfig.JOY_BASE, UIKit.JoyBase(), out baseImg);
+        knobRt = MakeCircle("knob", GameConfig.JOY_KNOB, UIKit.JoyKnob(), out knobImg);
         Show(false);
     }
 
-    RectTransform MakeCircle(string n, float d, Color c, out Image img)
+    RectTransform MakeCircle(string n, float d, Sprite sp, out Image img)
     {
         var go = new GameObject(n); go.transform.SetParent(transform, false);
-        img = go.AddComponent<Image>(); img.color = c; img.raycastTarget = false;
-        img.sprite = CircleSprite();
-        var rt = go.GetComponent<RectTransform>(); rt.sizeDelta = new Vector2(d, d) * Dpi();
+        img = go.AddComponent<Image>(); img.color = Color.white; img.raycastTarget = false;
+        img.sprite = sp; img.preserveAspect = true;
+        var rt = go.GetComponent<RectTransform>(); rt.sizeDelta = new Vector2(d, d * sp.rect.height / sp.rect.width) * Dpi();
         return rt;
     }
     static float Dpi() => Mathf.Clamp(Screen.dpi > 0 ? Screen.dpi / 160f : 1f, 1f, 3f);
