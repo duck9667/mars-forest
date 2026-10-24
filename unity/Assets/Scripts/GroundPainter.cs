@@ -358,7 +358,7 @@ public class GroundPainter
     public static Texture2D PaintFloor(WorldMap.Zone z)
     {
         float w = z.x1 - z.x0, h = z.y1 - z.y0;
-        bool ice = z.key.StartsWith("ice"), shop = z.key == "shop";
+        bool ice = z.key.StartsWith("ice"), shop = z.key == "shop" || ice || z.key == "melt" || z.key == "bottle";   // 기지 안(얼음밭·해빙·병입·상점)은 크림 타일, 개척지(북쪽)·돔·우리는 맨땅 — 목표 그림 target_base_v1·target_north_v1 둘 다에 맞춤
         if (!shop)
         {   // 목표 그림(docs/art/target_north_v1.png): 구역 안은 타일 없이 땅보다 한 톤 밝은 맨땅, 경계는 연석이 맡는다
             var g = new GroundPainter(0f, 0f, w, h, 2f, 31 + z.key.Length * 7 + (int)z.x0, ZONE_GROUND);
