@@ -231,6 +231,45 @@ public class Player : MonoBehaviour
             JuiceFX.I.Squash(body, 1f); JuiceFX.I.Vibrate(15);
             actT = PenSystem.CD_TIP; return;
         }
+        // 7~9. 생존 기지 생산 체인
+        SettleInteract();
+    }
+
+    // 7. 레골리스 줍기 → 8. 시설에 원료 넣기(물통→전기분해기, 레골리스→정화기, 흙→배합기, 비료→온실) → 9. 출력 받기(산소통·흙·비료·식량)
+    // 넣기가 받기보다 먼저라, 정화기·배합기 사이 틈에선 흙을 받자마자 배합기에 넣는다
+    void SettleInteract()
+    {
+        var ss = SettleStations.I; if (ss == null) return;
+        if (G.CanCarry("rego"))
+        {
+            int best = ss.NearestRego(pos, SettleStations.R_REGO);
+            if (best >= 0)
+            {
+                S.rspots[best] = GameConfig.SpotRespawn();
+                G.pend++; G.pendK = "rego";
+                ArcFlyer.I.Fly(FlyBlock("rego"), ss.RegoWorld(best), StackTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("rego"));
+                actT = SettleStations.CD_REGO; return;
+            }
+        }
+        string top = G.CarryTop;
+        for (int i = 0; i < SettleStations.KEYS.Length; i++)
+        {
+            if (top != SettleStations.IN_K[i] || !ss.Near(i, pos) || !ss.CanPut(i)) continue;
+            int fi = i;
+            PopTop(); ss.qPend[i]++;
+            ArcFlyer.I.Fly(FlyBlock(top), StackTop(), () => ss.InTop(fi), GameConfig.FLY_T, GameConfig.FLY_LIFT, () => ss.Put(fi));
+            AudioManager.I.Play("put", 1f + Random.Range(-0.05f, 0.05f));
+            actT = SettleStations.CD_PUT; return;
+        }
+        for (int i = 0; i < SettleStations.KEYS.Length; i++)
+        {
+            string k = SettleStations.OUT_K[i];
+            if (!ss.CanTake(i) || !G.CanCarry(k) || !ss.Near(i, pos)) continue;
+            Vector3 from = ss.OutTop(i);
+            ss.Out(i)--; G.pend++; G.pendK = k;
+            ArcFlyer.I.Fly(FlyBlock(k), from, StackTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive(k));
+            actT = SettleStations.CD_TAKE; return;
+        }
     }
 
     void PopTop() { S.p.carry.RemoveAt(S.p.carry.Count - 1); }
