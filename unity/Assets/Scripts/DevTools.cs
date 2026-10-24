@@ -37,6 +37,9 @@ public class DevTools : MonoBehaviour
         if (int.TryParse(DevArgs.Get("-sold"), out var soldV)) G.S.sold = soldV;
         if (int.TryParse(DevArgs.Get("-tut"), out var tutV)) { G.S.tut = tutV; if (tutV >= 3) G.S.handShown = 1; }
         if (int.TryParse(DevArgs.Get("-shelf"), out var shelfV)) G.S.shelf = Mathf.Min(shelfV, G.ShelfCap);
+        // -shelfo2 N·-shelffood N: 카운터 산소·식량 칸 채우기(정착민 세 종류 요구·결제 검증용)
+        if (int.TryParse(DevArgs.Get("-shelfo2"), out var shelfO2V)) G.S.shelfO2 = Mathf.Min(shelfO2V, G.ShelfCap);
+        if (int.TryParse(DevArgs.Get("-shelffood"), out var shelfFoodV)) G.S.shelfFood = Mathf.Min(shelfFoodV, G.ShelfCap);
         // -start x,y: 플레이어 시작 위치(스크린샷용). Player.Start 전에 저장값을 바꿔 둔다
         var st = DevArgs.Get("-start");
         if (!string.IsNullOrEmpty(st)) { var xy = st.Split(','); if (xy.Length == 2 && float.TryParse(xy[0], out var sx) && float.TryParse(xy[1], out var sy)) { G.S.p.x = sx; G.S.p.y = sy; if (Player.I != null) Player.I.pos = new Vector2(sx, sy); } }
@@ -69,7 +72,8 @@ public class DevTools : MonoBehaviour
         {
             string p = Path.Combine(shotDir, "shot_" + Mathf.RoundToInt(SHOTS[shotIdx]).ToString("000") + ".png");
             ScreenCapture.CaptureScreenshot(p);
-            Debug.Log("screenshot " + p + " bells=" + G.S.bells + " sold=" + G.S.sold + " tut=" + G.S.tut + " shelf=" + G.S.shelf + " bottles=" + G.S.bottles + " meltQ=" + G.S.meltQ);
+            Debug.Log("screenshot " + p + " bells=" + G.S.bells + " sold=" + G.S.sold + " tut=" + G.S.tut + " shelf=" + G.S.shelf + " bottles=" + G.S.bottles + " meltQ=" + G.S.meltQ
+                + " shelfO2=" + G.S.shelfO2 + " shelfFood=" + G.S.shelfFood + " supW=" + G.S.supW + " supO=" + G.S.supO + " supF=" + G.S.supF + " custs=" + G.S.custs + " lost=" + G.S.lost);
             shotIdx++;
             if (shotIdx >= SHOTS.Length) StartCoroutine(QuitSoon());
         }

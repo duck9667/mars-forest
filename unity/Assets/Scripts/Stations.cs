@@ -7,6 +7,12 @@ public class Stations : MonoBehaviour
     GameState G => GameState.I;
 
     public Transform meltAnchor, trayAnchor, shelfAnchor, cashAnchor;
+    // 카운터 종류별 칸: 물(shelfAnchor)·산소·식량. 산소·식량이 열리기 전엔 물이 카운터 전체(12×3)를 쓴다
+    public Transform shelfO2Anchor, shelfFoodAnchor;
+    Transform[] shelfMarks = new Transform[3];   // 칸마다 상판 위 색 받침판(글자 라벨은 두지 않는다). 앞면은 늘 있는 차양에 가려 위에 둔다
+    bool shelfSplit;
+    // 산소·식량 칸으로 날아가는 중인 수(물은 G.shelfPend). 칸마다 ShelfCap을 넘지 않게 함께 센다
+    public int shelfPendO2, shelfPendFood;
     public Transform melterView, bottlerView, counterView, registerView, drillView;
     public const int ALL_SPOTS = 12;
     Transform[] spotViews = new Transform[ALL_SPOTS];
@@ -14,7 +20,7 @@ public class Stations : MonoBehaviour
     bool[] spotShown = new bool[ALL_SPOTS];
     GameObject meltCore;
     // 수치 라벨(얼음·물·병·선반·+n)은 두지 않는다: 쌓인 모형(얼음·병·지폐 더미)으로 충분 (jake 피드백 10/24)
-    int lastMeltQ = -1, lastBottles = -1, lastShelf = -1, lastCash = -1;
+    int lastMeltQ = -1, lastBottles = -1, lastShelf = -1, lastShelfO2 = -1, lastShelfFood = -1, lastCash = -1;
     float coreT;
 
     void Awake() { I = this; }
@@ -22,7 +28,10 @@ public class Stations : MonoBehaviour
     void Start()
     {
         Build();
+        G.OnPadLevel += OnPad;
     }
+    void OnDestroy() { if (GameState.I != null) GameState.I.OnPadLevel -= OnPad; }
+    void OnPad(string id, int lv) { if (id == "o2" || id == "farm") RefreshShelfLayout(); }
 
     void Build()
     {
@@ -53,7 +62,18 @@ public class Stations : MonoBehaviour
         // 카운터(선반)
         var c = WorldMap.STN["counter"];
         counterView = Machine("counter", c, GameConfig.Hex("d89a62"), 40).transform;
-        shelfAnchor = new GameObject("shelf").transform; shelfAnchor.SetParent(counterView, false); shelfAnchor.position = WorldMap.W2U(c.x, c.y, 42);
+        shelfAnchor = new GameObject("shelf").transform; shelfAnchor.SetParent(counterView, false);
+        shelfO2Anchor = new GameObject("shelfO2").transform; shelfO2Anchor.SetParent(counterView, false);
+        shelfFoodAnchor = new GameObject("shelfFood").transform; shelfFoodAnchor.SetParent(counterView, false);
+        for (int i = 0; i < 3; i++)
+        {
+            // 칸 받침판: 더미보다 조금 넓은 얇은 판(물 파랑·산소 흰빛·식량 노랑을 한 톤 어둡게), 칸 사이는 상판이 보이게 띄운다
+            string kind = GameState.SUPPLY_KINDS[i];
+            var mk = Prim.Box(counterView, "mark_" + kind, Local(counterView, SectionX(i), c.y, SHELF_H + MARK_T / 2), new Vector3(c.w / 3f - 6, MARK_T, c.h - 4), Color.Lerp(Items.ColorOf(kind), new Color(0.2f, 0.25f, 0.35f), 0.25f));
+            Prim.NoShadow(mk);
+            shelfMarks[i] = mk.transform;
+        }
+        RefreshShelfLayout(true);
         // 계산대(지폐)
         var r = WorldMap.STN["register"];
         registerView = Machine("register", r, GameConfig.Hex("5b6b8c"), 30).transform;
@@ -75,6 +95,31 @@ public class Stations : MonoBehaviour
         WorldMap.drillInstalled = G.PadLv("drill") >= 1;
         WorldMap.domeOpen = G.PadLv("dome") >= 1;
         drillView.gameObject.SetActive(WorldMap.drillInstalled);
+    }
+
+    // 카운터 3구역 중심 x(논리): 물 왼쪽·산소 가운데·식량 오른쪽
+    const float SHELF_H = 42f, MARK_T = 0.7f;   // 상판 윗면 높이·받침판 두께
+    static float SectionX(int i) { var c = WorldMap.STN["counter"]; return c.x + (i - 1) * c.w / 3f; }
+    Transform AnchorOf(string kind) => kind == "o2" ? shelfO2Anchor : kind == "food" ? shelfFoodAnchor : shelfAnchor;
+    // 칸 배치: 나뉘기 전 물 12×3(한 층 36) / 나뉜 뒤 칸마다 4×3(한 층 12)
+    int ShelfCols => shelfSplit ? 4 : 12;
+    int ShelfLayer => ShelfCols * 3;
+
+    // 산소·식량 중 하나라도 열리면 카운터를 3구역으로 나눈다. 칸 위치·표지를 다시 맞추고 다음 Update에서 더미를 재배치
+    public void RefreshShelfLayout(bool force = false)
+    {
+        bool split = G.KindOpen("o2") || G.KindOpen("food");
+        if (split == shelfSplit && !force) return;
+        shelfSplit = split;
+        var c = WorldMap.STN["counter"];
+        float h = split ? SHELF_H + MARK_T : SHELF_H;   // 나뉘면 받침판 위에 쌓는다
+        shelfAnchor.position = WorldMap.W2U(split ? SectionX(0) : c.x, c.y, h);
+        shelfO2Anchor.position = WorldMap.W2U(SectionX(1), c.y, h);
+        shelfFoodAnchor.position = WorldMap.W2U(SectionX(2), c.y, h);
+        for (int i = 0; i < 3; i++) shelfMarks[i].gameObject.SetActive(split && G.KindOpen(GameState.SUPPLY_KINDS[i]));
+        shelfO2Anchor.gameObject.SetActive(split); shelfFoodAnchor.gameObject.SetActive(split);
+        lastShelf = lastShelfO2 = lastShelfFood = -1;
+        if (split && !force) JuiceFX.I.Squash(counterView, 0.5f);
     }
 
     // 그룹 피벗은 스테이션 중심(JuiceFX 스쿼시·팝이 제자리에서 일어나도록). 자식은 로컬 오프셋 = W2U(목표) - W2U(중심)
@@ -127,13 +172,21 @@ public class Stations : MonoBehaviour
         // 시각 동기화
         if (S.meltQ != lastMeltQ) { lastMeltQ = S.meltQ; Items.SyncStack(meltAnchor, "ice", S.meltQ, 2, 1, 16, 0, GameConfig.MELT_VIS_MAX); }
         if (S.bottles != lastBottles) { lastBottles = S.bottles; Items.SyncStack(trayAnchor, "bottle", S.bottles, 6, 4, 10, 10, GameConfig.BOTTLE_CAP); }
-        if (S.shelf != lastShelf) { lastShelf = S.shelf; Items.SyncStack(shelfAnchor, "bottle", S.shelf, 12, 3, 15, 12, 36); }
+        // 표지는 열린 종류만(식량은 산소보다 늦게 열린다)
+        if (shelfSplit && shelfMarks[2].gameObject.activeSelf != G.KindOpen("food")) shelfMarks[2].gameObject.SetActive(G.KindOpen("food"));
+        if (S.shelf != lastShelf) { lastShelf = S.shelf; Items.SyncStack(shelfAnchor, "bottle", S.shelf, ShelfCols, 3, 15, 12, 36); }
+        if (shelfSplit && S.shelfO2 != lastShelfO2) { lastShelfO2 = S.shelfO2; Items.SyncStack(shelfO2Anchor, "o2", S.shelfO2, 4, 3, 15, 12, 36); }
+        if (shelfSplit && S.shelfFood != lastShelfFood) { lastShelfFood = S.shelfFood; Items.SyncStack(shelfFoodAnchor, "food", S.shelfFood, 4, 3, 15, 12, 36); }
         if (S.cash != lastCash) { lastCash = S.cash; Items.SyncStack(cashAnchor, "bill", Bills(S.cash), 3, 1, 16, 0, GameConfig.BILL_MAX); }
     }
 
     public static int Bills(int cash) => Mathf.Min(GameConfig.BILL_MAX, Mathf.CeilToInt(cash / 12f));
     public Vector3 TrayTop() => trayAnchor.position + Vector3.up * (Mathf.Max(0, G.S.bottles - 1) / 24 + 1) * Items.ITEM_H["bottle"] * GameConfig.K;
-    public Vector3 ShelfTop() => shelfAnchor.position + Vector3.up * (G.S.shelf / 36 + 1) * Items.ITEM_H["bottle"] * GameConfig.K;
+    public Vector3 ShelfTop() => ShelfTop("bottle");
+    public Vector3 ShelfTop(string kind) => AnchorOf(kind).position + Vector3.up * (G.ShelfOf(kind) / ShelfLayer + 1) * Items.ITEM_H[kind] * GameConfig.K;
+    // 그 칸으로 날아가는 중인 수
+    public int ShelfPendOf(string kind) => kind == "o2" ? shelfPendO2 : kind == "food" ? shelfPendFood : G.shelfPend;
+    public void AddShelfPend(string kind, int n) { if (kind == "o2") shelfPendO2 += n; else if (kind == "food") shelfPendFood += n; else G.shelfPend += n; }
     public Vector3 CashTop() => cashAnchor.position + Vector3.up * (Bills(G.S.cash) / 3 + 1) * Items.ITEM_H["bill"] * GameConfig.K;
     public Vector3 MeltTop() => meltAnchor.position + Vector3.up * (Mathf.Min(G.S.meltQ, GameConfig.MELT_VIS_MAX) / 2 + 1) * Items.ITEM_H["ice"] * GameConfig.K;
 }

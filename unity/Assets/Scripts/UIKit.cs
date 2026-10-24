@@ -364,6 +364,13 @@ public static class UIKit
             case "drop":
                 g.C(12, 15, 7, blue, blueD); g.P(blue, blueD, 1.6f, 12, 2.5f, 18, 10.8f, 6, 10.8f); g.Flush();
                 g.Seg(8.8f, 15, 10.6f, 18, 2, white); g.Flush(); break;
+            case "o2":     // 산소통: 흰 봄베 + 파란 띠 + 밸브
+                g.R(9.5f, 1.5f, 5, 3.5f, 1, navy); g.Flush();
+                g.R(6.5f, 4.5f, 11, 17.5f, 5, Hex("eef7ff"), blueD, 1.6f); g.Flush();
+                g.R(7.3f, 9.5f, 9.4f, 3.4f, 0.6f, blue); g.Flush(); break;
+            case "food":   // 식량: 노란 그릇 + 초록 새싹
+                g.C(9, 8.5f, 3.6f, Hex("7ed37a"), Hex("2f7a2c")); g.C(15, 7.5f, 3.6f, Hex("7ed37a"), Hex("2f7a2c")); g.Flush();
+                g.P(Hex("f2b33d"), goldD, 1.6f, 2.5f, 11, 21.5f, 11, 17.5f, 20.5f, 6.5f, 20.5f); g.Flush(); break;
             case "lock":
                 g.Ring(12, 7.6f, 4, 2.4f, goldD); g.Flush();
                 g.R(4, 10, 16, 11, 2.5f, gold, goldD); g.Flush();

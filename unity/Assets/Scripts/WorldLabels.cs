@@ -36,7 +36,7 @@ public class WorldLabels : MonoBehaviour
         internal VerticalLayoutGroup vl;
 
         // 글자 바꾸기. autoIcon이면 원본 라벨 관례의 접두어를 아이콘으로 바꾼다:
-        // "얼음 3"→ice, "물 5"→drop, "병 ×2"/"병 3/24"→bottle, "선반 2/8"→shelf, "+12"→cash 칩(스테이션)·bell(플로팅), "VIP …"→VIP 말풍선, 끝의 " !"→느낌표+화난 말풍선, "☀ "→sun
+        // "얼음 3"→ice, "물 5"/"물 ×2"→drop, "산소 ×1"→o2, "식량 ×1"→food, "병 ×2"/"병 3/24"→bottle, "선반 2/8"→shelf, "+12"→cash 칩(스테이션)·bell(플로팅), "VIP …"→VIP 말풍선, 끝의 " !"→느낌표+화난 말풍선, "☀ "→sun
         public void Set(string s)
         {
             if (s == lastSet) return; lastSet = s;
@@ -116,6 +116,7 @@ public class WorldLabels : MonoBehaviour
     {
         new KeyValuePair<string, string>("얼음 ", "ice"), new KeyValuePair<string, string>("물 ", "drop"), new KeyValuePair<string, string>("병 ×", "bottle"),
         new KeyValuePair<string, string>("병 ", "bottle"), new KeyValuePair<string, string>("선반 ", "shelf"), new KeyValuePair<string, string>("벨 ", "bell"),
+        new KeyValuePair<string, string>("산소 ", "o2"), new KeyValuePair<string, string>("식량 ", "food"),   // 정착민 말풍선 "산소 ×1"·"식량 ×1"
     };
 
     readonly List<Label> labels = new List<Label>();

@@ -209,11 +209,12 @@ public class Player : MonoBehaviour
             ArcFlyer.I.Fly(FlyBlock("bottle"), st.TrayTop(), StackTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("bottle"));
             actT = GameConfig.CD_BOTTLE; return;
         }
-        // 4. 선반 올리기 (카운터 뒤쪽 p.y < counter.y)
-        if (G.CarryTop == "bottle" && S.shelf + G.shelfPend < G.ShelfCap && pos.y < WorldMap.STN["counter"].y && WorldMap.NearStn(pos, "counter", GameConfig.R_SHELF))
+        // 4. 선반 올리기 (카운터 뒤쪽 p.y < counter.y): 물병·산소통·식량을 각자 칸으로, 칸마다 ShelfCap
+        string sk = G.CarryTop;
+        if ((sk == "bottle" || sk == "o2" || sk == "food") && G.ShelfOf(sk) + st.ShelfPendOf(sk) < G.ShelfCap && pos.y < WorldMap.STN["counter"].y && WorldMap.NearStn(pos, "counter", GameConfig.R_SHELF))
         {
-            PopTop(); G.shelfPend++;
-            ArcFlyer.I.Fly(FlyBlock("bottle"), StackTop(), st.ShelfTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => { G.shelfPend--; S.shelf++; if (S.tut == 2) TutorialManager.I?.Advance(3); });
+            PopTop(); st.AddShelfPend(sk, 1);
+            ArcFlyer.I.Fly(FlyBlock(sk), StackTop(), () => st.ShelfTop(sk), GameConfig.FLY_T, GameConfig.FLY_LIFT, () => { st.AddShelfPend(sk, -1); G.AddShelf(sk, 1); if (sk == "bottle" && S.tut == 2) TutorialManager.I?.Advance(3); });
             AudioManager.I.Play("put", 1.2f);
             actT = GameConfig.CD_SHELF; return;
         }
