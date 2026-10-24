@@ -55,7 +55,9 @@ public class DevTools : MonoBehaviour
                 + " target=" + (h ? h.targetKey + h.target.ToString("0") : "-") + " dist=" + (pl && h ? Vector2.Distance(pl.pos, h.target).ToString("0") : "-")
                 + " ovr=" + (FloatingJoystick.Override.HasValue ? FloatingJoystick.Override.Value.ToString("0.00") : "null") + " sup=" + (FloatingJoystick.I ? FloatingJoystick.I.suppressed : false)
                 + " walk=" + (pl && pl.walking) + " esc=" + escapeT.ToString("0.0") + " stuck=" + stuckT.ToString("0.0") + " actT=" + (pl ? pl.actT.ToString("0.00") : "-")
-                + " bells=" + G.S.bells.ToString("0") + " sold=" + G.S.sold + " meltQ=" + G.S.meltQ + " water=" + G.S.water + " bottles=" + G.S.bottles + " shelf=" + G.S.shelf);
+                + " bells=" + G.S.bells.ToString("0") + " sold=" + G.S.sold + " meltQ=" + G.S.meltQ + " water=" + G.S.water + " bottles=" + G.S.bottles + " shelf=" + G.S.shelf
+                + " | elec=" + G.S.elecQ + "/" + G.S.elecOut + " purif=" + G.S.purQ + "/" + G.S.purOut + " mixer=" + G.S.mixQ + "/" + G.S.mixOut + " green=" + G.S.grnQ + "/" + G.S.grnOut
+                + " fertMade=" + G.S.fertMade + " top=" + G.CarryTop + " dumped=" + dumped);
             frames = 0; fpsT = 0; diagT = 0;
         }
         if (Input.GetKeyDown(KeyCode.F5))
@@ -87,7 +89,7 @@ public class DevTools : MonoBehaviour
     // 카운터+계산대처럼 가로로 긴 장애물은 직진으로 못 지나므로 Blocked() 위 격자 BFS로 경로를 잡는다(8단위 격자, 0.4초마다 재계산).
     // 봇 정책: 빈손이고 가장 가까운 노출 발판을 바로 살 수 있으면 힌트보다 발판을 우선한다(QA에서 발판·구역을 밟기 위해).
     float holdT, stuckT, escapeT; Vector2 lastPos, escapeDir;
-    const float CELL = 8f; const int GW = 51, GH = 131;   // x 0..400, y 0..1040
+    const float CELL = 8f, GY0 = -392f; const int GW = 51, GH = 180;   // x 0..400, y -392..1040 (생존 기지 북쪽 확장 포함)
     readonly List<Vector2> path = new List<Vector2>(); float pathT; Vector2 pathTarget;
     void Bot()
     {
@@ -105,17 +107,20 @@ public class DevTools : MonoBehaviour
             target = st.y > WorldMap.DOME.y + 20 ? st + new Vector2(st.x < WorldMap.DOME.x ? 14 : -14, -18) : st + new Vector2(0, 26);
             key = "seat:" + seatI;
         }
-        // 병을 든 채 선반이 가득이면(힌트는 카운터에서 기다리라고 함) 그 사이 계산대 돈을 걷는다 — 사람은 이렇게 하므로 봇도
-        else if (G.CarryTop == "bottle" && G.S.shelf + G.shelfPend >= G.ShelfCap && G.S.cash > 0 && !G.collectingCash)
+        // 병을 든 채 선반이 가득이면(힌트는 카운터에서 기다리라고 함) 그 사이 계산대 돈을 걷는다 — 사람은 이렇게 하므로 봇도.
+        // 힌트가 물통을 전기분해기로 보내는 중이면 끼어들지 않는다(돈이 쌓일 때마다 계산대와 북쪽 사이를 오가며 멈춤)
+        else if (G.CarryTop == "bottle" && key == "counter" && G.S.shelf + G.shelfPend >= G.ShelfCap && G.S.cash > 0 && !G.collectingCash)
         { var r = WorldMap.STN["register"]; target = new Vector2(r.x, r.y - r.h / 2 - 14); key = "register"; }
-        else if (G.Carry == 0 && G.pend == 0 && PadManager.I != null)
+        // 정화기·배합기 틈에서 넣어 둔 묶음(흙 → 비료)을 기다리는 중이면 발판 쇼핑으로 끊지 않는다
+        else if (G.Carry == 0 && G.pend == 0 && PadManager.I != null && !((key == "purif" || key == "mixer") && SettleStations.I != null && SettleStations.I.Near(SettleStations.Index(key), pl.pos)))
         {
             // ORDER 순서(visOrder)에서 첫 번째로 살 수 있는 발판 → 진행 순서대로 밟는다
             foreach (var id in PadManager.I.visOrder)
                 if (G.S.bells >= G.PadRemain(id)) { target = Pads.Get(id).pos; key = "pad:" + id; break; }
         }
         Vector2 d = target - pl.pos; float dist = d.magnitude;
-        float stop = key.StartsWith("pad:") ? 12f : key.StartsWith("ice:") ? 18f : 12f;
+        float stop = key.StartsWith("pad:") ? 12f : key.StartsWith("ice:") || key.StartsWith("rego:") ? 18f : 12f;
+        JamGuard(key, dist, stop);
         if (escapeT > 0) { escapeT -= Time.deltaTime; FloatingJoystick.Override = escapeDir; lastPos = pl.pos; return; }
         if (dist > stop)
         {
@@ -147,15 +152,15 @@ public class DevTools : MonoBehaviour
     int[] prev = new int[GW * GH]; bool[] blockedCell = new bool[GW * GH]; bool gridBuilt; bool gridDrill, gridDome; int gridFence = -1;
     void BuildGrid()
     {
-        for (int y = 0; y < GH; y++) for (int x = 0; x < GW; x++) blockedCell[y * GW + x] = WorldMap.Blocked(x * CELL, y * CELL);
+        for (int y = 0; y < GH; y++) for (int x = 0; x < GW; x++) blockedCell[y * GW + x] = WorldMap.Blocked(x * CELL, GY0 + y * CELL);
         gridBuilt = true; gridDrill = WorldMap.drillInstalled; gridDome = WorldMap.domeOpen; gridFence = WorldMap.fenceVer;
     }
     void FindPath(Vector2 from, Vector2 to)
     {
         if (!gridBuilt || gridDrill != WorldMap.drillInstalled || gridDome != WorldMap.domeOpen || gridFence != WorldMap.fenceVer) BuildGrid();   // 구역이 열려 울타리가 생기면 격자도 다시
         path.Clear();
-        int sx = Mathf.Clamp(Mathf.RoundToInt(from.x / CELL), 0, GW - 1), sy = Mathf.Clamp(Mathf.RoundToInt(from.y / CELL), 0, GH - 1);
-        int tx = Mathf.Clamp(Mathf.RoundToInt(to.x / CELL), 0, GW - 1), ty = Mathf.Clamp(Mathf.RoundToInt(to.y / CELL), 0, GH - 1);
+        int sx = Mathf.Clamp(Mathf.RoundToInt(from.x / CELL), 0, GW - 1), sy = Mathf.Clamp(Mathf.RoundToInt((from.y - GY0) / CELL), 0, GH - 1);
+        int tx = Mathf.Clamp(Mathf.RoundToInt(to.x / CELL), 0, GW - 1), ty = Mathf.Clamp(Mathf.RoundToInt((to.y - GY0) / CELL), 0, GH - 1);
         int start = sy * GW + sx, goal = ty * GW + tx;
         for (int i = 0; i < prev.Length; i++) prev[i] = -1;
         var q = new Queue<int>(); q.Enqueue(start); prev[start] = start;
@@ -177,8 +182,22 @@ public class DevTools : MonoBehaviour
             }
         }
         var rev = new List<Vector2>();
-        for (int c = best; c != start && c != -1; c = prev[c]) rev.Add(new Vector2((c % GW) * CELL, (c / GW) * CELL));
+        for (int c = best; c != start && c != -1; c = prev[c]) rev.Add(new Vector2((c % GW) * CELL, GY0 + (c / GW) * CELL));
         rev.Reverse(); path.AddRange(rev);
+    }
+
+    // 산소통·식량을 카운터에 올리는 단계(Player 4번)는 정착민 작업 몫이다. 그게 없으면 카운터에서 등짐이 줄지 않아 봇이 무한 대기하므로
+    // 카운터 앞에서 8초 동안 개수가 그대로면 등짐을 비우고 로그를 남긴다(봇 전용, 실제 플레이엔 영향 없음)
+    float jamT; int jamN = -1, dumped;
+    void JamGuard(string key, float dist, float stop)
+    {
+        string top = G.CarryTop;
+        if ((top != "o2" && top != "food") || key != "counter" || dist > stop + 20f) { jamT = 0; jamN = -1; return; }
+        if (G.Carry != jamN) { jamN = G.Carry; jamT = 0; return; }
+        jamT += Time.deltaTime;
+        if (jamT < 8f || G.pend > 0) return;
+        Debug.Log("bot: 카운터가 " + GameState.KindName(top) + " ×" + G.Carry + "을 받지 않아 등짐을 비움");
+        dumped += G.Carry; G.S.p.carry.Clear(); jamT = 0; jamN = -1;
     }
 
     void OnDestroy() { FloatingJoystick.Override = null; }

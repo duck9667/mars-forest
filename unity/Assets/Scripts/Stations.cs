@@ -114,8 +114,8 @@ public class Stations : MonoBehaviour
             if (S.meltT >= G.MeltTime) { S.meltT = 0; S.meltQ--; S.water += 10; JuiceFX.I.Squash(melterView, 0.5f); }
         }
         else S.meltT = 0;
-        // 병입: water≥10 & bottles<24 → bottle
-        if (S.water >= 10 && S.bottles < GameConfig.BOTTLE_CAP)
+        // 병입: water≥10 & bottles<24 → bottle. 온실 큐가 있으면 온실 몫 물(10)을 남겨 둔다(온실 우선)
+        if (S.water >= 10 + (SettleStations.I != null ? SettleStations.I.WaterReserve : 0) && S.bottles < GameConfig.BOTTLE_CAP)
         {
             S.botT += dt;
             if (S.botT >= G.BottleTime) { S.botT = 0; S.water -= 10; S.bottles++; JuiceFX.I.Squash(bottlerView, 0.4f); }

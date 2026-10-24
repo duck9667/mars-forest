@@ -31,6 +31,7 @@ public static class Bootstrap
         new GameObject("Flyer").AddComponent<ArcFlyer>();
         new GameObject("World").AddComponent<World>();
         new GameObject("Stations").AddComponent<Stations>();
+        new GameObject("Settle").AddComponent<SettleStations>();
         new GameObject("Zones").AddComponent<ZoneManager>();
         new GameObject("Player").AddComponent<Player>();
         new GameObject("Pads").AddComponent<PadManager>();

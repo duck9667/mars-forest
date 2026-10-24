@@ -149,6 +149,7 @@ public static class Items
     }
     // 등짐 탑 전용 블록(피자레디처럼 등 뒤에 높이 쌓는 두툼한 덩어리). 한 층 CARRY_H 논리, 피벗은 블록 중심.
     // 얼음: 하늘색 얼음 블록 + 밝은 윗면 + 서리 띠 / 병: 나무 상자 + 병 6개(뚜껑이 위로 보이게)
+    // 생존 기지: 레골리스 붉은 돌덩이 / 흙 갈색 자루 / 비료 초록 자루 / 산소통 흰 실린더 2개+파란 띠 / 식량 감자 상자
     public const float CARRY_H = 5.0f;
     static readonly Color ICE_BODY = GameConfig.Hex("8fd4f5"), ICE_TOP = GameConfig.Hex("f2fbff");
     static readonly Color CRATE = GameConfig.Hex("e08a45"), CRATE_LIP = GameConfig.Hex("a8582a"), CAP = GameConfig.Hex("ffffff");
@@ -175,8 +176,47 @@ public static class Items
             Prim.Box(t, "ice", new Vector3(0, -0.5f * k, 0), new Vector3(17, h - 1f, 12.5f), ICE_BODY);
             Prim.Box(t, "top", new Vector3(0, (h / 2 - 0.5f) * k, 0), new Vector3(18, 1f, 13.5f), ICE_TOP);
         }
+        else if (kind == "rego")
+        {
+            // 레골리스: 붉은 돌덩이(각지게 비튼 덩어리 셋)
+            Prim.Box(t, "rock", new Vector3(0, -0.4f * k, 0), new Vector3(16, h - 1.2f, 12), GameConfig.REGO).transform.localRotation = Quaternion.Euler(0, 8, 3);
+            Prim.Box(t, "chunk", new Vector3(4f * k, (h / 2 - 1f) * k, -1f * k), new Vector3(8, 2.6f, 7), REGO_D).transform.localRotation = Quaternion.Euler(6, 35, 0);
+            Prim.Box(t, "chunk", new Vector3(-4.5f * k, (h / 2 - 1.2f) * k, 2f * k), new Vector3(7, 2.2f, 6), REGO_L).transform.localRotation = Quaternion.Euler(-5, -20, 4);
+        }
+        else if (kind == "soil" || kind == "fert") Sack(t, kind == "soil" ? GameConfig.SOIL : GameConfig.FERT, kind == "soil" ? SOIL_TIE : FERT_TIE, kind == "fert");
+        else if (kind == "o2")
+        {
+            // 산소통: 흰 실린더 2개를 눕혀 묶고 파란 띠, 끝에 밸브
+            for (int s = -1; s <= 1; s += 2)
+            {
+                Prim.Cyl(t, "tank", new Vector3(0, -0.2f * k, s * 3.2f * k), 6.2f, 16, GameConfig.O2).transform.localRotation = Quaternion.Euler(0, 0, 90);
+                Prim.Cyl(t, "valve", new Vector3(8.6f * k, -0.2f * k, s * 3.2f * k), 2.4f, 1.6f, O2_VALVE).transform.localRotation = Quaternion.Euler(0, 0, 90);
+            }
+            Prim.Box(t, "band", new Vector3(0, -0.2f * k, 0), new Vector3(3.2f, h - 0.2f, 13.4f), O2_BAND);
+        }
+        else if (kind == "food")
+        {
+            // 식량: 노란 나무 상자 + 감자 6알
+            float ch = 3.2f;
+            Prim.Box(t, "crate", new Vector3(0, (-h / 2 + ch / 2) * k, 0), new Vector3(17, ch, 12.5f), GameConfig.FOOD);
+            Prim.Box(t, "lip", new Vector3(0, (-h / 2 + ch - 0.4f) * k, 0), new Vector3(18, 0.8f, 13.5f), FOOD_LIP);
+            for (int r = 0; r < 2; r++)
+                for (int c = 0; c < 3; c++)
+                    Prim.Sphere(t, "potato", new Vector3((c - 1) * 5f * k, (-h / 2 + ch + 0.6f) * k, (r - 0.5f) * 5.4f * k), 4.6f, (r + c) % 2 == 0 ? POTATO : POTATO_D);
+        }
         else Prim.Box(t, kind, Vector3.zero, new Vector3(17, h - 0.4f, 12.5f), ColorOf(kind));
         return root;
+    }
+    static readonly Color REGO_D = GameConfig.Hex("8f3d20"), REGO_L = GameConfig.Hex("d4703f"), SOIL_TIE = GameConfig.Hex("c9a77c"), FERT_TIE = GameConfig.Hex("f6e6d2");
+    static readonly Color O2_VALVE = GameConfig.Hex("8c98a4"), O2_BAND = GameConfig.Hex("4fb0f0"), FOOD_LIP = GameConfig.Hex("b9802a"), POTATO = GameConfig.Hex("c99a5b"), POTATO_D = GameConfig.Hex("a87a44");
+    // 자루: 불룩한 몸통(가운데가 살짝 더 넓게) + 묶은 매듭, 비료는 흰 라벨 띠
+    static void Sack(Transform t, Color body, Color tie, bool label)
+    {
+        float k = GameConfig.K, h = CARRY_H;
+        Prim.Box(t, "sack", new Vector3(0, -0.3f * k, 0), new Vector3(16, h - 1f, 12), body);
+        Prim.Box(t, "belly", new Vector3(0, -0.6f * k, 0), new Vector3(17.5f, h - 2.6f, 13), body);
+        Prim.Box(t, "tie", new Vector3(5.5f * k, (h / 2 - 0.5f) * k, 0), new Vector3(4, 1.6f, 4), tie);
+        if (label) Prim.Box(t, "label", new Vector3(0, -0.4f * k, 0), new Vector3(6, 2.4f, 13.4f), tie);
     }
 
     // 컨테이너 안 스택을 count에 맞춰 재구성(간단한 재빌드; 수십 개 수준이라 충분)
