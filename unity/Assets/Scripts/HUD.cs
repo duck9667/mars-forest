@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 // HUD: 벨 필(아이콘+숫자, 펀치), 설정 버튼(톱니, 소리·진동 토글 패널), 며칠째 필, 업그레이드 버튼(금색·점·바운스), 콤보/러시 배지, 화면 플래시, 동전 비행(coinsToHud)
-// 상단 배치: 1행 벨(좌)·설정(우) / 2행 며칠째(좌)·목표 칩(중앙, QuestManager) / 3행 콤보(좌)·러시(중앙)
+// 상단 배치: 1행 벨(좌)·지도 알약 "정착 n/5"(톱니 왼쪽)·설정(우) / 2행 며칠째(좌)·러시(중앙)·콤보(우)
 public class HUD : MonoBehaviour
 {
     public static HUD I;
@@ -15,6 +15,7 @@ public class HUD : MonoBehaviour
     Text comboText, rushText; RectTransform comboRt, rushRt; int lastCombo;
     Text dayText; int lastDay = -1;
     GameObject settings; Button sndBtn, vibBtn;
+    Image mapBg; Text mapText; RectTransform mapRt; int lastStage = -1; Coroutine mapPulse;
 
     // 예전 호출부 호환용 얇은 래퍼(UIKit로 위임)
     public static class UI
@@ -53,6 +54,14 @@ public class HUD : MonoBehaviour
         // 1행 우: 설정 버튼(둥근 남색 버튼 52, 톱니) → 소리·진동 토글 패널
         var gear = UIKit.RoundButton(transform, "settingsBtn", UIKit.Pill, 52, "gear", 30, ToggleSettings, out _);
         var mrt = gear.GetComponent<RectTransform>(); mrt.anchorMin = mrt.anchorMax = new Vector2(1, 1); mrt.pivot = new Vector2(1, 1); mrt.anchoredPosition = new Vector2(-16, -26);
+        // 1행 우(톱니 왼쪽): 지도 알약 [지도] 정착 n/5 → 지도 화면(MapScreen). 단계가 바뀌면 잠깐 금색으로 반짝
+        mapBg = UIKit.Chip(transform, "mapBtn", UIKit.Pill, null, 0, "정착 0/5", 22, out mapText, out _, 5);
+        var mic = UIKit.RT(mapBg.transform, "ic_map").gameObject.AddComponent<Image>(); mic.sprite = MapScreen.MapIcon(); mic.preserveAspect = true; mic.raycastTarget = false;
+        var mle = mic.gameObject.AddComponent<LayoutElement>(); mle.preferredWidth = mle.minWidth = mle.preferredHeight = mle.minHeight = 30; mic.transform.SetSiblingIndex(0);
+        mapRt = mapBg.rectTransform; mapRt.anchorMin = mapRt.anchorMax = new Vector2(1, 1); mapRt.pivot = new Vector2(1, 1); mapRt.anchoredPosition = new Vector2(-78, -26);
+        mapBg.gameObject.AddComponent<LayoutElement>().minHeight = 55;
+        mapBg.raycastTarget = true; var mb = mapBg.gameObject.AddComponent<Button>(); mb.targetGraphic = mapBg; mb.transition = Selectable.Transition.None;
+        mapBg.gameObject.AddComponent<UIPress>(); mb.onClick.AddListener(() => { AudioManager.I?.Play("pop", 1.3f, 0.4f); MapScreen.I?.Toggle(); });
         // 2행 좌: 며칠째 필(S.day, DayNight가 갱신). 2행 가운데는 목표·정착 칩 자리라 비워 둔다
         var day = UIKit.Chip(transform, "day", UIKit.Pill, "sun", 24, "1일째", 22, out dayText, out _, 5);
         var dyrt = day.rectTransform; dyrt.anchorMin = dyrt.anchorMax = new Vector2(0, 1); dyrt.pivot = new Vector2(0, 1); dyrt.anchoredPosition = new Vector2(18, -96);
@@ -115,6 +124,7 @@ public class HUD : MonoBehaviour
     void Start()
     {
         G.OnBellsChanged += Refresh; G.OnPadLevel += (a, b) => Refresh(); Refresh();
+        if (SettlementManager.I != null) SettlementManager.I.OnStage += _ => PulseMap();
         // -sheet: QA 스크린샷용 업그레이드 시트 자동 열기(20s)·닫기(30s)
         if (DevArgs.Has("-sheet")) StartCoroutine(CoAutoSheet());
         // -settings 초: QA 스크린샷용 설정 패널 자동 열기(그 초)·닫기(+4초)
@@ -144,6 +154,32 @@ public class HUD : MonoBehaviour
         bool bounce = menuBuyable && G.S.tut >= 3 && G.PadLv("hand") == 0 && G.PadLv("spd") == 0 && G.PadLv("price") == 0;
         upRt.anchoredPosition = new Vector2(0, 36 + (bounce ? Mathf.Abs(Mathf.Sin(Time.time * 4f)) * 10f : 0));
         if (G.S.day != lastDay) { lastDay = G.S.day; dayText.text = Mathf.Max(1, lastDay) + "일째"; }
+        int stg = SettlementManager.I != null ? SettlementManager.I.Stage : 0;
+        if (stg != lastStage)
+        {
+            lastStage = stg; bool done = stg >= SettlementManager.COUNT;
+            mapText.text = done ? "정착 완료" : "정착 " + stg + "/" + SettlementManager.COUNT;
+            if (mapPulse == null) { mapBg.sprite = UIKit.Panel9(done ? UIKit.SignOk : UIKit.Pill); mapText.color = done ? UIKit.SignOk.text : Color.white; MapStroke(!done); }
+        }
+    }
+
+    // 정착 단계 달성: 지도 알약이 1.6초 금색으로 바뀌어 두근거린다
+    public void PulseMap() { if (mapPulse != null) StopCoroutine(mapPulse); mapPulse = StartCoroutine(CoPulseMap()); }
+    IEnumerator CoPulseMap()
+    {
+        mapBg.sprite = UIKit.Panel9(UIKit.SignOk); mapText.color = UIKit.SignOk.text; MapStroke(false);
+        float el = 0;
+        while (el < 1.6f) { el += Time.unscaledDeltaTime; mapRt.localScale = Vector3.one * (1f + Mathf.Abs(Mathf.Sin(el * 7f)) * 0.14f * (1f - el / 1.6f)); yield return null; }
+        mapRt.localScale = Vector3.one;
+        bool done = SettlementManager.I != null && SettlementManager.I.Settled;
+        if (!done) { mapBg.sprite = UIKit.Panel9(UIKit.Pill); mapText.color = Color.white; MapStroke(true); }
+        mapPulse = null;
+    }
+    // 남색 알약일 땐 남색 외곽선, 금색일 땐 외곽선 없음(UIKit.Stroke는 두께 0이면 기존 외곽선을 안 지우므로 직접 지운다)
+    void MapStroke(bool on)
+    {
+        if (on) UIKit.Stroke(mapText, UIKit.Pill.stroke, UIKit.Pill.strokeW);
+        else foreach (var o in mapText.GetComponents<Outline>()) Destroy(o);
     }
 
     IEnumerator Punch(RectTransform rt)
