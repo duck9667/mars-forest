@@ -224,13 +224,8 @@ public class DomeSystem : MonoBehaviour
         var gl = Prim.Sphere(fo, "glint", L(0, 0, 8), 3.5f, Color.white); gl.GetComponent<Renderer>().sharedMaterial = Mats.TransShared(new Color(1f, 1f, 1f, 0.95f)); Prim.NoShadow(gl); glint = gl.transform; glint.localScale = Vector3.zero;
         props.Add(fo);
 
-        // 가로등 (원본: 기둥 r1.5 h40 + 밤 발광 전구 r4, 돔 중심 북쪽 30)
-        var lamp = Group(root, "lamp", L(0, -30, 0));
-        Prim.Cyl(lamp, "post", L(0, 0, 20), 3, 40, DARK);
-        Prim.Cyl(lamp, "cap", L(0, 0, 46.5f), 9, 1.6f, DARK);
+        // 가운데 가로등은 없앴다(jake 10/25 "돔 안 디자인 이상해": 분수 위를 가리는 기둥). 밤 발광 재질만 남겨 둔다
         lampMat = Emissive(GameConfig.Hex("fff2c0"), GameConfig.Hex("ffe9a0") * 0.4f);
-        var bulb = Prim.Sphere(lamp, "bulb", L(0, 0, 42), 8, GameConfig.Hex("fff2c0")); bulb.GetComponent<Renderer>().sharedMaterial = lampMat; Prim.NoShadow(bulb);
-        props.Add(lamp);
 
         // 에어록 (corridor_end 30×34×30, 게이트 서쪽 옆, ry=π) + 지붕 신호등(손님이 게이트를 지나면 깜빡)
         var al = Group(root, "airlock", L(-55, -R - 4, 0));
@@ -239,16 +234,11 @@ public class DomeSystem : MonoBehaviour
         var bc = Prim.Sphere(al, "beacon", L(0, 0, 36), 5, GameConfig.Hex("7df0a0")); bc.GetComponent<Renderer>().sharedMaterial = beaconMat; Prim.NoShadow(bc); beacon = bc.transform;
         props.Add(al);
 
-        // 유리 반구(아래 반은 지면이 가린다) + 갈비대 2 + 허리띠(높이 .62r) + 바닥 테 + 유리 반사 줄 2
+        // 유리 반구(아래 반은 지면이 가린다) + 바닥 테 + 유리 반사 줄 2
         glassGroup = Group(root, "glassDome", Vector3.zero);
         var glass = Prim.Sphere(glassGroup, "glass", Vector3.zero, R * 2f, Color.white);
         glassMat = Own(Mats.Trans(GLASS_DAY)); glass.GetComponent<Renderer>().sharedMaterial = glassMat; Prim.NoShadow(glass);
-        var steelMat = Mats.Solid(STEEL);   // 원본 steelD보다 밝게: 외곽선이 양쪽에 붙어 진한 회색이면 돔 안이 어수선했다
-        var rib = Tube(R * 1.012f * K, 1.1f * K, 0f, Mathf.PI, 28, 6);
-        // 갈비대는 45° 돌려 X자로: 원본(0°/90°)은 앞뒤 갈비대가 화면 세로 한가운데를 지나 분수·가로등을 가렸다. 원본처럼 그림자 없음(가는 관 그림자는 점선 노이즈)
-        for (int i = 0; i < 2; i++) MeshGo(glassGroup, "rib", rib, steelMat, Vector3.zero, Quaternion.Euler(0, i * 90f + 45f, 0), false);
-        float bandH = R * 0.62f, bandR = Mathf.Sqrt(R * R - bandH * bandH) * 1.012f;
-        MeshGo(glassGroup, "band", Tube(bandR * K, 1.1f * K, 0f, Mathf.PI * 2f, 40, 6), steelMat, new Vector3(0, bandH * K, 0), Quaternion.Euler(90, 0, 0), false);
+        // 갈비대(X자)·허리띠(원)는 없앴다: 위에서 내려다보면 철창처럼 돔 안을 가로질러 어수선했다(jake 10/25). 바닥 테 + 유리 반사만
         MeshGo(glassGroup, "rim", Tube(R * 1.01f * K, 2.4f * K, 0f, Mathf.PI * 2f, 48, 6), Mats.Solid(STEEL), new Vector3(0, 1.2f * K, 0), Quaternion.Euler(90, 0, 0), true);
         var shine = Mats.TransShared(new Color(1f, 1f, 1f, 0.7f));
         Highlight(R * 1.02f, 52f, 196f, 248f, 2.6f, shine);

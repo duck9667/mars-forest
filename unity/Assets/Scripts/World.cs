@@ -11,8 +11,7 @@ public class World : MonoBehaviour
         // 줄 난간 qL/qR: x=186/246, y 570~676 레일
         Rail(186, 570, 676); Rail(246, 570, 676);
         // 착륙장 원 r58(입구)은 지면 텍스처에 그려져 있다
-        // 환경 연출: 가장자리에만 옅은 먼지 + 가끔 지나가는 먼지 회오리 (DustFX)
-        new GameObject("DustFX").AddComponent<DustFX>().transform.SetParent(transform, false);
+        // 떠다니는 먼지·먼지 회오리(DustFX)는 끈다(jake 10/25 "흰 동그라미들이 회오리처럼 도는 게 뭐냐"). 이벤트 먼지(JuiceFX.Dust)만 남김
         // 테두리: 메사 절벽 + 포인트 바위 (WorldDress)
         var rocks = new GameObject("rocks").transform; rocks.SetParent(transform, false);
         Lights();

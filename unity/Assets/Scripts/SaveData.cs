@@ -96,6 +96,8 @@ public static class SaveSystem
             d.qv = 3;
         }
         foreach (var e in d.pads) { if (e.id == "drill") WorldMap.drillInstalled = e.lv >= 1; if (e.id == "dome") WorldMap.domeOpen = e.lv >= 1; }
+        // 구역 열림(울타리·북쪽 통행)도 위치 검사 전에 채운다. 비워 두면 북쪽 구역에서 저장한 위치가 막힌 땅으로 보여 시작점으로 튄다(ZoneManager가 다시 채움)
+        foreach (var z in WorldMap.ZONES) { bool open = z.open; foreach (var e in d.pads) if (z.pad != null && e.id == z.pad && e.lv >= 1) open = true; WorldMap.SetZoneOpen(z.key, open); }
         if (WorldMap.Blocked(d.p.x, d.p.y)) { d.p.x = WorldMap.PLAYER_START.x; d.p.y = WorldMap.PLAYER_START.y; }
         // 비활성·요구조건 미충족 발판의 부분 납입금 환불
         for (int i = d.pads.Count - 1; i >= 0; i--)
