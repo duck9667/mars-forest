@@ -309,7 +309,7 @@ public class SettleStations : MonoBehaviour
     void BuildGreen()
     {
         var v = View(3, new Vector2(-38, 28), new Vector2(38, 28));
-        const float R = 26f, LEN = 112f, CY = -14f;
+        const float R = 32f, LEN = 112f, CY = -16f;   // 목표 그림처럼 높고 둥근 유리 터널(위에서 격자로 보이지 않게 살은 적고 가늘게)
         foreach (float by in new[] { CY - 8, CY + 8 }) Prim.Box(v, "bed", L(0, by, PLATE + 2), new Vector3(LEN - 10, 4, 12), GameConfig.SOIL);
         for (int r = 0; r < 2; r++)
             for (int j = 0; j < 7; j++)
@@ -324,19 +324,18 @@ public class SettleStations : MonoBehaviour
         var film = new GameObject("film"); film.transform.SetParent(v, false); film.transform.localPosition = L(0, CY, PLATE);
         film.transform.localScale = Vector3.one * GameConfig.K;
         film.AddComponent<MeshFilter>().sharedMesh = TunnelMesh(R, LEN, 20);
-        var mr = film.AddComponent<MeshRenderer>(); var fc = GameConfig.Hex("cfeeff"); fc.a = 0.4f; mr.sharedMaterial = Mats.TransShared(fc);
+        var mr = film.AddComponent<MeshRenderer>(); var fc = GameConfig.Hex("eef8ff"); fc.a = 0.38f; mr.sharedMaterial = Mats.TransShared(fc);   // 유리 터널이 형태로 읽히게(너무 투명하면 살만 격자로 보인다)
         mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; mr.receiveShadows = false;
         // 아치 살: 반원을 8토막 상자로
         const int SEG = 8; float segL = Mathf.PI * R / SEG * 1.08f;
-        foreach (float ax in new[] { -LEN / 2, -LEN / 4, 0f, LEN / 4, LEN / 2 })
+        foreach (float ax in new[] { -LEN / 2, -LEN / 6, LEN / 6, LEN / 2 })
             for (int j = 0; j < SEG; j++)
             {
                 float a = Mathf.PI * (j + 0.5f) / SEG;
-                var rib = Prim.Box(v, "rib", L(ax, CY - Mathf.Cos(a) * R, PLATE + Mathf.Sin(a) * R), new Vector3(2.2f, 2.2f, segL), WHITE);
+                var rib = Prim.Box(v, "rib", L(ax, CY - Mathf.Cos(a) * R, PLATE + Mathf.Sin(a) * R), new Vector3(1.6f, 1.6f, segL), WHITE);
                 rib.transform.localRotation = Quaternion.Euler(90f - a * Mathf.Rad2Deg, 0, 0);
             }
-        foreach (float sy in new[] { CY - R, CY + R }) Prim.Box(v, "sill", L(0, sy, PLATE + 1.5f), new Vector3(LEN + 4, 3, 3), WHITE);
-        Prim.Box(v, "ridge", L(0, CY, PLATE + R + 0.6f), new Vector3(LEN, 1.6f, 2.4f), WHITE);
+        foreach (float sy in new[] { CY - R, CY + R }) Prim.Box(v, "sill", L(0, sy, PLATE + 1.5f), new Vector3(LEN + 4, 3, 2.2f), WHITE);   // 용마루는 뺐다(위에서 세로줄로 보임)
         Prim.Box(v, "door", L(-LEN / 2 - 1, CY + 2, PLATE + 10), new Vector3(1.5f, 20, 14), GameConfig.NAVY);
         // 물탱크·파이프 (물은 S.water에서 끌어 온다)
         Prim.Cyl(v, "wtank", L(66, CY - 6, PLATE + 12), 14, 24, WHITE);
