@@ -6,6 +6,8 @@ using UnityEngine;
 public class DustFX : MonoBehaviour
 {
     const int DUST_N = 36, DEV_N = 14;   // 가장자리 띠 2개에 반씩
+    // 띠 세로 범위: 북쪽 생존 기지까지(Y_MIN−80 ~ 1120). 개수는 그대로라 북쪽으로 늘어난 만큼 조금 더 성기다
+    const float DUST_Y0 = GameConfig.Y_MIN - 80f, DUST_Y1 = 1120f, DUST_CY = (DUST_Y0 + DUST_Y1) / 2f, DUST_LEN = DUST_Y1 - DUST_Y0;
     readonly List<ParticleSystem> systems = new List<ParticleSystem>();
     float gustT = 10f, gust = 0f;
 
@@ -53,7 +55,7 @@ public class DustFX : MonoBehaviour
     {
         float k = GameConfig.K;
         var go = new GameObject("dust"); go.transform.SetParent(transform, false);
-        go.transform.position = WorldMap.W2U(cx, 520f, 60f);
+        go.transform.position = WorldMap.W2U(cx, DUST_CY, 60f);
         var ps = go.AddComponent<ParticleSystem>();
         ps.Stop();
         var main = ps.main;
@@ -62,7 +64,7 @@ public class DustFX : MonoBehaviour
         main.startColor = new Color(1f, 0.886f, 0.784f, 0.32f);
         main.maxParticles = DUST_N / 2; main.simulationSpace = ParticleSystemSimulationSpace.World; main.gravityModifier = 0f;
         var em = ps.emission; em.rateOverTime = DUST_N / 2 / 16f;
-        var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(80f, 100f, 1200f) * k;
+        var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(80f, 100f, DUST_LEN) * k;
         // 바람: 가장자리 띠 밖으로 새지 않게 x는 거의 0, 세로로 천천히 흐른다. 돌풍은 speedModifier로 배속
         var vol = ps.velocityOverLifetime; vol.enabled = true; vol.space = ParticleSystemSimulationSpace.World;
         vol.x = new ParticleSystem.MinMaxCurve(-1.5f * k, 1.5f * k); vol.y = new ParticleSystem.MinMaxCurve(-1.5f * k, 1.5f * k); vol.z = new ParticleSystem.MinMaxCurve(-6f * k, 6f * k);
@@ -118,7 +120,8 @@ public class DustFX : MonoBehaviour
             d.wait -= dt; if (d.wait > 0f) return;
             bool left = Random.value < 0.5f, down = Random.value < 0.5f;
             float x = left ? -24f + Random.value * 16f : 408f + Random.value * 16f;
-            d.from = new Vector2(x, down ? -40f : 1080f); d.to = new Vector2(x + (Random.value - 0.5f) * 20f, down ? 1080f : -40f);
+            float top = GameConfig.Y_MIN - 40f;
+            d.from = new Vector2(x, down ? top : 1080f); d.to = new Vector2(x + (Random.value - 0.5f) * 20f, down ? 1080f : top);
             d.p = d.from; d.life = 0f; d.dur = Vector2.Distance(d.from, d.to) / 30f; d.on = true;
             d.root.gameObject.SetActive(true);
         }

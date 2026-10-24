@@ -2,7 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// §4.3 구역: 바닥·울타리(기둥 40 간격, 레일 2단, 게이트 굵은 기둥) + 잠긴 구역의 점선 윤곽·자물쇠 아치 + 해제 연출 unlockZone
+// §4.3 구역: 바닥·울타리(낮은 연석 + 게이트 작은 기둥) + 잠긴 구역의 점선 윤곽·자물쇠 아치 + 해제 연출 unlockZone
+// 북쪽 생존 기지 구역(y1 ≤ NORTH_Y)은 잠겨 있는 동안 늘 "개척 예정지"(옅은 측량 점선 + 모서리 ㄱ자)로 보이고, 차례가 오면 윤곽·아치로 바뀐다
 public class ZoneManager : MonoBehaviour
 {
     public static ZoneManager I;
@@ -10,15 +11,15 @@ public class ZoneManager : MonoBehaviour
 
     class ZView
     {
-        public WorldMap.Zone z; public Transform root, floor, fence, outline, arch; public List<Transform> parts = new List<Transform>();
+        public WorldMap.Zone z; public Transform root, floor, fence, outline, arch, survey, surveyLine; public List<Transform> parts = new List<Transform>();
         public List<Vector3> finalPos = new List<Vector3>(); public bool open, archShown;
     }
     readonly Dictionary<string, ZView> views = new Dictionary<string, ZView>();
-    static readonly Color POST = GameConfig.Hex("8a5a3c"), RAIL = GameConfig.Hex("a8724a");
+    static readonly Color GPOST = GameConfig.Hex("7f5f48"), CURB = GameConfig.Hex("b08c6e");   // 게이트 기둥·연석(배경 톤, 채도 낮게)
 
     void Awake() { I = this; WorldMap.ClearZones(); }   // 이주(Restart) 뒤 새 씬은 열림 상태를 처음부터
 
-    // §4.3 모서리 가로등: 열린 구역 모서리마다(중복 제거). 밤에 전구 발광 + 바닥빛(point light)
+    // §4.3 가로등: 상점 네 모서리 + 열린 구역마다 하나(AddLamps). 밤에 전구 발광 + 바닥빛(point light)
     class Lamp { public Transform root; public Renderer bulb; public Light light; public Material mat, pool; }
     readonly List<Lamp> lamps = new List<Lamp>();
     readonly HashSet<Vector2> lampSpots = new HashSet<Vector2>();
@@ -40,11 +41,16 @@ public class ZoneManager : MonoBehaviour
         if (Player.I != null && WorldMap.Blocked(Player.I.pos.x, Player.I.pos.y)) Player.I.pos = WorldMap.PLAYER_START;
     }
 
+    // 가로등(단순화): 상점은 네 모서리, 그 밖의 구역은 북서 모서리 하나만. 이미 있는 등과 30 안이면 건너뛴다
     void AddLamps(WorldMap.Zone z)
     {
-        foreach (var c in new[] { new Vector2(z.x0, z.y0), new Vector2(z.x1, z.y0), new Vector2(z.x0, z.y1), new Vector2(z.x1, z.y1) })
+        var corners = z.key == "shop"
+            ? new[] { new Vector2(z.x0, z.y0), new Vector2(z.x1, z.y0), new Vector2(z.x0, z.y1), new Vector2(z.x1, z.y1) }
+            : new[] { new Vector2(z.x0, z.y0) };
+        foreach (var c in corners)
         {
-            if (lampSpots.Contains(c)) continue; lampSpots.Add(c);
+            bool near = false; foreach (var q in lampSpots) if ((q - c).sqrMagnitude < 30 * 30) { near = true; break; }
+            if (near) continue; lampSpots.Add(c);
             var root = new GameObject("lamp").transform; root.SetParent(transform, false); root.position = WorldMap.W2U(c);
             Prim.Box(root, "post", new Vector3(0, 22 * GameConfig.K, 0), new Vector3(3, 44, 3), GameConfig.Hex("3b3a52"));
             var bulb = Prim.Sphere(root, "bulb", new Vector3(0, 46 * GameConfig.K, 0), 7, GameConfig.Hex("fff1c2"));
@@ -97,11 +103,14 @@ public class ZoneManager : MonoBehaviour
             v.outline = GroundPainter.DashQuad(v.root, z, 0.12f).transform;
             v.arch = BuildArch(v);
             v.outline.gameObject.SetActive(false); v.arch.gameObject.SetActive(false);
+            if (z.y1 <= WorldMap.NORTH_Y) BuildSurvey(v);
         }
         views[z.key] = v;
     }
 
-    // 울타리 부품을 둘레 순서(N 서→동, E 북→남, S 동→서, W 남→북)로 만들어 해제 연출에서 차례로 솟게 한다
+    // 울타리(단순화, jake 동의 2026-10-25): 기둥+난간 대신 낮은 연석(높이 5·두께 4) + 게이트 양옆 작은 기둥만.
+    // 충돌은 WorldMap.FenceBlocked가 그대로 막으므로 모양만 바뀐다. 연석은 40 길이 조각으로 나눠 둘레 순서
+    // (N 서→동, E 북→남, S 동→서, W 남→북)로 만들어 해제 연출에서 차례로 솟게 한다
     void BuildFence(ZView v)
     {
         var z = v.z;
@@ -114,43 +123,53 @@ public class ZoneManager : MonoBehaviour
             bool reverse = side == 'S' || side == 'W';
             float gAt = -1, gW = 0;
             foreach (var g in WorldMap.GATES) if (g.zone == z.key && g.side == side) { gAt = g.at; gW = g.w; }
-            // 기둥
-            var posts = new List<float>();
-            for (float t = a; t <= b + 0.1f; t += WorldMap.POST_GAP) { if (gAt >= 0 && Mathf.Abs(t - gAt) < gW / 2) continue; posts.Add(t); }
-            if (reverse) posts.Reverse();
-            foreach (float t in posts)
-            {
-                float x = horiz ? t : fixedV, y = horiz ? fixedV : t;
-                Part(v, Prim.Box(v.fence, "post", WorldMap.W2U(x, y, 12), new Vector3(5, 24, 5), POST));
-            }
-            // 레일 2단, 게이트 틈 제외
-            void RailSeg(float s0, float s1)
+            var segs = new List<Vector2>();   // (시작, 끝) 연석 조각
+            void Curb(float s0, float s1)
             {
                 if (s1 - s0 < 2) return;
-                float mid = (s0 + s1) / 2, len = s1 - s0;
+                int n = Mathf.Max(1, Mathf.RoundToInt((s1 - s0) / WorldMap.POST_GAP));
+                for (int i = 0; i < n; i++) segs.Add(new Vector2(s0 + (s1 - s0) * i / n, s0 + (s1 - s0) * (i + 1) / n));
+            }
+            if (gAt >= 0) { Curb(a - 2, gAt - gW / 2); Curb(gAt + gW / 2, b + 2); } else Curb(a - 2, b + 2);
+            if (reverse) segs.Reverse();
+            foreach (var sg in segs)
+            {
+                float mid = (sg.x + sg.y) / 2, len = sg.y - sg.x;
                 float x = horiz ? mid : fixedV, y = horiz ? fixedV : mid;
-                var size = horiz ? new Vector3(len, 3, 2.5f) : new Vector3(2.5f, 3, len);
-                Part(v, Prim.Box(v.fence, "rail", WorldMap.W2U(x, y, 8), size, RAIL));
-                Part(v, Prim.Box(v.fence, "rail", WorldMap.W2U(x, y, 17), size, RAIL));
+                Part(v, Prim.Box(v.fence, "curb", WorldMap.W2U(x, y, 2.5f), horiz ? new Vector3(len, 5, 4) : new Vector3(4, 5, len), CURB));
             }
             if (gAt >= 0)
             {
-                RailSeg(a, gAt - gW / 2); RailSeg(gAt + gW / 2, b);
                 float x0 = horiz ? gAt - gW / 2 : fixedV, y0 = horiz ? fixedV : gAt - gW / 2;
                 float x1 = horiz ? gAt + gW / 2 : fixedV, y1 = horiz ? fixedV : gAt + gW / 2;
-                Part(v, Prim.Box(v.fence, "gpost", WorldMap.W2U(x0, y0, 15), new Vector3(7, 30, 7), POST));
-                Part(v, Prim.Box(v.fence, "gpost", WorldMap.W2U(x1, y1, 15), new Vector3(7, 30, 7), POST));
+                Part(v, Prim.Box(v.fence, "gpost", WorldMap.W2U(x0, y0, 6), new Vector3(6, 12, 6), GPOST));
+                Part(v, Prim.Box(v.fence, "gpost", WorldMap.W2U(x1, y1, 6), new Vector3(6, 12, 6), GPOST));
             }
-            else RailSeg(a, b);
         }
     }
     void Part(ZView v, GameObject go) { v.parts.Add(go.transform); v.finalPos.Add(go.transform.position); }
 
-    // 자물쇠 아치: 게이트 폭+10, 높이 38. ice2는 ice의 N게이트를 공유하므로 그 자리에.
+    // 개척 예정지: 옅은 측량 점선 + 모서리 ㄱ자 표시를 바닥에 그린 판 하나(세운 말뚝은 잔물건처럼 보여 뺐다). 해제되면 숨긴다
+    void BuildSurvey(ZView v)
+    {
+        v.survey = new GameObject("survey").transform; v.survey.SetParent(v.root, false);
+        v.surveyLine = GroundPainter.DashQuad(v.survey, v.z, 0.12f, true).transform;
+    }
+
+    // 자물쇠 아치: 게이트 폭+10, 높이 38. 발판에서 가장 가까운 게이트에(채굴장·산소동·온실·토양 공장은 모두 S변, 돔·우리는 N변).
+    // ice2는 자기 게이트(E·N) 대신 ice의 N게이트를 공유하므로 그 자리에.
     Transform BuildArch(ZView v)
     {
         var z = v.z; float gx = (z.x0 + z.x1) / 2, gy = z.y1, gw = 70; char side = 'S';
-        foreach (var g in WorldMap.GATES) if (g.zone == z.key) { gx = g.side == 'N' || g.side == 'S' ? g.at : (g.side == 'W' ? z.x0 : z.x1); gy = g.side == 'N' ? z.y0 : g.side == 'S' ? z.y1 : g.at; gw = g.w; side = g.side; }
+        var pad = z.pad != null ? Pads.Get(z.pad) : null; float best = float.MaxValue;
+        foreach (var g in WorldMap.GATES)
+        {
+            if (g.zone != z.key) continue;
+            float x = g.side == 'N' || g.side == 'S' ? g.at : (g.side == 'W' ? z.x0 : z.x1);
+            float y = g.side == 'N' ? z.y0 : g.side == 'S' ? z.y1 : g.at;
+            float d = pad != null ? (pad.pos - new Vector2(x, y)).sqrMagnitude : 0f;   // 발판 정보가 없으면 예전처럼 마지막 게이트
+            if (d <= best) { best = d; gx = x; gy = y; gw = g.w; side = g.side; }
+        }
         if (z.key == "ice2") { gx = 126; gy = z.y1; gw = 70; side = 'S'; }
         // 피벗은 게이트 중심(팝이 제자리에서), 자식은 로컬 오프셋
         var arch = new GameObject("arch").transform; arch.SetParent(v.root, false); arch.position = WorldMap.W2U(gx, gy, 0);
@@ -175,9 +194,14 @@ public class ZoneManager : MonoBehaviour
             if (show && !v.archShown)
             {
                 v.outline.gameObject.SetActive(true); v.arch.gameObject.SetActive(true);
+                if (v.surveyLine) v.surveyLine.gameObject.SetActive(false);   // 개척 예정지 점선 → 윤곽
                 JuiceFX.I.Pop(v.arch, 0.001f, 0.5f);
             }
-            else if (!show && v.archShown) { v.outline.gameObject.SetActive(false); v.arch.gameObject.SetActive(false); }
+            else if (!show && v.archShown)
+            {
+                v.outline.gameObject.SetActive(false); v.arch.gameObject.SetActive(false);
+                if (v.surveyLine) v.surveyLine.gameObject.SetActive(true);
+            }
             v.archShown = show;
         }
     }
@@ -197,6 +221,7 @@ public class ZoneManager : MonoBehaviour
             Player.I.pos = Vector2.MoveTowards(Player.I.pos, new Vector2((v.z.x0 + v.z.x1) / 2, (v.z.y0 + v.z.y1) / 2), 12f);
         if (v.outline) v.outline.gameObject.SetActive(false);
         if (v.arch) v.arch.gameObject.SetActive(false);
+        if (v.survey) v.survey.gameObject.SetActive(false);
         var z = v.z; float cx = (z.x0 + z.x1) / 2, cy = (z.y0 + z.y1) / 2; Vector3 center = WorldMap.W2U(cx, cy, 0);
         v.floor.gameObject.SetActive(true); JuiceFX.I.Pop(v.floor, 0.001f, 0.7f, 0.35f);   // 되튐 0.35 (§4.3)
         v.fence.gameObject.SetActive(true);
