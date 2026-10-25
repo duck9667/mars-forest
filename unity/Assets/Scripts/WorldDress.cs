@@ -58,7 +58,8 @@ public static class WorldDress
         for (int i = 0; i < MESAS.Length; i++) Mesa(rockRoot, MESAS[i], MESA_H[i], rnd);
         // 포인트 바위: 메사 발치·경계 안쪽 빈자리에 몇 개만 (x, y, 크기, 회전)
         // 소품 밀도 절반(2026-10-25): 11개 → 6개
-        var spots = new[] { new Vector4(4, 188, 10, .4f), new Vector4(398, 724, 10, 3.5f), new Vector4(134, 1050, 9, 1.7f),
+        // 착륙장 옆(134,1050) 바위는 뺐다(다듬기 3차: 착륙장 앞 갈색 파편처럼 보였다, target_south_v1)
+        var spots = new[] { new Vector4(4, 188, 10, .4f), new Vector4(398, 724, 10, 3.5f),
                             new Vector4(400, -606, 9, 2.8f), new Vector4(4, -44, 10, 1.3f), new Vector4(397, -128, 9, .6f) };
         string[] names = { "rockA", "rockB", "rockC", "rockD" };
         var reAB = RockRe(0x8a3418, 0xf0a878); var reCD = RockRe(0x6e2a12, 0xd0683a);

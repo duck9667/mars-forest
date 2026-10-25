@@ -29,6 +29,19 @@ public static class MachineKit
         return g;
     }
 
+    // 둥근 모서리 판(목표 그림의 받침·쟁반): 십자 상자 둘 + 모서리 원기둥 넷. 같은 높이로 맞닿아 외곽선은 바깥 둘레에만 생긴다
+    //  dx·dy 중심, h0 바닥 높이, hh 두께, r 모서리 반지름(모두 논리 단위)
+    public static Transform RoundSlab(Transform g, string name, float dx, float dy, float h0, float w, float d, float hh, float r, Color c)
+    {
+        var t = new GameObject(name).transform; t.SetParent(g, false); t.localPosition = L(dx, dy, h0);
+        r = Mathf.Min(r, w / 2 - 0.5f, d / 2 - 0.5f);
+        Prim.Box(t, "x", L(0, 0, hh / 2), new Vector3(w, hh, d - 2 * r), c);
+        Prim.Box(t, "z", L(0, 0, hh / 2), new Vector3(w - 2 * r, hh, d), c);
+        foreach (var (sx, sy) in new[] { (-1, -1), (1, -1), (-1, 1), (1, 1) })
+            Prim.Cyl(t, "corner", L(sx * (w / 2 - r), sy * (d / 2 - r), hh / 2), 2 * r, hh, c);
+        return t;
+    }
+
     // 사각 호퍼(위가 열린 통): 바닥 어둡게, 네 벽은 외피색, 윗테는 강조색
     public static Transform Hopper(Transform g, float dx, float dy, float w, float d, float h0, float h1, Color rim)
     {

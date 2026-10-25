@@ -25,7 +25,10 @@ public class Stations : MonoBehaviour
 
     // 카운터 칸 받침판(물 하늘색·산소 흰빛·식량 밀색): 진한 원색 판은 상판을 덮은 색 블록처럼 보여 옅은 톤으로, 둘레에 상판이 테처럼 남게
     static readonly Color[] SHELF_MARK = { GameConfig.Hex("7fc3e8"), GameConfig.Hex("e3e9ee"), GameConfig.Hex("eed29b") };
-    static readonly Color ICE_SIDE = GameConfig.Hex("86c8ee"), ICE_TOP = GameConfig.Hex("cdeefc");
+    // 얼음 덩어리(다듬기 3차): 옅은 얼음색 매끈한 몸통 + 흰 윗면 + 앞 윗모서리 흰 빛줄 + 반투명 겉껍질 한 겹(Mats.Glass, 외곽선 마스크에 안 잡힘)
+    static readonly Color ICE_SIDE = GameConfig.Hex("8ccaec"), ICE_TOP = GameConfig.Hex("cdebfa"), ICE_EDGE = GameConfig.Hex("ffffff");
+    static Material iceShell;
+    static Material IceShell => iceShell != null ? iceShell : (iceShell = Mats.Glass(new Color(0.85f, 0.95f, 1f, 0.07f), new Color(0.88f, 0.97f, 1f, 0.42f), 1.8f, 0f));
     void Awake() { I = this; }
 
     void Start()
@@ -48,9 +51,16 @@ public class Stations : MonoBehaviour
             var pile = new GameObject("pile"); pile.transform.SetParent(g.transform, false);
             // 얼음 덩어리(목표 그림처럼 하늘색 큰 덩어리 하나 + 밝은 윗면 + 옆 작은 조각): 예전 흰 판 3장은 소파처럼 보였다
             pile.transform.localRotation = Quaternion.Euler(0, (i * 37) % 24 - 12, 0);
-            Prim.Box(pile.transform, "a", new Vector3(0, 5.5f * GameConfig.K, 0), new Vector3(22, 11, 16), ICE_SIDE);
-            Prim.Box(pile.transform, "b", new Vector3(0, 11.3f * GameConfig.K, 0), new Vector3(20, 1.2f, 14), ICE_TOP);
-            Prim.Box(pile.transform, "c", new Vector3(13f * GameConfig.K, 3f * GameConfig.K, 6f * GameConfig.K), new Vector3(8, 6, 7), ICE_SIDE).transform.localRotation = Quaternion.Euler(0, 25, 0);
+            float k = GameConfig.K;
+            var body = Prim.Box(pile.transform, "a", new Vector3(0, 5f * k, 0), new Vector3(20, 10, 14), ICE_SIDE);
+            body.GetComponent<Renderer>().sharedMaterial = Mats.Gloss(ICE_SIDE, 0.8f);
+            Prim.Box(pile.transform, "b", new Vector3(0, 10.2f * k, 0.6f * k), new Vector3(18, 0.8f, 12), ICE_TOP);
+            Prim.NoShadow(Prim.Box(pile.transform, "edge", new Vector3(0, 10.1f * k, -6.6f * k), new Vector3(18.5f, 1.1f, 1.1f), ICE_EDGE));   // 앞 윗모서리 빛줄(카메라 쪽)
+            var shell = Prim.Box(pile.transform, "shell", new Vector3(0, 5.6f * k, 0), new Vector3(22.5f, 11.4f, 16.5f), Color.white);
+            shell.GetComponent<Renderer>().sharedMaterial = IceShell; Prim.NoShadow(shell);
+            var small = Prim.Box(pile.transform, "c", new Vector3(13f * k, 3f * k, 6f * k), new Vector3(8, 6, 7), ICE_SIDE);
+            small.transform.localRotation = Quaternion.Euler(0, 25, 0); small.GetComponent<Renderer>().sharedMaterial = Mats.Gloss(ICE_SIDE, 0.8f);
+            Prim.NoShadow(Prim.Box(small.transform, "cTop", new Vector3(0, 0.52f, 0), new Vector3(0.9f, 0.08f, 0.88f) / GameConfig.K, ICE_TOP));   // 부모 스케일 기준(윗면 흰 판)
             spotViews[i] = pile.transform; spotShown[i] = true;
         }
         // 해빙기

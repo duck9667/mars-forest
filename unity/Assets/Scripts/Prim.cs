@@ -49,6 +49,23 @@ public static class Mats
         if (transCache.TryGetValue(c, out var m)) return m;
         m = new Material(TransBase) { color = c }; transCache[c] = m; return m;
     }
+    // 맑은 유리·얼음 겉면(Shaders/MarsGlass): 가운데는 비치고 가장자리 테 + 해 쪽 반짝임. 셰이더가 없으면 예전 투명 재질
+    static Shader _glass; static bool glassTried;
+    public static Material Glass(Color center, Color edge, float pow = 2.5f, float spec = 0.8f, float gloss = 60f)
+    {
+        if (!glassTried) { glassTried = true; _glass = Resources.Load<Shader>("Shaders/MarsGlass"); if (_glass != null && !_glass.isSupported) _glass = null; }
+        if (_glass == null) return new Material(TransBase) { color = center };
+        var m = new Material(_glass);
+        m.SetColor("_Color", center); m.SetColor("_EdgeColor", edge); m.SetFloat("_Pow", pow); m.SetFloat("_Spec", spec); m.SetFloat("_Gloss", gloss);
+        return m;
+    }
+    // 매끈한 불투명 재질(얼음 몸통처럼 해 반짝임이 맺히는 것): 색·매끈함별 공유
+    static readonly Dictionary<(Color, float), Material> glossCache = new Dictionary<(Color, float), Material>();
+    public static Material Gloss(Color c, float smooth)
+    {
+        if (glossCache.TryGetValue((c, smooth), out var m)) return m;
+        m = new Material(Base) { color = c }; m.SetFloat("_Glossiness", smooth); glossCache[(c, smooth)] = m; return m;
+    }
 }
 
 public static class Prim

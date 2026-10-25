@@ -63,6 +63,8 @@ tools/build-unity-framework.sh     # → unity/Builds/UnityFramework/UnityFramew
 tools/ios-install.sh               # SKIP_UNITY=1이면 Unity 빌드 건너뜀
 ```
 
+빌드가 `Connectivity with IL Post Processor runner cannot be established yet`에서 멈추면: ILPP 러너가 ~/Documents 감시(FSEventStreamCreate)에서 걸려 /tmp 소켓을 못 만든 것(10/25 다듬기 3차에서 반복 재현). 프로젝트를 ~/Documents 밖으로 rsync해 빌드한 뒤 `Builds/Mac`만 되돌려 복사하면 된다.
+
 페이싱 목표(원본 README): 첫 판매 0:30, 첫 발판 0:50, 첫 구역 확장 2:30 전후. 봇은 사람보다 효율적이라 실플레이는 더 느리다.
 
 ## 원본과 다르게 둔 것

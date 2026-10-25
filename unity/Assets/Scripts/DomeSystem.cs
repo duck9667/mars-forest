@@ -25,7 +25,7 @@ public class DomeSystem : MonoBehaviour
         public Transform bench, pile; public GameObject[] coins;
     }
     readonly Seat[] seats = new Seat[6];
-    Transform root, pad, glassGroup, beacon, spout, glint;
+    Transform root, pad, padFloor, glassGroup, beacon, spout, glint;
     readonly List<Transform> props = new List<Transform>();
     readonly List<Material> owned = new List<Material>();
     Material glassMat, coinMat, lampMat, beaconMat, glowMat;
@@ -40,7 +40,8 @@ public class DomeSystem : MonoBehaviour
     static readonly Color WOOD = ModelLib.C(0x9a6240), WOOD_D = ModelLib.C(0x6e3f26), DARK = ModelLib.C(ModelLib.COL.dark);
     static readonly Color STEEL = ModelLib.C(ModelLib.COL.steel);
     static readonly Color[] CUSHION = { GameConfig.Hex("5ed6c8"), GameConfig.Hex("ff8c69") };   // 서쪽 줄 청록 · 동쪽 줄 산호
-    static readonly Color GLASS_DAY = new Color(0.78f, 0.9f, 1f, 0.3f), GLASS_NIGHT = new Color(0.6f, 0.86f, 1f, 0.26f);
+    // 맑은 유리(다듬기 3차): 가운데는 거의 비치고(알파 0.04) 가장자리만 옅은 하늘빛 테(Mats.Glass 프레넬). 예전 알파 0.3 투명 확산 재질은 햇빛을 받아 분홍 판처럼 보였다
+    static readonly Color GLASS_DAY = new Color(0.94f, 0.98f, 1f, 0.04f), GLASS_NIGHT = new Color(0.8f, 0.92f, 1f, 0.07f), GLASS_EDGE = new Color(0.8f, 0.9f, 0.98f, 0.55f);
 
     // 돔 구역 북쪽 변(게이트가 있는 y0)
     static float ZoneY0 { get { foreach (var z in WorldMap.ZONES) if (z.key == "dome") return z.y0; return 740f; } }
@@ -163,9 +164,15 @@ public class DomeSystem : MonoBehaviour
         root = new GameObject("dome").transform; root.SetParent(transform, false); root.position = WorldMap.W2U(D);
 
         // 바닥 발판: platform_large r84×1.04, 높이 18(=1.8), 흰→모래·밝은 회색→황갈. 윗면이 PAD_TOP에 오게 내린다(접지 그림자 안 가리게)
-        var re = ModelLib.SK(ModelLib.COL.orange); re[0xedf0f5] = 0xe8c9a4; re[0xd6dbe4] = 0xd9a46c;
+        var re = ModelLib.SK(ModelLib.COL.orange); re[0xedf0f5] = 0xefe3cf; re[0xd6dbe4] = 0xdcc8aa;   // 크림 바닥(다듬기 3차, target_south_v1): 예전 살구색 발판이 유리 너머로 분홍 판처럼 보였다
         pad = ModelLib.Put(root, "pad", R * 1.04f, 18f, R * 1.04f, 0, PAD_TOP - 1.8f, 0, 0f, re).transform;
         pad.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        // 발판 모델은 SK(orange) 팔레트라 살구색으로 칠해져 유리 너머가 분홍 판처럼 보였다(다듬기 3차) → 모델은 숨기고 크림 원판 + 옅은 테로 바닥을 깐다(target_south_v1)
+        pad.GetComponent<Renderer>().enabled = false;
+        padFloor = Prim.Cyl(root, "padFloor", L(0, 0, PAD_TOP), R * 2.02f, 0.04f, GameConfig.Hex("efe4d2")).transform;
+        Prim.NoShadow(padFloor.gameObject); padFloor.GetComponent<Renderer>().receiveShadows = true;
+        var rimIn = Prim.Cyl(padFloor, "padRim", new Vector3(0, -0.2f, 0), 1.03f / GameConfig.K, 0.0f, GameConfig.Hex("d8c6aa"));   // 부모 스케일 기준
+        rimIn.transform.localScale = new Vector3(1.035f, 0.6f, 1.035f); Prim.NoShadow(rimIn);
         // 밤 실내등 바닥빛(원판, 밤에만 보임)
         var glow = GameObject.CreatePrimitive(PrimitiveType.Cylinder); Destroy(glow.GetComponent<Collider>()); glow.name = "glow";
         glow.transform.SetParent(root, false); glow.transform.localPosition = L(0, 0, 0.18f); glow.transform.localScale = new Vector3(R * 1.8f, 0.1f, R * 1.8f) * K;
@@ -237,7 +244,7 @@ public class DomeSystem : MonoBehaviour
         // 유리 반구(아래 반은 지면이 가린다) + 바닥 테 + 유리 반사 줄 2
         glassGroup = Group(root, "glassDome", Vector3.zero);
         var glass = Prim.Sphere(glassGroup, "glass", Vector3.zero, R * 2f, Color.white);
-        glassMat = Own(Mats.Trans(GLASS_DAY)); glass.GetComponent<Renderer>().sharedMaterial = glassMat; Prim.NoShadow(glass);
+        glassMat = Own(Mats.Glass(GLASS_DAY, GLASS_EDGE, 3f, 0.7f, 160f)); glass.GetComponent<Renderer>().sharedMaterial = glassMat; Prim.NoShadow(glass);
         // 갈비대(X자)·허리띠(원)는 없앴다: 위에서 내려다보면 철창처럼 돔 안을 가로질러 어수선했다(jake 10/25). 바닥 테 + 유리 반사만
         MeshGo(glassGroup, "rim", Tube(R * 1.01f * K, 2.4f * K, 0f, Mathf.PI * 2f, 48, 6), Mats.Solid(STEEL), new Vector3(0, 1.2f * K, 0), Quaternion.Euler(90, 0, 0), true);
         var shine = Mats.TransShared(new Color(1f, 1f, 1f, 0.7f));
@@ -296,7 +303,7 @@ public class DomeSystem : MonoBehaviour
     {
         foreach (var p in props) p.gameObject.SetActive(false);
         glassGroup.gameObject.SetActive(false);
-        JuiceFX.I.Pop(pad, 0.001f, 0.7f, 0.35f);
+        JuiceFX.I.Pop(padFloor, 0.001f, 0.7f, 0.35f);
         yield return new WaitForSeconds(0.35f);
         for (int i = 0; i < props.Count; i++)
         {

@@ -105,6 +105,9 @@ public class CustomerSystem : MonoBehaviour
 
     static string BubbleText(Customer c) => (c.vip ? "VIP " : "") + GameState.KindName(c.kind) + " ×" + c.want;
 
+    // 정착민 옷 팔레트(다듬기 3차): 목표 그림 톤의 4색(테라코타·겨자·먼지 파랑·세이지)만. 예전 7원색(GameConfig.CUST_COLS)은 줄이 알록달록했다. VIP 금색은 CharacterKit이 따로 칠한다
+    static readonly Color[] CUST_PAL = { GameConfig.Hex("e48a55"), GameConfig.Hex("e6b552"), GameConfig.Hex("82b0cf"), GameConfig.Hex("a4b384") };
+
     void BuildView(Customer c)
     {
         float k = GameConfig.K;
@@ -112,7 +115,7 @@ public class CustomerSystem : MonoBehaviour
         Prim.BlobShadow(c.view, 22);
         c.body = new GameObject("body").transform; c.body.SetParent(c.view, false);
         // 여행자 치비(원본 bTraveler): 7색 × 액세서리 0~5, VIP 는 금색 몸+왕관. c.head 는 머리 중심 그룹(말풍선·병 기준)
-        var col = GameConfig.CUST_COLS[Random.Range(0, GameConfig.CUST_COLS.Length)];
+        var col = CUST_PAL[Random.Range(0, CUST_PAL.Length)];
         int acc = Random.Range(0, 6);
         CharacterKit.BuildCustomer(c.body, col, acc, c.vip, out c.head);
         if (c.vip) HullOutline.Hull(c.body, HullOutline.GOLD, 2f);   // §5.2 VIP: 금 외곽선(0xd49000)

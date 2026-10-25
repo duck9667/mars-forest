@@ -164,7 +164,7 @@ public class SettleStations : MonoBehaviour
         }
         // 세척 드럼 회전·배합 날개 회전
         if (Working(1)) drumA += 140f * dt;
-        if (drum) drum.localRotation = Quaternion.Euler(drumA, 0, 0);
+        if (drum) drum.localRotation = Quaternion.Euler(0, 0, drumA);   // 남북 축 드럼: 앞면 날개가 돈다
         if (Working(2)) paddleA += 260f * dt;
         if (paddle) paddle.localRotation = Quaternion.Euler(0, paddleA, 0);
         // 작물: 큐가 있으면 진행도만큼 자라고 살랑, 없으면 어린 싹
@@ -216,13 +216,15 @@ public class SettleStations : MonoBehaviour
         var s = WorldMap.STN[KEYS[i]];
         var v = new GameObject(KEYS[i]).transform; v.SetParent(transform, false); v.position = WorldMap.W2U(s.x, s.y, 0);
         float gs = i == 3 ? 1.2f : 1f;   // 온실은 뷰를 1.2배 키우므로(Grow) 판은 설계 크기로
-        Prim.Box(v, "plate", L(0, 0, PLATE / 2), new Vector3(s.w / gs, PLATE, s.h / gs), MachineKit.PAD);
+        // 받침(다듬기 3차): 둥근 모서리 콘크리트 판 + 한 단 밝은 윗판(목표 그림 docs/art/target_north_v1.png). 예전 직각 판·어두운 입력 쟁반은 네모 블록으로 읽혔다
+        MachineKit.RoundSlab(v, "plate", 0, 0, 0, s.w / gs, s.h / gs, PLATE, 12, MachineKit.PAD);
+        MachineKit.RoundSlab(v, "plateTop", 0, 0, PLATE, s.w / gs - 6, s.h / gs - 6, 0.6f, 9, MachineKit.PAD_TOP);
         inA[i] = new GameObject("in").transform; inA[i].SetParent(v, false); inA[i].localPosition = L(inAt.x, inAt.y, PLATE);
         outA[i] = new GameObject("out").transform; outA[i].SetParent(v, false); outA[i].localPosition = L(outAt.x, outAt.y, PLATE);
-        // 받침 쟁반(입력은 어두운 판, 출력은 금색 테두리 판)
-        Prim.Box(v, "inTray", L(inAt.x, inAt.y, PLATE + 0.4f), new Vector3(46, 0.8f, 24), GameConfig.Hex("5f6b78"));
-        Prim.Box(v, "outTray", L(outAt.x, outAt.y, PLATE + 0.4f), new Vector3(50, 0.8f, 28), GameConfig.GOLD);
-        Prim.Box(v, "outTrayIn", L(outAt.x, outAt.y, PLATE + 0.6f), new Vector3(44, 0.8f, 22), GameConfig.Hex("fff4d6"));
+        // 받침 쟁반(둥근 판): 입력은 옅은 회색, 출력은 금색 테두리
+        MachineKit.RoundSlab(v, "inTray", inAt.x, inAt.y, PLATE + 0.1f, 44, 24, 0.8f, 7, GameConfig.Hex("c4bcb0"));
+        MachineKit.RoundSlab(v, "outTray", outAt.x, outAt.y, PLATE + 0.1f, 48, 28, 0.6f, 9, GameConfig.GOLD);
+        MachineKit.RoundSlab(v, "outTrayIn", outAt.x, outAt.y, PLATE + 0.1f, 42, 22, 0.9f, 7, GameConfig.Hex("fff4d6"));
         views[i] = v;
         return v;
     }
@@ -255,34 +257,43 @@ public class SettleStations : MonoBehaviour
         }
     }
 
-    // 토양 정화기: 왼쪽 투입 호퍼(붉은 레골리스), 가운데 가로 세척 드럼(돌아감)·받침대, 위로 지나가는 물 분사 파이프
+    // 토양 정화기(다듬기 3차, 목표 그림 docs/art/target_north_v1.png): 왼쪽 둥근 깔때기 호퍼(붉은 레골리스) → 둥근 받침 몸통 위 세척 드럼.
+    // 드럼은 카메라 쪽(남)으로 동그란 앞면이 보이게 남북 축으로 눕히고, 앞면 둥근 창 + 날개 3개가 돌아 일하는 게 보인다. 위로 물 관 아치 하나
     void BuildPurif()
     {
         var v = View(1, new Vector2(-26, 16), new Vector2(26, 16));
-        foreach (float lx in new[] { -38f, -24f }) Prim.Box(v, "leg", L(lx, -10, PLATE + 12), new Vector3(2.5f, 24, 2.5f), STEEL_D);
-        Prim.Box(v, "hopper", L(-31, -10, PLATE + 26), new Vector3(20, 8, 16), MachineKit.SHELL);
-        Prim.Box(v, "rego", L(-31, -10, PLATE + 30.2f), new Vector3(16, 1, 12), GameConfig.REGO);
-        Prim.Box(v, "chute", L(-18, -10, PLATE + 22), new Vector3(10, 3, 7), STEEL_D).transform.localRotation = Quaternion.Euler(0, 0, -25);
-        foreach (float sx in new[] { -10f, 30f }) Prim.Box(v, "stand", L(sx, -10, PLATE + 7), new Vector3(4, 14, 22), STEEL_D);
-        drum = new GameObject("drum").transform; drum.SetParent(v, false); drum.localPosition = L(10, -10, PLATE + 19);
-        Prim.Cyl(drum, "shell", Vector3.zero, 28, 46, MachineKit.SHELL_D).transform.localRotation = Quaternion.Euler(0, 0, 90);
-        foreach (float bx in new[] { -22f, 22f }) Prim.Cyl(drum, "hoop", new Vector3(bx * GameConfig.K, 0, 0), 31, 3, PIPE).transform.localRotation = Quaternion.Euler(0, 0, 90);
+        // 호퍼: 다리 둘(원기둥) + 위가 넓은 원통 층(배합기 깔때기와 같은 문법) + 윗테 파랑 + 레골리스
+        foreach (float lx in new[] { -38f, -24f }) Prim.Cyl(v, "leg", L(lx, -10, PLATE + 11), 3f, 22, STEEL_D);
+        float[] hd = { 24f, 20f, 15f }; float[] hh = { 31f, 27f, 23.5f };
+        for (int f = 0; f < hd.Length; f++) Prim.Cyl(v, "hopper", L(-31, -10, PLATE + hh[f]), hd[f], 4.4f, MachineKit.SHELL);
+        Prim.Cyl(v, "rim", L(-31, -10, PLATE + 33.4f), 26, 1.4f, PIPE);
+        Prim.Cyl(v, "rego", L(-31, -10, PLATE + 33.8f), 21, 1f, GameConfig.REGO);
+        Prim.Box(v, "chute", L(-18, -10, PLATE + 22), new Vector3(10, 3, 7), MachineKit.SHELL_D).transform.localRotation = Quaternion.Euler(0, 0, -25);
+        // 몸통: 둥근 모서리 받침 + 드럼 요람(양옆 둥근 기둥)
+        MachineKit.RoundSlab(v, "body", 10, -10, PLATE, 44, 30, 10, 9, MachineKit.SHELL_D);
+        foreach (float sx in new[] { -10f, 30f }) Prim.Cyl(v, "cradle", L(sx, -10, PLATE + 16), 7, 12, MachineKit.SHELL);
+        // 드럼(남북 축): 몸통 위에 누워 앞면이 카메라를 본다
+        drum = new GameObject("drum").transform; drum.SetParent(v, false); drum.localPosition = L(10, -10, PLATE + 26);
+        Prim.Cyl(drum, "shell", Vector3.zero, 32, 26, MachineKit.SHELL).transform.localRotation = Quaternion.Euler(90, 0, 0);
+        foreach (float by in new[] { -11f, 11f }) Prim.Cyl(drum, "hoop", new Vector3(0, 0, -by * GameConfig.K), 34, 3, PIPE).transform.localRotation = Quaternion.Euler(90, 0, 0);
+        Prim.Cyl(drum, "window", new Vector3(0, 0, -13.2f * GameConfig.K), 20, 1, GameConfig.Hex("7a4430")).transform.localRotation = Quaternion.Euler(90, 0, 0);   // 둥근 창 너머 붉은 흙
+        MachineKit.Tube(drum, "ring", new Vector3(0, 0, -14.4f * GameConfig.K), 23, 1.6f, MachineKit.SHELL_D).transform.localRotation = Quaternion.Euler(90, 0, 0);   // 창틀(속 빈 고리)
+        // 창 안에서 구르는 흙덩이 3개(드럼과 같이 돌아 일하는 게 보인다). 예전 날개 3개는 앞면 로고처럼 읽혔다
         for (int j = 0; j < 3; j++)
         {
             float a = j * 120f * Mathf.Deg2Rad;
-            var r = Prim.Box(drum, "rib", new Vector3(0, Mathf.Sin(a) * 13f, Mathf.Cos(a) * 13f) * GameConfig.K, new Vector3(40, 1.6f, 3), GameConfig.Hex("5b6b8c"));
-            r.transform.localRotation = Quaternion.Euler(-j * 120f, 0, 0);
+            var ch = Prim.Box(drum, "clump", new Vector3(Mathf.Cos(a) * 4.5f, Mathf.Sin(a) * 4.5f, -13.6f) * GameConfig.K, new Vector3(4.5f, 4.5f, 1.2f), j == 1 ? GameConfig.Hex("8f3d20") : GameConfig.REGO);
+            ch.transform.localRotation = Quaternion.Euler(0, 0, j * 37f);
         }
-        Prim.Box(v, "pipeV", L(36, -20, PLATE + 18), new Vector3(2.5f, 36, 2.5f), PIPE);
-        Prim.Box(v, "pipeH", L(14, -20, PLATE + 36), new Vector3(44, 2.5f, 2.5f), PIPE);
-        for (int j = 0; j < 3; j++) Prim.Box(v, "nozzle", L(0 + j * 12, -16, PLATE + 34), new Vector3(2, 3, 2), PIPE);
+        // 물 관: 뒤쪽에서 솟아 드럼 위로 건너온다(아치 하나만)
+        MachineKit.PipeArch(v, 38, 10, -16, PLATE, PLATE + 41, PLATE + 50, 3f, PIPE);
     }
 
     // 비료 배합기: 다리 넷 위 계단식 깔때기 호퍼(흙이 찬 윗면) → 아래 배합 통의 돌아가는 날개, 왼쪽 퇴비 더미·드럼통
     void BuildMixer()
     {
         var v = View(2, new Vector2(-26, 16), new Vector2(26, 16));
-        foreach (var (lx, ly) in new[] { (2f, -20f), (26f, -20f), (2f, 0f), (26f, 0f) }) Prim.Box(v, "leg", L(lx, ly, PLATE + 16), new Vector3(2.5f, 32, 2.5f), STEEL_D);
+        foreach (var (lx, ly) in new[] { (2f, -20f), (26f, -20f), (2f, 0f), (26f, 0f) }) Prim.Cyl(v, "leg", L(lx, ly, PLATE + 16), 3f, 32, STEEL_D);
         // 원형 깔때기(목표 그림): 위가 넓은 원통 층을 쌓아 원뿔처럼, 윗테는 파랑
         float[] fd = { 34f, 30f, 25f, 19f, 13f }; float[] fh = { 44f, 39f, 34f, 29f, 24.5f };
         for (int f = 0; f < fd.Length; f++) Prim.Cyl(v, "funnel", L(14, -10, PLATE + fh[f]), fd[f], 5.2f, MachineKit.SHELL);

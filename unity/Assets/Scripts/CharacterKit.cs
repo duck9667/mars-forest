@@ -88,22 +88,22 @@ public static class CharacterKit
         rig.head = head;
         Sph(head, "skull", 0, 0, 0, 24, WHITE);
         // 바이저: 원본(z 5.5, 깊이 11.9)은 머리(r12) 안에 묻혀서 앞으로 빼 표면보다 1 돌출
-        Ell(head, "visor", 0, 1, 7.5f, 17f, 13f, 11f, acc == 2 ? PURPLE : acc == 5 ? CORAL : NAVY);
-        Box(body, "pack", 0, 25, -11, 12, 12, 7, acc == 1 ? GREEN : col);   // 작은 배낭
+        Ell(head, "visor", 0, 1, 7.5f, 17f, 13f, 11f, NAVY);   // 바이저는 모두 남색(색 바이저는 줄을 어수선하게 했다)
+        Box(body, "pack", 0, 25, -11, 12, 12, 7, Color.Lerp(col, DARK, 0.25f));   // 작은 배낭(옷색 한 톤 어둡게)
         Box(body, "roll", 0, 8, -13, 16, 8, 8, WOOD_D);                     // 배낭 아래 침낭
         if (acc == 0 || acc == 3)   // 모자: 챙 + 윗부분
         {
-            Color hc = acc == 3 ? RUST : NAVY;
+            Color hc = Color.Lerp(col, DARK, acc == 3 ? 0.2f : 0.45f);   // 모자도 옷색 계열
             Cyl(head, "brim", 0, 10, 0, 18, 2, hc);
             Cyl(head, "crownTop", 0, 13, 0, 13, 6, hc);
         }
-        if (acc == 1) Box(body, "bigPack", 0, 27, -14, 14, 16, 9, GREEN);   // 큰 배낭
+        if (acc == 1) Box(body, "bigPack", 0, 27, -14, 14, 16, 9, Color.Lerp(col, DARK, 0.25f));   // 큰 배낭
         if (acc == 4)   // 안테나
         {
             Cyl(head, "ant", 8, 16, -3, 1.6f, 10, DARK);
-            Sph(head, "antTip", 8, 21, -3, 3.6f, TEAL);
+            Sph(head, "antTip", 8, 21, -3, 3.6f, WHITE);
         }
-        if (acc == 5) Torus(body, "scarf", 0, 32, 0, 11f, 2.2f, CORAL);    // 목도리
+        if (acc == 5) Torus(body, "scarf", 0, 32, 0, 11f, 2.2f, SUIT);     // 목도리(크림)
         if (vip)   // 왕관: 금 띠 + 뾰족 3개(가운데 큼)
         {
             Cyl(head, "crownBand", 0, 10, 0, 16, 2, GOLD_D);        // 띠 y 9~11
