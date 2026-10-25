@@ -160,7 +160,7 @@ public class HQSystem : MonoBehaviour
     IEnumerator CoSubsidy(int n)
     {
         yield return new WaitForSeconds(1.1f);   // DayNight의 "n일째" 라벨 뒤에
-        G.AddBells(n);
+        G.AddBells(n, "subsidy");
         Debug.Log("hq subsidy +" + n + " day=" + G.S.day);
         var pl = Player.I; if (pl == null) yield break;
         WorldLabels.I.Float(pl.view.position + Vector3.up * 2.2f, "본부 보조금 +" + n.ToString("N0"), true, true);

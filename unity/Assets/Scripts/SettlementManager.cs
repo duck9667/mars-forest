@@ -7,12 +7,13 @@ using UnityEngine.UI;
 // 정착 목표 10단계, 두 장(docs/settlement-design.md "정착 목표" · docs/chapter2-design.md "정착 목표 2장"). S.stage = 달성한 단계 수(0~10, 10 = 화성 마을 선포).
 //  1장 생존(1~5): 1 물 확보: 물 공급 30 → 100벨 / 2 숨 쉴 공기: 전기분해기·산소 공급 20 → 300벨 / 3 흙 살리기: 채굴장·토양 공장·비료 20 → 600벨
 //   / 4 첫 수확: 온실·식량 공급 20 → 1,000벨 / 5 생존 완료: 정착민 60·물 200·산소 100·식량 100 누적 → 1,200벨(1장 끝, 2장 시작 무전)
-//  2장 마을(6~10): 6 전력 확보: 태양광 단지·전력으로 기계 가동 120초 → 1,500벨 / 7 첫 이웃: 거주 구역·인구 8 → 2,000벨
-//   / 8 기지 정비: 본부 Lv3·산소 누적 150 → 3,000벨 / 9 자급 마을: 인구 24·하루 미션 3개 모두 완료 1번 → 4,000벨
-//   / 10 화성 마을 선포: 본부 Lv5·인구 32·물 400·산소 250·식량 250 누적 → 큰 축하(약한 번쩍임) + 엔딩 무전(StoryManager.QueueEnding)
+//  2장 마을(6~10): 6 전력 확보: 태양광 단지·전력으로 기계 가동 180초 → 1,500벨 / 7 첫 이웃: 거주 구역·인구 10 → 2,000벨
+//   / 8 기지 정비: 본부 Lv3·산소 누적 250 → 3,000벨 / 9 자급 마을: 인구 24·하루 미션 3개 모두 완료 1번(8단계 뒤) → 4,000벨
+//   / 10 화성 마을 선포: 본부 Lv5·인구 32·물 1,500·산소 350·식량 350 누적 → 큰 축하(약한 번쩍임) + 엔딩 무전(StoryManager.QueueEnding)
+//  (수치는 페이싱 점검 10/25, docs/pacing-report.md)
 // 공급 누계(S.supW/supO/supF)는 결제 때 GameState.NotifySupplied가, 비료 누계(S.fertMade)는 배합기가, 인구(S.pop)는 Frontier가 올린다.
-// 2장 전용 누계 두 개는 여기서 센다(2장에 들어선 뒤, 즉 S.stage ≥ 5부터만): S.powerRun(태양광 전력이 들어오는 동안 기계 하나라도 일한 초),
-//  S.missionAll(하루 미션 3개를 모두 끝낸 적 있음 0/1, MissionBoard 보너스 상자가 다 찬 순간).
+// 2장 전용 누계 두 개는 여기서 센다: S.powerRun(2장에 들어선 뒤 S.stage ≥ 5, 태양광 전력이 들어오는 동안 기계 하나라도 일한 초),
+//  S.missionAll(8단계 뒤 S.stage ≥ 8, 하루 미션 3개를 모두 끝낸 적 있음 0/1, MissionBoard 보너스 상자가 다 찬 순간).
 // 0.3초마다 판정, 걷는 중·아이템 비행 중·목표 상자 팝 중이면 최대 3초 보류(QuestManager와 같은 규칙). 달성: 진행·보상·저장을 한 번에 → 짧은 배너 + 무전(StoryManager.Push).
 // 옛 저장(5단계에서 멈춤 = 예전 "정착 완료")은 S.stage 5 그대로 6단계부터 이어진다. 이주(PrestigeManager)하면 0부터.
 // 진행률 API(Items·StageMet·FocusZones·Chapter)는 MapScreen(지도)과 HUD("1장 n/5" 알약)가 쓴다.
@@ -42,7 +43,7 @@ public class SettlementManager : MonoBehaviour
         new StageDef{ name="자급 마을",  reward=4000, zones=new[]{ "hab" } },
         new StageDef{ name="화성 마을 선포", reward=0, zones=new[]{ "hq", "hab" } },
     };
-    public const float POWER_GOAL = 120f;
+    public const float POWER_GOAL = 180f;
 
     /// 단계 항목 하나: 이름·현재·목표. bin = 설치형(0/1, 진행 막대 대신 체크)
     public struct Item
@@ -86,10 +87,10 @@ public class SettlementManager : MonoBehaviour
             case 4: l.Add(Cnt("정착민", S.custs, 60)); l.Add(Cnt("물 누적", S.supW, 200)); l.Add(Cnt("산소 누적", S.supO, 100)); l.Add(Cnt("식량 누적", S.supF, 100)); break;
             // 2장 마을
             case 5: l.Add(Bin("태양광 단지 설치", G.PadLv("solar") >= 1)); l.Add(Cnt("전력 가동(초)", Mathf.FloorToInt(S.powerRun), (int)POWER_GOAL)); break;
-            case 6: l.Add(Bin("거주 구역 열기", G.PadLv("hab") >= 1)); l.Add(Cnt("인구", S.pop, 8)); break;
-            case 7: l.Add(Cnt("본부 레벨", G.PadLv("hq"), 3)); l.Add(Cnt("산소 누적", S.supO, 150)); break;
+            case 6: l.Add(Bin("거주 구역 열기", G.PadLv("hab") >= 1)); l.Add(Cnt("인구", S.pop, 10)); break;
+            case 7: l.Add(Cnt("본부 레벨", G.PadLv("hq"), 3)); l.Add(Cnt("산소 누적", S.supO, 250)); break;
             case 8: l.Add(Cnt("인구", S.pop, 24)); l.Add(Bin("하루 미션 3개 완료", S.missionAll >= 1)); break;
-            case 9: l.Add(Cnt("본부 레벨", G.PadLv("hq"), 5)); l.Add(Cnt("인구", S.pop, 32)); l.Add(Cnt("물 누적", S.supW, 400)); l.Add(Cnt("산소 누적", S.supO, 250)); l.Add(Cnt("식량 누적", S.supF, 250)); break;
+            case 9: l.Add(Cnt("본부 레벨", G.PadLv("hq"), 5)); l.Add(Cnt("인구", S.pop, 32)); l.Add(Cnt("물 누적", S.supW, 1500)); l.Add(Cnt("산소 누적", S.supO, 350)); l.Add(Cnt("식량 누적", S.supF, 350)); break;
         }
         return l;
     }
@@ -151,8 +152,8 @@ public class SettlementManager : MonoBehaviour
             bool working = S.meltQ > 0 || S.elecQ > 0 || S.purQ > 0 || S.mixQ > 0 || S.grnQ > 0;
             if (working) S.powerRun = Mathf.Min(POWER_GOAL, S.powerRun + dt);
         }
-        // 하루 미션 3개 모두 완료: 보너스 상자가 다 찬 날이 한 번이라도
-        if (S.missionAll == 0 && MissionBoard.I != null)
+        // 하루 미션 3개 모두 완료: 9단계(자급 마을)가 지금 목표일 때(S.stage ≥ 8) 보너스 상자가 다 찬 날이 한 번이라도. 2장 첫날에 미리 채워 두면 9단계가 거저 지나가서
+        if (S.missionAll == 0 && S.stage >= 8 && MissionBoard.I != null)
         {
             var b = MissionBoard.I.Bonus;
             if (b != null && b.done && b.goal >= MissionBoard.COUNT) { S.missionAll = 1; Debug.Log("settlement: 하루 미션 모두 완료(day " + S.day + ")"); }
@@ -163,7 +164,7 @@ public class SettlementManager : MonoBehaviour
     {
         var def = STAGES[idx];
         S.stage = idx + 1;
-        if (def.reward > 0) G.AddBells(def.reward);
+        if (def.reward > 0) G.AddBells(def.reward, "stage");
         G.Save();   // 진행·보상·저장을 한 번에(연출 중 종료돼도 유지)
         Debug.Log("settlement stage " + S.stage + " (" + def.name + ") supW=" + S.supW + " supO=" + S.supO + " supF=" + S.supF + " fert=" + S.fertMade + " custs=" + S.custs
             + " pop=" + S.pop + " hq=" + G.PadLv("hq") + " powerRun=" + S.powerRun.ToString("0") + " missionAll=" + S.missionAll);

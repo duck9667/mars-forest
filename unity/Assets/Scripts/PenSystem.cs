@@ -303,7 +303,7 @@ public class PenSystem : MonoBehaviour
     {
         int n = S.penTip; if (n <= 0) return 0;
         S.penTip = 0; shown = 0;
-        G.AddBells(n);
+        G.AddBells(n, "pen");
         StartCoroutine(CoCollect(n));
         return n;
     }

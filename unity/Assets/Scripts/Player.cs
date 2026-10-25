@@ -176,8 +176,8 @@ public class Player : MonoBehaviour
     {
         if (actT > 0) return;
         var st = Stations.I; if (st == null) return;
-        // 1. 얼음 줍기
-        if (G.CanCarry("ice"))
+        // 1. 얼음 줍기. 해빙기 큐가 상한(MELT_CAP)이거나 물탱크가 넉넉하면(WATER_FULL) 지나가다 줍지 않는다(북쪽 갈 때 얼음밭을 지나며 손이 차서 얼음만 나르는 고리 방지, 레골리스와 같은 규칙)
+        if (G.CanCarry("ice") && GameState.IceWanted(S))
         {
             int best = -1; float bd = GameConfig.R_ICE;
             for (int i = 0; i < st.SpotCount; i++)
@@ -202,8 +202,8 @@ public class Player : MonoBehaviour
             AudioManager.I.Play("put", 1f + Random.Range(-0.05f, 0.05f));
             actT = GameConfig.CD_MELT; return;
         }
-        // 3. 병 받기
-        if (S.bottles > 0 && G.CanCarry("bottle") && WorldMap.NearStn(pos, "bottler", GameConfig.R_BOTTLE))
+        // 3. 병 받기. 물통을 둘 곳(카운터 물 칸·전기분해기)이 모두 가득이면 집지 않는다(지나가다 손이 병으로 묶여 카운터 앞에서 기다리는 고리 방지)
+        if (S.bottles > 0 && G.CanCarry("bottle") && G.BottleHasPlace && WorldMap.NearStn(pos, "bottler", GameConfig.R_BOTTLE))
         {
             S.bottles--; G.pend++; G.pendK = "bottle";
             ArcFlyer.I.Fly(FlyBlock("bottle"), st.TrayTop(), StackTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("bottle"));
@@ -295,7 +295,7 @@ public class Player : MonoBehaviour
     {
         G.collectingCash = true;
         int amount = S.cash; S.cash = 0;
-        G.AddBells(amount);   // 저장·종료 안전: 전액을 즉시 가산하고 비행은 연출만
+        G.AddBells(amount, "sales");   // 저장·종료 안전: 전액을 즉시 가산하고 비행은 연출만
         int n = Stations.Bills(amount); var st = Stations.I;
         bool big = amount >= G.BottlePrice * 8;
         for (int i = 0; i < n; i++)

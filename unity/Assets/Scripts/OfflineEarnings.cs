@@ -74,7 +74,7 @@ public class OfflineEarnings : MonoBehaviour
         if (n <= 0) return;
         Debug.Log("offline earn: away=" + secs.ToString("0") + "s n=" + n + " price=" + G.BottlePrice + " bottleTime=" + G.BottleTime.ToString("0.00") + " baseGap=" + G.BaseGap.ToString("0.0"));
         // 원본처럼 모달을 띄우는 순간 지급·저장한다(모달이 떠 있는 동안 앱이 꺼져도 잃지 않게). 확인 버튼은 동전 연출만
-        G.AddBells(n); G.Save();
+        G.AddBells(n, "offline"); G.Save();
         int mins = Mathf.RoundToInt(secs / 60f);
         if (modal != null) { modalN += n; modalMins += mins; return; }   // 모달 중 다시 다녀온 몫은 금액에 더해 다시 차오르게
         modalN = n; modalMins = mins;

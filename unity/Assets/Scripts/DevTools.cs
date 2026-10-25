@@ -11,6 +11,9 @@ public class DevTools : MonoBehaviour
     string shotDir; bool autoplay; static float t;
     float[] SHOTS = { 2f, 10f, 25f, 45f, 70f, 100f };
     static int shotIdx; static bool argsApplied;
+    // 페이싱 측정: -timescale N(최대 8배, 게임 dt는 1/30초 고정), -quitstage N(정착 단계 N에 닿으면 종료). 단계·발판·수입 로그는 "pace" 접두
+    static float speedArg = 1f; static int quitStage = -1; static bool quitting;
+    static float idleT, padWaitT; static int lastEconMin = -1;
 
     void Start()
     {
@@ -25,6 +28,16 @@ public class DevTools : MonoBehaviour
             { autoplay = false; FloatingJoystick.Override = new Vector2(wx, wy).normalized; }
         }
         if (!string.IsNullOrEmpty(shotDir)) Directory.CreateDirectory(shotDir);
+        // -timescale N: 빨리 감기. Time.timeScale = N 이지만 한 프레임 게임 dt는 1/30초로 고정(captureDeltaTime = 1/(30N))해
+        //  DT_MAX(0.05) 상한·상호작용 쿨다운(0.06~0.25초) 양자화가 60fps 때와 거의 같게 돈다. 기계가 30N fps를 못 내면 그만큼 느려질 뿐 로직은 같다
+        if (float.TryParse(DevArgs.Get("-timescale"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var ts) && ts > 1f)
+        {
+            speedArg = Mathf.Clamp(ts, 1f, 8f);
+            QualitySettings.vSyncCount = 0; Application.targetFrameRate = Mathf.RoundToInt(30f * speedArg);
+            Time.timeScale = speedArg; Time.captureDeltaTime = 1f / (30f * speedArg);
+        }
+        if (int.TryParse(DevArgs.Get("-quitstage"), out var qs)) quitStage = qs;
+        if (G != null) G.OnPadLevel += PaceOnPad;
         // -shots 2,10,25,...  스크린샷 시점(초) 목록
         var list = DevArgs.Get("-shots");
         if (!string.IsNullOrEmpty(list))
@@ -56,22 +69,59 @@ public class DevTools : MonoBehaviour
         StoryManager.I?.DevStory(DevArgs.Get("-story"));
     }
 
-    int frames; float fpsT, diagT;
+    int S_cash() => G.S.cash;
+    float menuT;
+    void MenuShop()
+    {
+        menuT += Time.deltaTime; if (menuT < 1f) return; menuT = 0;
+        PadDef best = null; float bc = float.MaxValue;
+        foreach (var d in Pads.ALL) if (d.active && d.menu && G.PadReq(d.id) && !G.PadMaxed(d.id) && G.PadRemain(d.id) < bc) { bc = G.PadRemain(d.id); best = d; }
+        if (best != null && G.S.bells >= bc * 2f) PadManager.I.Buy(best.id);
+    }
+    void PaceOnPad(string id, int lv)
+    {
+        if (lv > 0) Debug.Log("pace pad t=" + t.ToString("0") + " " + id + " Lv" + lv + " bells=" + G.S.bells.ToString("0") + " stage=" + G.S.stage + " sold=" + G.S.sold + " custs=" + G.S.custs);
+    }
+    bool stageHooked;
+    void PaceOnStage(int st)
+    {
+        Debug.Log("pace stage t=" + t.ToString("0") + " stage=" + st + " bells=" + G.S.bells.ToString("0") + " custs=" + G.S.custs + " pop=" + G.S.pop + " idle=" + idleT.ToString("0") + " padWait=" + padWaitT.ToString("0") + " " + IncomeStr());
+        if (quitStage > 0 && st >= quitStage && !quitting) { quitting = true; StartCoroutine(QuitSoon()); }
+    }
+    static string IncomeStr()
+    {
+        var sb = new System.Text.StringBuilder("income");
+        foreach (var kv in GameState.Income) sb.Append(' ').Append(kv.Key).Append('=').Append(kv.Value.ToString("0"));
+        return sb.ToString();
+    }
+    // 할 일 없는 시간: 힌트 타깃이 없거나(hasTarget false), 발판 위에서 벨이 바닥나 서 있는 시간
+    void PaceIdle()
+    {
+        var h = HintSystem.I; var pl = Player.I; if (h == null || pl == null || G.S.tut < 3) return;
+        if (!h.hasTarget) idleT += Time.deltaTime;
+        if (G.S.bells < 1f && !pl.walking && PadManager.I != null && PadManager.I.NearestVisible(pl.pos) is var v && v != null && Vector2.Distance(pl.pos, v.def.pos) < GameConfig.R_PAD) padWaitT += Time.deltaTime;
+        int m = Mathf.FloorToInt(t / 60f);
+        if (m != lastEconMin) { lastEconMin = m; Debug.Log("pace min=" + m + " bells=" + G.S.bells.ToString("0") + " stage=" + G.S.stage + " price=" + G.BottlePrice + " custs=" + G.S.custs + " lost=" + G.S.lost + " pop=" + G.S.pop + " idle=" + idleT.ToString("0") + " padWait=" + padWaitT.ToString("0") + " " + IncomeStr()); }
+    }
+
+    int frames; float fpsT, diagT, lastReal;
     void Update()
     {
         t += Time.deltaTime;
+        if (!stageHooked && SettlementManager.I != null) { stageHooked = true; SettlementManager.I.OnStage += PaceOnStage; }
+        if (autoplay) PaceIdle();
         // 5초마다 진단 로그(자동 플레이 중): FPS·위치·타깃·입력·캐리 — 봇이 멈출 때 원인 추적용
-        frames++; fpsT += Time.unscaledDeltaTime; diagT += Time.unscaledDeltaTime;
+        frames++; float rdt = Mathf.Max(0f, Time.realtimeSinceStartup - lastReal); lastReal = Time.realtimeSinceStartup; fpsT += rdt; diagT += rdt;
         if (autoplay && diagT >= 5f)
         {
             var pl = Player.I; var h = HintSystem.I;
-            Debug.Log("diag t=" + t.ToString("0") + " fps=" + (frames / fpsT).ToString("0.0") + " pos=" + (pl ? pl.pos.ToString("0") : "-") + " carry=" + G.Carry + "/" + G.CarryMax + " pend=" + G.pend + G.pendK
+            Debug.Log("diag t=" + t.ToString("0") + " fps=" + (frames / fpsT).ToString("0.0") + " x" + (Time.deltaTime * frames / Mathf.Max(0.001f, fpsT)).ToString("0.0") + " stage=" + G.S.stage + " pos=" + (pl ? pl.pos.ToString("0") : "-") + " carry=" + G.Carry + "/" + G.CarryMax + " pend=" + G.pend + G.pendK
                 + " target=" + (h ? h.targetKey + h.target.ToString("0") : "-") + " dist=" + (pl && h ? Vector2.Distance(pl.pos, h.target).ToString("0") : "-")
                 + " ovr=" + (FloatingJoystick.Override.HasValue ? FloatingJoystick.Override.Value.ToString("0.00") : "null") + " sup=" + (FloatingJoystick.I ? FloatingJoystick.I.suppressed : false)
                 + " walk=" + (pl && pl.walking) + " esc=" + escapeT.ToString("0.0") + " stuck=" + stuckT.ToString("0.0") + " actT=" + (pl ? pl.actT.ToString("0.00") : "-")
                 + " bells=" + G.S.bells.ToString("0") + " sold=" + G.S.sold + " meltQ=" + G.S.meltQ + " water=" + G.S.water + " bottles=" + G.S.bottles + " shelf=" + G.S.shelf
                 + " | elec=" + G.S.elecQ + "/" + G.S.elecOut + " purif=" + G.S.purQ + "/" + G.S.purOut + " mixer=" + G.S.mixQ + "/" + G.S.mixOut + " green=" + G.S.grnQ + "/" + G.S.grnOut
-                + " fertMade=" + G.S.fertMade + " top=" + G.CarryTop + " dumped=" + dumped);
+                + " fertMade=" + G.S.fertMade + " shelfO2=" + G.S.shelfO2 + " shelfFood=" + G.S.shelfFood + " supO=" + G.S.supO + " supF=" + G.S.supF + " top=" + G.CarryTop + " dumped=" + dumped);
             frames = 0; fpsT = 0; diagT = 0;
         }
         if (Input.GetKeyDown(KeyCode.F5))
@@ -96,6 +146,7 @@ public class DevTools : MonoBehaviour
     {
         yield return new WaitForSeconds(1.5f);
         G.Save();
+        Debug.Log("pace end t=" + t.ToString("0") + " stage=" + G.S.stage + " bells=" + G.S.bells.ToString("0") + " idle=" + idleT.ToString("0") + " padWait=" + padWaitT.ToString("0") + " " + IncomeStr());
         Debug.Log("QA done: bells=" + G.S.bells + " sold=" + G.S.sold + " custs=" + G.S.custs + " lost=" + G.S.lost + " pads=" + JsonUtility.ToJson(G.S));
         Application.Quit();
     }
@@ -113,10 +164,12 @@ public class DevTools : MonoBehaviour
         // 현재 목표가 시트 스탯(hand·spd·price)이면 살 수 있을 때 시트 구매로 처리(사람은 시트에서 탭)
         var q = QuestManager.I != null ? QuestManager.I.Current : null;
         if (q != null && Pads.Get(q.key) != null && Pads.Get(q.key).menu && G.PadReq(q.key) && !G.PadMaxed(q.key) && G.S.bells >= G.PadRemain(q.key)) PadManager.I.Buy(q.key);
+        // 사람은 시트 점(살 수 있음 표시)이 뜨면 스탯을 산다: 봇도 가장 싼 시트 스탯을 벨이 그 두 배 이상일 때 산다(월드 발판 몫을 남겨 두려고)
+        MenuShop();
         // 돔 좌석 팁이 병값×3 이상 쌓였으면 빈손일 때 들러 수거(좌석 r34 안, 좌석 충돌 r16 밖)
         int seatTip = 0; int seatI = DomeSystem.I != null && G.Carry == 0 && G.pend == 0 ? DomeSystem.I.RichestSeat(out seatTip) : -1;
         if (key == "event") { }   // 화성 이벤트 물건(시간 제한)을 주우러 가는 중이면 좌석 팁·발판 쇼핑으로 끊지 않는다
-        else if (seatI >= 0 && seatTip >= G.BottlePrice * 3)
+        else if (seatI >= 0 && seatTip >= G.BottlePrice * 3 && S_cash() <= seatTip && (!h.hasTarget || key == "register" || key == "bottler"))   // 좌석 팁은 다른 일이 없을 때만(사람도 급한 일 사이 짬에 줍는다)
         {
             // 돔 울타리가 막은 뒤로 뒷줄 좌석(y 890) 뒤쪽은 못 들어가므로 화단·분수 사이 앞쪽 안쪽 자리(좌석에서 r34 안)에서 걷는다
             var st = WorldMap.SEATS[seatI];
@@ -219,5 +272,10 @@ public class DevTools : MonoBehaviour
         dumped += G.Carry; G.S.p.carry.Clear(); jamT = 0; jamN = -1;
     }
 
-    void OnDestroy() { FloatingJoystick.Override = null; }
+    void OnDestroy()
+    {
+        FloatingJoystick.Override = null;
+        if (G != null) G.OnPadLevel -= PaceOnPad;
+        if (stageHooked && SettlementManager.I != null) SettlementManager.I.OnStage -= PaceOnStage;
+    }
 }

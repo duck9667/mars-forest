@@ -63,7 +63,7 @@ public class QuestManager : MonoBehaviour
     {
         chestT = 1.6f;
         S.quest++;
-        G.AddBells(q.reward); G.Save();   // 원본 completeQuest: 진행·보상·저장을 한 번에(연출 중 종료돼도 보상 유지)
+        G.AddBells(q.reward, "quest"); G.Save();   // 원본 completeQuest: 진행·보상·저장을 한 번에(연출 중 종료돼도 보상 유지)
         // 비차단 상자 팝 (UI 중앙, 원본 #chestPop): 남색 패널에 "목표 달성! · 목표명" + [상자][벨] +보상(큰 금색 숫자)
         var box = UIKit.Panel(HUD.I.transform, "chest", UIKit.Navy);
         var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 120), new Vector2(340, 136));
