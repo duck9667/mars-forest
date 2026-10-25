@@ -61,6 +61,17 @@ public class DevTools : MonoBehaviour
         // -shelfo2 N·-shelffood N: 카운터 산소·식량 칸 채우기(정착민 세 종류 요구·결제 검증용)
         if (int.TryParse(DevArgs.Get("-shelfo2"), out var shelfO2V)) G.S.shelfO2 = Mathf.Min(shelfO2V, G.ShelfCap);
         if (int.TryParse(DevArgs.Get("-shelffood"), out var shelfFoodV)) G.S.shelfFood = Mathf.Min(shelfFoodV, G.ShelfCap);
+        // -fill 얼음큐,병,물[,기계큐,기계출력]: 해빙기 호퍼·병 상자·수조/탱크와 생존 기지 시설 4곳의 입력·출력 더미 채우기(모형 확인용)
+        var fill = DevArgs.Get("-fill");
+        if (!string.IsNullOrEmpty(fill))
+        {
+            var f = fill.Split(','); int fv;
+            if (f.Length > 0 && int.TryParse(f[0], out fv)) G.S.meltQ = fv;
+            if (f.Length > 1 && int.TryParse(f[1], out fv)) G.S.bottles = Mathf.Min(fv, GameConfig.BOTTLE_CAP);
+            if (f.Length > 2 && int.TryParse(f[2], out fv)) G.S.water = fv;
+            if (f.Length > 3 && int.TryParse(f[3], out fv)) { G.S.elecQ = G.S.purQ = G.S.mixQ = G.S.grnQ = fv; }
+            if (f.Length > 4 && int.TryParse(f[4], out fv)) { G.S.elecOut = G.S.purOut = G.S.mixOut = G.S.grnOut = fv; }
+        }
         // -start x,y: 플레이어 시작 위치(스크린샷용). Player.Start 전에 저장값을 바꿔 둔다
         var st = DevArgs.Get("-start");
         if (!string.IsNullOrEmpty(st)) { var xy = st.Split(','); if (xy.Length == 2 && float.TryParse(xy[0], out var sx) && float.TryParse(xy[1], out var sy)) { G.S.p.x = sx; G.S.p.y = sy; if (Player.I != null) Player.I.pos = new Vector2(sx, sy); } }

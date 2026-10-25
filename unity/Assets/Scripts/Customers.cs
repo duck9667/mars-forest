@@ -312,9 +312,10 @@ public class CustomerSystem : MonoBehaviour
         for (int i = 0; i < want; i++)
         {
             int idx = i;
-            ArcFlyer.I.FlyItem(kind, Stations.I.ShelfTop(kind), () => c.hold.position + Vector3.up * idx * Items.ITEM_H[kind] * GameConfig.K, () =>
+            var hp = Items.HoldOffset(kind, idx);   // 손 위 2열(키 큰 병을 한 줄로 쌓으면 머리 위로 탑이 솟았다)
+            ArcFlyer.I.FlyItem(kind, Stations.I.ShelfTop(kind), () => c.hold.position + c.hold.rotation * hp, () =>
             {
-                if (c.hold != null) { var s = Items.Slab(c.hold, kind); s.transform.localPosition = new Vector3(0, idx * Items.ITEM_H[kind] * GameConfig.K, 0); }
+                if (c.hold != null) { var s = Items.Slab(c.hold, kind); s.transform.localPosition = hp; }
             }, 0.3f, 30f);
         }
         AudioManager.I.Play("sell");

@@ -4,7 +4,7 @@ using UnityEngine;
 
 // 기지 본부(hq 발판 Lv 0~5, docs/chapter2-design.md "B 본부").
 //  모형: 착륙장(H) 동쪽·토끼 우리 아래 빈 땅의 밝은 콘크리트 터 위에 레벨마다 한 덩어리씩 솟아오른다(착륙선은 착륙장 서쪽).
-//   Lv0 빈 터(착륙선만) → Lv1 지휘 모듈(누운 흰 캡슐·문·둥근 창) → Lv2 통신 안테나(도는 접시·빨간 점) → Lv3 작은 유리 돔(창 불빛, 밤에 밝게)
+//   Lv0 빈 터(착륙선만) → Lv1 지휘 모듈(누운 흰 캡슐·문·둥근 창) → Lv2 통신탑(공 모양 레이돔·빨간 표시등) → Lv3 작은 유리 돔(창 불빛, 밤에 밝게)
 //   → Lv4 태양 돛·깃발 → Lv5 관제탑(유리 관제실·꼭대기 표시등)
 //   색은 MachineKit 문법(흰 외피·연회색·밝은 콘크리트 받침) + 착륙선과 같은 주황 띠 하나. 글자 라벨 없음, 둥글고 통통하게.
 //  보너스(영구, GameState 파생값이 아래 정적 함수를 읽는다): Lv1 등짐 +4 · Lv2 판매가 +10% · Lv3 정착민 도착 간격 −10%
@@ -63,7 +63,7 @@ public class HQSystem : MonoBehaviour
     Transform root;
     readonly List<Transform>[] parts = new List<Transform>[MAX + 1];
     int shownLv = -1, lastDay = -1;
-    Transform dish, flagCloth;
+    Transform flagCloth;
     readonly List<Material> winMats = new List<Material>();
     readonly List<Material> beacons = new List<Material>();
     float t;
@@ -145,7 +145,6 @@ public class HQSystem : MonoBehaviour
         foreach (var m in winMats) { m.color = wc; m.SetColor("_EmissionColor", we); }
         bool on = Mathf.Repeat(t, 1.1f) < 0.55f;
         foreach (var m in beacons) { m.color = on ? BEACON : Color.Lerp(BEACON, STEEL_D, 0.7f); m.SetColor("_EmissionColor", on ? BEACON * (0.4f + 1.4f * night) : Color.black); }
-        if (dish != null && dish.gameObject.activeInHierarchy) dish.Rotate(0f, 22f * dt, 0f, Space.Self);
         if (flagCloth != null && flagCloth.gameObject.activeInHierarchy) flagCloth.localRotation = Quaternion.Euler(0f, Mathf.Sin(t * 2.3f) * 12f, Mathf.Sin(t * 3.1f) * 3f);
         // Lv5: 하루가 바뀌면 본부 보조금
         int d = G.S.day;
@@ -226,21 +225,19 @@ public class HQSystem : MonoBehaviour
         Prim.Cyl(p, "hatchTop", L(-4, -2, HC + R + 1.2f), 6, 1, SHELL);
     }
 
-    // Lv2: 통신 안테나 — 받침 상자 + 가는 기둥 + 기울어진 접시(천천히 돈다) + 꼭대기 빨간 점
+    // Lv2: 통신탑 — 둥근 받침 + 통통한 흰 기둥(주황 띠) + 꼭대기 공 모양 레이돔 + 그 위 작은 빨간 표시등(깜빡).
+    //  예전 도는 접시는 얇은 원판이라 "판떼기만 붙여 둔 것", 돌 때 받침과 떨어져 보였다(jake fb2) → 돌지 않는 둥근 덩어리로 바꿨다. 발자국은 같다
     void BuildAntenna()
     {
         var p = Part(2, "antenna", -26, -14);
         RoundSlab(p, "base", 0, 0, 12, 12, SLAB_H, 6, 3, SHELL_D);
-        Prim.Cyl(p, "mast", L(0, 0, SLAB_H + 6 + 22), 3, 44, SHELL);
-        foreach (var h in new[] { 22f, 38f }) Prim.Cyl(p, "ring", L(0, 0, SLAB_H + h), 4.4f, 1.6f, SHELL_D);
-        dish = new GameObject("dishSpin").transform; dish.SetParent(p, false); dish.localPosition = L(0, 0, SLAB_H + 40);
-        var tilt = new GameObject("tilt").transform; tilt.SetParent(dish, false); tilt.localRotation = Quaternion.Euler(-38f, 0, 0);
-        Prim.Cyl(tilt, "arm", L(0, 2, 0), 2, 6, SHELL_D).transform.localRotation = Quaternion.Euler(90, 0, 0);
-        Prim.Cyl(tilt, "dish", L(0, 5, 0), 20, 2.2f, SHELL).transform.localRotation = Quaternion.Euler(90, 0, 0);
-        Prim.Cyl(tilt, "dishIn", L(0, 6.2f, 0), 15, 0.6f, SHELL_D).transform.localRotation = Quaternion.Euler(90, 0, 0);
-        Prim.Cyl(tilt, "feed", L(0, 10, 0), 1.4f, 8, STEEL_D).transform.localRotation = Quaternion.Euler(90, 0, 0);
-        Prim.Sphere(tilt, "feedTip", L(0, 14, 0), 3, ACCENT);
-        Beacon(p, L(0, 0, SLAB_H + 6 + 44 + 2), 4.5f);
+        Prim.Cyl(p, "mast", L(0, 0, SLAB_H + 6 + 15), 5.2f, 30, SHELL);
+        Prim.Cyl(p, "band", L(0, 0, SLAB_H + 6 + 10), 6.2f, 3.2f, ACCENT);
+        Prim.Cyl(p, "collar", L(0, 0, SLAB_H + 6 + 30.5f), 8.4f, 3f, SHELL_D);
+        var dome = Prim.Sphere(p, "radome", L(0, 0, SLAB_H + 6 + 38f), 16, SHELL);
+        dome.transform.localScale = new Vector3(16, 15, 16) * GameConfig.K;
+        Prim.Cyl(p, "radomeBand", L(0, 0, SLAB_H + 6 + 36.6f), 16.4f, 2.4f, SHELL_D);
+        Beacon(p, L(0, 0, SLAB_H + 6 + 47.2f), 4.2f);
     }
 
     // Lv3: 작은 돔 — 흰 원통 몸 + 주황 테 + 창 넷(불빛) + 유리 돔 지붕 안 작은 화분
@@ -277,10 +274,9 @@ public class HQSystem : MonoBehaviour
         {
             var wing = new GameObject("wing").transform; wing.SetParent(s, false); wing.localPosition = L(sx * 9.5f, 0, SLAB_H + 26);
             wing.localRotation = Quaternion.Euler(-34f, 0, 0);
-            Prim.Box(wing, "frame", Vector3.zero, new Vector3(16, 1, 12), SHELL_D);
-            Prim.Box(wing, "panel", new Vector3(0, 0.6f, 0) * GameConfig.K, new Vector3(14.4f, 0.6f, 10.4f), PANEL);
-            Prim.Box(wing, "line", new Vector3(0, 1f, 0) * GameConfig.K, new Vector3(0.7f, 0.3f, 10.4f), PANEL_LINE);
-            Prim.Box(wing, "line", new Vector3(0, 1f, 0) * GameConfig.K, new Vector3(14.4f, 0.3f, 0.7f), PANEL_LINE);
+            Prim.Box(wing, "frame", Vector3.zero, new Vector3(16, 2.6f, 12), SHELL_D);
+            Prim.Box(wing, "panel", new Vector3(0, 0.6f, 0) * GameConfig.K, new Vector3(14.2f, 2.2f, 10.2f), PANEL);
+            Prim.Box(wing, "line", new Vector3(0, 0.9f, 0) * GameConfig.K, new Vector3(0.8f, 2.2f, 10.2f), PANEL_LINE);
         }
         var f = Part(4, "flag", -30, 22);
         RoundSlab(f, "flagBase", 0, 0, 6, 6, SLAB_H, 2, 2, SHELL_D);
