@@ -61,12 +61,37 @@ public class DevTools : MonoBehaviour
         // -shelfo2 N·-shelffood N: 카운터 산소·식량 칸 채우기(정착민 세 종류 요구·결제 검증용)
         if (int.TryParse(DevArgs.Get("-shelfo2"), out var shelfO2V)) G.S.shelfO2 = Mathf.Min(shelfO2V, G.ShelfCap);
         if (int.TryParse(DevArgs.Get("-shelffood"), out var shelfFoodV)) G.S.shelfFood = Mathf.Min(shelfFoodV, G.ShelfCap);
+        // -fill 얼음큐,병,물[,기계큐,기계출력]: 해빙기 호퍼·병 상자·수조/탱크와 생존 기지 시설 4곳의 입력·출력 더미 채우기(모형 확인용)
+        var fill = DevArgs.Get("-fill");
+        if (!string.IsNullOrEmpty(fill))
+        {
+            var f = fill.Split(','); int fv;
+            if (f.Length > 0 && int.TryParse(f[0], out fv)) G.S.meltQ = fv;
+            if (f.Length > 1 && int.TryParse(f[1], out fv)) G.S.bottles = Mathf.Min(fv, GameConfig.BOTTLE_CAP);
+            if (f.Length > 2 && int.TryParse(f[2], out fv)) G.S.water = fv;
+            if (f.Length > 3 && int.TryParse(f[3], out fv)) { G.S.elecQ = G.S.purQ = G.S.mixQ = G.S.grnQ = fv; }
+            if (f.Length > 4 && int.TryParse(f[4], out fv)) { G.S.elecOut = G.S.purOut = G.S.mixOut = G.S.grnOut = fv; }
+        }
         // -start x,y: 플레이어 시작 위치(스크린샷용). Player.Start 전에 저장값을 바꿔 둔다
         var st = DevArgs.Get("-start");
         if (!string.IsNullOrEmpty(st)) { var xy = st.Split(','); if (xy.Length == 2 && float.TryParse(xy[0], out var sx) && float.TryParse(xy[1], out var sy)) { G.S.p.x = sx; G.S.p.y = sy; if (Player.I != null) Player.I.pos = new Vector2(sx, sy); } }
         // -intro: 새 게임 인트로 강제 · -story id: 그 무전 카드 바로 띄우기(본 적 있어도)
+        // -padup id@초[,id@초]: 그 초에 발판 완료 경로로 한 레벨 올림(레벨 외형 솟아오름 확인용, 본부 -hqup 의 일반판)
+        var pu = DevArgs.Get("-padup");
+        if (!string.IsNullOrEmpty(pu))
+            foreach (var e in pu.Split(','))
+            {
+                var a = e.Split('@');
+                if (a.Length == 2 && Pads.Get(a[0]) != null && float.TryParse(a[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var sec)) StartCoroutine(CoPadUp(a[0], sec));
+            }
         if (DevArgs.Has("-intro")) StoryManager.I?.DevIntro();
         StoryManager.I?.DevStory(DevArgs.Get("-story"));
+    }
+
+    IEnumerator CoPadUp(string id, float sec)
+    {
+        while (t < sec) yield return null;
+        if (!G.PadMaxed(id)) PadManager.I.Complete(id);
     }
 
     int S_cash() => G.S.cash;
@@ -121,7 +146,7 @@ public class DevTools : MonoBehaviour
                 + " walk=" + (pl && pl.walking) + " esc=" + escapeT.ToString("0.0") + " stuck=" + stuckT.ToString("0.0") + " actT=" + (pl ? pl.actT.ToString("0.00") : "-")
                 + " bells=" + G.S.bells.ToString("0") + " sold=" + G.S.sold + " meltQ=" + G.S.meltQ + " water=" + G.S.water + " bottles=" + G.S.bottles + " shelf=" + G.S.shelf
                 + " | elec=" + G.S.elecQ + "/" + G.S.elecOut + " purif=" + G.S.purQ + "/" + G.S.purOut + " mixer=" + G.S.mixQ + "/" + G.S.mixOut + " green=" + G.S.grnQ + "/" + G.S.grnOut
-                + " fertMade=" + G.S.fertMade + " shelfO2=" + G.S.shelfO2 + " shelfFood=" + G.S.shelfFood + " supO=" + G.S.supO + " supF=" + G.S.supF + " top=" + G.CarryTop + " dumped=" + dumped);
+                + " fertMade=" + G.S.fertMade + " shelfO2=" + G.S.shelfO2 + " shelfFood=" + G.S.shelfFood + " supO=" + G.S.supO + " supF=" + G.S.supF + " bag=[" + G.CarrySummary() + "] dumped=" + dumped);
             frames = 0; fpsT = 0; diagT = 0;
         }
         if (Input.GetKeyDown(KeyCode.F5))
@@ -167,7 +192,9 @@ public class DevTools : MonoBehaviour
         // 사람은 시트 점(살 수 있음 표시)이 뜨면 스탯을 산다: 봇도 가장 싼 시트 스탯을 벨이 그 두 배 이상일 때 산다(월드 발판 몫을 남겨 두려고)
         MenuShop();
         // 돔 좌석 팁이 병값×3 이상 쌓였으면 빈손일 때 들러 수거(좌석 r34 안, 좌석 충돌 r16 밖)
-        int seatTip = 0; int seatI = DomeSystem.I != null && G.Carry == 0 && G.pend == 0 ? DomeSystem.I.RichestSeat(out seatTip) : -1;
+        // 섞어 싣기(10/25): "빈손" 대신 "든 것 중 지금 넣을 곳이 없을 때"(힌트가 넣으러 가는 중이 아님)
+        bool idleHands = !h.delivering && G.pend == 0;
+        int seatTip = 0; int seatI = DomeSystem.I != null && idleHands ? DomeSystem.I.RichestSeat(out seatTip) : -1;
         if (key == "event") { }   // 화성 이벤트 물건(시간 제한)을 주우러 가는 중이면 좌석 팁·발판 쇼핑으로 끊지 않는다
         else if (seatI >= 0 && seatTip >= G.BottlePrice * 3 && S_cash() <= seatTip && (!h.hasTarget || key == "register" || key == "bottler"))   // 좌석 팁은 다른 일이 없을 때만(사람도 급한 일 사이 짬에 줍는다)
         {
@@ -178,10 +205,10 @@ public class DevTools : MonoBehaviour
         }
         // 병을 든 채 선반이 가득이면(힌트는 카운터에서 기다리라고 함) 그 사이 계산대 돈을 걷는다 — 사람은 이렇게 하므로 봇도.
         // 힌트가 물통을 전기분해기로 보내는 중이면 끼어들지 않는다(돈이 쌓일 때마다 계산대와 북쪽 사이를 오가며 멈춤)
-        else if (G.CarryTop == "bottle" && key == "counter" && G.S.shelf + G.shelfPend >= G.ShelfCap && G.S.cash > 0 && !G.collectingCash)
+        else if (G.Holds("bottle") && key == "counter" && G.S.shelf + G.shelfPend >= G.ShelfCap && G.S.cash > 0 && !G.collectingCash)
         { var r = WorldMap.STN["register"]; target = new Vector2(r.x, r.y - r.h / 2 - 14); key = "register"; }
         // 정화기·배합기 틈에서 넣어 둔 묶음(흙 → 비료)을 기다리는 중이면 발판 쇼핑으로 끊지 않는다
-        else if (G.Carry == 0 && G.pend == 0 && PadManager.I != null && !((key == "purif" || key == "mixer") && SettleStations.I != null && SettleStations.I.Near(SettleStations.Index(key), pl.pos)))
+        else if (idleHands && PadManager.I != null && !((key == "purif" || key == "mixer") && SettleStations.I != null && SettleStations.I.Near(SettleStations.Index(key), pl.pos)))
         {
             // ORDER 순서(visOrder)에서 첫 번째로 살 수 있는 발판 → 진행 순서대로 밟는다
             foreach (var id in PadManager.I.visOrder)
@@ -263,13 +290,14 @@ public class DevTools : MonoBehaviour
     float jamT; int jamN = -1, dumped;
     void JamGuard(string key, float dist, float stop)
     {
-        string top = G.CarryTop;
-        if ((top != "o2" && top != "food") || key != "counter" || dist > stop + 20f) { jamT = 0; jamN = -1; return; }
+        if ((!G.Holds("o2") && !G.Holds("food")) || key != "counter" || dist > stop + 20f) { jamT = 0; jamN = -1; return; }
         if (G.Carry != jamN) { jamN = G.Carry; jamT = 0; return; }
         jamT += Time.deltaTime;
         if (jamT < 8f || G.pend > 0) return;
-        Debug.Log("bot: 카운터가 " + GameState.KindName(top) + " ×" + G.Carry + "을 받지 않아 등짐을 비움");
-        dumped += G.Carry; G.S.p.carry.Clear(); jamT = 0; jamN = -1;
+        int before = G.Carry;
+        G.S.p.carry.RemoveAll(k => k == "o2" || k == "food");   // 섞어 싣기: 카운터가 안 받는 산소통·식량만 비운다
+        Debug.Log("bot: 카운터가 산소통·식량 ×" + (before - G.Carry) + "을 받지 않아 등짐에서 비움 [" + G.CarrySummary() + "]");
+        dumped += before - G.Carry; jamT = 0; jamN = -1;
     }
 
     void OnDestroy()

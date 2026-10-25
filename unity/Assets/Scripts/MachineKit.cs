@@ -15,7 +15,9 @@ public static class MachineKit
     public static Vector3 L(float dx, float dy, float h) => new Vector3(dx * GameConfig.K, h * GameConfig.K, -dy * GameConfig.K);
 
     // 플레이스홀더(body/top 등)를 숨기고 스테이션 중심 그룹 + 받침판
-    public static Transform Group(Transform view, WorldMap.Stn s, float w, float d, params string[] hide)
+    public static Transform Group(Transform view, WorldMap.Stn s, float w, float d, params string[] hide) => Group(view, s, w, d, true, hide);
+    // plate=false: 받침은 부르는 쪽이 ToyMesh 본체 메시에 함께 넣는다(StationDress.Plate, 드로우콜 1)
+    public static Transform Group(Transform view, WorldMap.Stn s, float w, float d, bool plate, params string[] hide)
     {
         foreach (Transform c in view)
         {
@@ -24,8 +26,10 @@ public static class MachineKit
         }
         var g = new GameObject("machine").transform; g.SetParent(view, false);
         g.position = WorldMap.W2U(s.x, s.y, 0f);
-        Prim.Box(g, "plate", L(0, 0, 2.5f), new Vector3(w, 5, d), PAD);   // 밝은 콘크리트 받침(어두운 강철판은 무거워 보였다, 목표 그림 docs/art)
-        Prim.Box(g, "plateTop", L(0, 0, 5.2f), new Vector3(w - 6, 0.6f, d - 6), PAD_TOP);
+        if (!plate) return g;
+        // 밝은 콘크리트 받침(어두운 강철판은 무거워 보였다, 목표 그림 docs/art): 둥근 모서리 판 + 한 단 밝은 윗단(얇은 판 대신 두께 1.2)
+        RoundSlab(g, "plate", 0, 0, 0, w, d, 5, 9, PAD);
+        RoundSlab(g, "plateTop", 0, 0, 5, w - 8, d - 8, 1.2f, 6, PAD_TOP);
         return g;
     }
 
@@ -66,8 +70,9 @@ public static class MachineKit
         var l = Prim.Cyl(t, "liquid", L(0, 0, h0 + h / 2), dia - 3, h - 2, liquid); liq = l.transform;
         // 유리는 뚜껑 없는 관(닫힌 원기둥이면 윗면이 회색 원판으로 물을 덮었다), 위에서 물 높이가 그대로 보이게
         var gl = Tube(t, "glass", L(0, 0, h0), dia, h, GLASS); gl.GetComponent<Renderer>().sharedMaterial = Mats.TransShared(GLASS); Prim.NoShadow(gl);
-        Tube(t, "rim", L(0, 0, h0 + h - 1.2f), dia + 1.4f, 2.4f, SHELL);         // 유리 윗테(가는 고리)
-        Tube(t, "rimLow", L(0, 0, h0), dia + 1.4f, 2.4f, SHELL_D);              // 아랫테
+        // 유리 윗테·아랫테: 두툼한 고리(예전 홑겹 관 테는 얇은 띠로 읽혔다)
+        ToyMesh.Put(t, "rim", ToyMesh.Cached("tankRim" + dia, m => m.Ring(dia / 2 - 1.2f, dia / 2 + 1.4f, 3f, 24, SHELL, GameConfig.Hex("fbf8f3"), SHELL_D)), ToyMesh.Mat(0.3f), L(0, 0, h0 + h - 2.2f));
+        ToyMesh.Put(t, "rimLow", ToyMesh.Cached("tankRimLow" + dia, m => m.Ring(dia / 2 - 1.2f, dia / 2 + 1.4f, 3f, 24, SHELL_D, SHELL_D)), ToyMesh.Mat(0.3f), L(0, 0, h0));
         return t;
     }
 
@@ -189,10 +194,19 @@ public class MachineAnim : MonoBehaviour
     readonly List<(Renderer r, Material on, Material off)> blink = new List<(Renderer, Material, Material)>();
     readonly List<(Renderer r, Material on, Material off)> glow = new List<(Renderer, Material, Material)>();
     public readonly List<Transform> bubbles = new List<Transform>(); public float bubbleH = 20f;
+    public float bubbleS0 = 3f, bubbleS1 = 1.2f;                       // 거품(김) 크기: 시작 → 끝(논리). 해빙기 김은 크게 시작해 흩어진다
+    public readonly List<Transform> showWhenWorking = new List<Transform>();   // 일할 때만 보이는 것(해빙기 물줄기)
     public readonly List<Transform> belt = new List<Transform>(); public float beltX0, beltX1; public float beltSpeed = 22f;
     float t, lv = -1;
 
     public void SetLiquid(Transform l) { liquid = l; liqH = l.localScale.y; liqY0 = l.localPosition.y - liqH; }
+    // 같은 level 을 따르는 액체 하나 더(레벨 외형: 두 번째 수조·탱크). 꺼져 있어도 높이는 맞춰 둔다
+    readonly List<(Transform t, float h, float y0)> liquids2 = new List<(Transform, float, float)>();
+    public void AddLiquid(Transform l) => liquids2.Add((l, l.localScale.y, l.localPosition.y - l.localScale.y));
+    // 일할 때 켜지는 발광 재질 바꾸기(고급 단계는 불꽃이 더 밝다)
+    public void SetGlowOn(Renderer r, Material on) { for (int i = 0; i < glow.Count; i++) if (glow[i].r == r) glow[i] = (r, on, glow[i].off); }
+    // 일할 때 좌우로 까딱이는 부품(병입기 로봇 팔): 로컬 y 축으로 ±swingDeg
+    public readonly List<Transform> swing = new List<Transform>(); public float swingDeg = 35f, swingSpeed = 2.4f; float swingA;
     public void AddBlink(Renderer r, Color on) => blink.Add((r, Mats.Solid(on), Mats.Solid(Color.Lerp(on, MachineKit.STEEL_D, 0.65f))));
     public void AddGlow(Renderer r, Color on, Color off) => glow.Add((r, Mats.Solid(on), Mats.Solid(off)));
     public void AddGlowMat(Renderer r, Material on, Material off) => glow.Add((r, on, off));
@@ -207,10 +221,23 @@ public class MachineAnim : MonoBehaviour
             float h = Mathf.Max(0.02f, lv) * liqH;
             liquid.localScale = new Vector3(liquid.localScale.x, h, liquid.localScale.z);
             liquid.localPosition = new Vector3(liquid.localPosition.x, liqY0 + h, liquid.localPosition.z);
+            foreach (var l in liquids2)
+            {
+                float h2 = Mathf.Max(0.02f, lv) * l.h;
+                l.t.localScale = new Vector3(l.t.localScale.x, h2, l.t.localScale.z);
+                l.t.localPosition = new Vector3(l.t.localPosition.x, l.y0 + h2, l.t.localPosition.z);
+            }
+        }
+        if (swing.Count > 0)
+        {
+            if (w) swingA += dt * swingSpeed;
+            float ry = Mathf.Sin(swingA) * swingDeg;
+            foreach (var s in swing) s.localRotation = Quaternion.Euler(0, ry, 0);
         }
         foreach (var s in spin) if (w) s.Rotate(0, spinSpeed * dt, 0, Space.Self);
         bool on = w && Mathf.Repeat(t, 0.8f) < 0.5f;
         foreach (var b in blink) b.r.sharedMaterial = on ? b.on : b.off;
+        foreach (var s in showWhenWorking) if (s.gameObject.activeSelf != w) s.gameObject.SetActive(w);
         foreach (var gl in glow) gl.r.sharedMaterial = w ? gl.on : gl.off;
         for (int i = 0; i < bubbles.Count; i++)
         {
@@ -218,7 +245,7 @@ public class MachineAnim : MonoBehaviour
             if (!w) continue;
             float k = Mathf.Repeat(t * 0.9f + i / (float)bubbles.Count, 1f);
             var p = b.localPosition; b.localPosition = new Vector3(p.x, (bubbleH * k + 2) * GameConfig.K + bubbleBase, p.z);
-            b.localScale = Vector3.one * Mathf.Lerp(3f, 1.2f, k) * GameConfig.K;
+            b.localScale = Vector3.one * Mathf.Lerp(bubbleS0, bubbleS1, k) * GameConfig.K;
         }
         if (w) for (int i = 0; i < belt.Count; i++)
         {

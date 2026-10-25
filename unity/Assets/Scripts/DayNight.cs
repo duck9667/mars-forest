@@ -55,6 +55,7 @@ public class DayNight : MonoBehaviour
         if (Mathf.Abs(night - lastSoft) > 0.01f)
         {
             lastSoft = night;
+            Shader.SetGlobalFloat("_MarsNight", night);   // 정점 색 모형(Mars/VColor: 물병·얼음 등)도 밤엔 같은 몫만큼 채도를 덜고 제 색 발광을 끈다
             for (int si = 0; si < SOFT_DAY.Length; si++) Mats.Solid(SOFT_DAY[si]).color = Color.Lerp(SOFT_DAY[si], SOFT_NIGHT[si], night);
         }
         if (World.fill != null) World.fill.color = Color.Lerp(FILL_DAY, FILL_NIGHT, night);

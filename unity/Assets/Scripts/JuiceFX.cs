@@ -51,6 +51,43 @@ public class JuiceFX : MonoBehaviour
         if (t != null) { t.localScale = b; pops.Remove(t); }
     }
 
+    // 솟아오름(레벨 외형이 바뀐 부품·본부 조각): 땅 아래 depthL(논리)에서 솟아 살짝 넘쳤다가 제자리 + 팝·먼지. 화면 번쩍임은 없다.
+    //  같은 Transform에 겹쳐 부르면 이전 것을 끊고 기준 위치에서 다시 시작한다(연속 레벨 업에서 위치가 밀리지 않게)
+    readonly Dictionary<Transform, (Coroutine co, Vector3 basePos)> rises = new Dictionary<Transform, (Coroutine, Vector3)>();
+    public void Rise(Transform p, float delay = 0f, float depthL = 16f, float dur = 0.6f, System.Action done = null)
+    {
+        if (p == null) return;
+        Vector3 b = p.localPosition;
+        if (rises.TryGetValue(p, out var prev)) { if (prev.co != null) StopCoroutine(prev.co); b = prev.basePos; p.localPosition = b; }
+        rises[p] = (StartCoroutine(CoRise(p, b, delay, depthL, dur, done)), b);
+    }
+    // 솟아오르는 중이면 끊고 제자리로(곧바로 숨길 부품)
+    public void StopRise(Transform p)
+    {
+        if (p == null || !rises.TryGetValue(p, out var prev)) return;
+        if (prev.co != null) StopCoroutine(prev.co);
+        p.localPosition = prev.basePos; rises.Remove(p);
+        if (pops.TryGetValue(p, out var pp)) { if (pp.co != null) StopCoroutine(pp.co); p.localScale = pp.baseScale; pops.Remove(p); }
+    }
+    IEnumerator CoRise(Transform p, Vector3 basePos, float delay, float depthL, float dur, System.Action done)
+    {
+        if (delay > 0) { p.gameObject.SetActive(false); yield return new WaitForSeconds(delay); if (p == null) yield break; }
+        p.gameObject.SetActive(true);
+        float depth = depthL * GameConfig.K, el = 0;
+        Pop(p, 0.35f, dur, 1.2f);
+        Dust(p.position + Vector3.up * 0.15f, 6);
+        if (AudioManager.I != null) AudioManager.I.Play("pop", 0.7f, 0.45f);
+        while (el < dur && p != null)
+        {
+            el += Time.deltaTime; float k = Mathf.Clamp01(el / dur);
+            p.localPosition = basePos + Vector3.down * depth * (1f - EaseOutBack(k, 1.2f));   // 아래에서 솟아 살짝 넘쳤다가 자리
+            yield return null;
+        }
+        if (p == null) yield break;
+        p.localPosition = basePos; rises.Remove(p);
+        done?.Invoke();
+    }
+
     // 링: 0.6s, 스케일 1+2.2k, 페이드
     public void Ring(Vector3 pos, Color c, float rL = 30f) { StartCoroutine(CoRing(pos, c, rL)); }
     IEnumerator CoRing(Vector3 pos, Color c, float rL)

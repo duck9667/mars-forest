@@ -4,7 +4,8 @@ using UnityEngine;
 // §6.4 테라포밍: terra() = clamp(0.5*(ice2+pen+dome)/3 + 0.5*(Σ발판 레벨)/48), 초록 타일(TERRA_SLOTS) 점등, 땅색 lerp.
 // 원본 index.html 528~544행(terra·TERRA_SLOTS·terraMat·syncTerra·tickTerra·tintGround).
 //  - 켜진 타일 수 n = min(슬롯수, round(terra*24) + terraKeep). 구역 태그 슬롯(ice2·pen·dome 각 3개)은 그 구역이 열리면 앞 순서로 당겨진다
-//  - 타일 = 이끼색 원판(울퉁불퉁한 저폴리 원판 + 어두운 가장자리) 위 Kenney trees/treesTall(3번째마다 키 큰 나무). 모델의 사각 잔디판은 떼어 낸다
+//  - 타일 = 둥근 이끼 방석(가장자리가 둥글게 내려가는 두 단 원판) 위 통통한 저폴리 나무(둥근 수관 + 짧은 줄기, 초록 2톤, ToyMesh 한 메시).
+//    보통 타일은 큰 나무 + 작은 나무, 3번째마다 수관 두 덩어리를 얹은 키 큰 나무 하나(fb2: Kenney 나무 묶음이 엉성해 보였다, 개수는 그 이하)
 //  - 점등 연출(레벨 업·구역 해제 때만): 0.12s 간격, 0.5s easeOutBack 0.001→1, 초록 링. 시작 시엔 연출 없이 바로 켠다
 //  - 땅색: 원본은 흰 재질×텍스처를 white.lerp(0xb3683e, terra*0.45)로 곱하지만 우리 지면 텍스처는 이미 주황이라 그대로 곱하면 너무 어둡다.
 //    같은 식(terra*0.45)에 은은한 초록 기운 색(TINT)을 써서 붉은기만 살짝 덜어낸다(GroundPainter.GroundMaterial 훅)
@@ -24,7 +25,7 @@ public class TerraformManager : MonoBehaviour
         if (G == null) return 0f;
         float zones = (Mathf.Min(1, G.PadLv("ice2")) + Mathf.Min(1, G.PadLv("pen")) + Mathf.Min(1, G.PadLv("dome"))) / 3f;
         int sum = 0;
-        foreach (var p in Pads.ALL) if (p.active) sum += G.PadLv(p.id);
+        foreach (var p in Pads.ALL) if (p.active && !Pads.IsFacSpd(p.id)) sum += G.PadLv(p.id);   // 시설 속도 발판(10/25)은 빼서 테라 진행은 예전과 같게
         return Mathf.Clamp01(0.5f * zones + 0.5f * sum / PAD_MAX);
     }
     /// 지금 켜져 있어야 할 타일 수
@@ -193,101 +194,52 @@ public class TerraformManager : MonoBehaviour
     }
 
     // ---- 타일 조립 ----
-    // 이끼(연두, 나무 수관의 청록과 구분되게) · 가장자리(짙은 초록) · 하이라이트 점
-    static readonly Color MOSS = GameConfig.Hex("8fc65a"), MOSS_D = GameConfig.Hex("4a8a3c"), MOSS_HI = GameConfig.Hex("b6e07c");
-    const float TREE_K = 0.82f;               // 나무 덤불을 원판보다 조금 작게 → 이끼 테두리가 보이게
-    // 원본 terraRe: Kenney 나무 팔레트 → 게임 초록·나무색
-    static readonly Dictionary<int, int> TERRA_RE = new Dictionary<int, int>
-    {
-        { 0x20896b, 0x4ea85a }, { 0x27906f, 0x2f7a33 }, { 0x2e9872, 0x3b8f44 }, { 0x5ac487, 0x5cc45e },
-        { 0xea9168, 0x9a6240 }, { 0xb66545, 0x6e3f26 }, { 0xc1c1d8, ModelLib.COL.steel },
-    };
-    const float RIM_H = 1.0f, TOP_H = 1.8f;   // 원판 높이(논리)
+    // 이끼(연두, 나무 수관과 구분되게 한 톤 노랗게) · 방석 가장자리(짙은 초록) · 나무(수관 윗면 밝은 연두 → 옆 초록 → 아래 짙은 초록, 줄기 갈색)
+    static readonly Color MOSS = GameConfig.Hex("9cc95e"), MOSS_L = GameConfig.Hex("b2d873"), MOSS_D = GameConfig.Hex("5f9442");
+    static readonly Color LEAF_T = GameConfig.Hex("8ed36a"), LEAF = GameConfig.Hex("5cb04e"), LEAF_A = GameConfig.Hex("4fa046"), LEAF_D = GameConfig.Hex("3a8040");
+    static readonly Color TRUNK = GameConfig.Hex("8a5a3a"), TRUNK_D = GameConfig.Hex("6b4229");
+    const float TOP_H = 2.0f;   // 방석 윗면 높이(논리)
 
     void Build(Slot s)
     {
         var root = new GameObject("terra").transform; root.SetParent(tilesRoot, false);
         root.position = WorldMap.W2U(s.x, s.y, 0f);
         s.root = root;
-        int v = (int)(Mathf.Abs(s.x * 7 + s.y * 13)) % BLOB_VARIANTS;
-        // 가장자리(어두운 이끼, 조금 넓고 낮게) + 윗면(이끼색, 살짝 작고 높게) + 윗면 하이라이트 점 몇 개
-        Blob(root, "rim", BlobMesh(v, TS * 0.52f, RIM_H, 0f), MOSS_D, s.ry);
-        Blob(root, "moss", BlobMesh(v, TS * 0.44f, TOP_H, 0.9f), MOSS, s.ry);
-        var hi = Blob(root, "hi", BlobMesh((v + 1) % BLOB_VARIANTS, TS * 0.16f, TOP_H + 0.25f, TOP_H), MOSS_HI, s.ry + 1.3f);
-        hi.transform.localPosition = new Vector3(Mathf.Cos(s.ry * 3f) * TS * 0.2f, 0, Mathf.Sin(s.ry * 3f) * TS * 0.2f) * GameConfig.K;
-        // 나무: 원본 put(…, TS, …, ry, terraRe). 사각 잔디판(모델 y≤0.05)은 떼어 내고 이끼 원판 위에 세운다
+        int v = (int)(Mathf.Abs(s.x * 7 + s.y * 13)) % 2;
+        var moss = ToyMesh.Put(root, "moss", MossMesh(), ToyMesh.Mat(0.05f), Vector3.zero);
+        var mr = moss.GetComponent<MeshRenderer>(); mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        // 나무: 방석 위에 세우고 밑동 기준으로 살랑(Update)
         var pivot = new GameObject("trees").transform; pivot.SetParent(root, false);
-        pivot.localPosition = new Vector3(0, (TOP_H - 0.05f * TS * TREE_K) * GameConfig.K, 0);
-        var name = s.tall ? "treesTall" : "trees"; float ts = TS * TREE_K;
-        var go = ModelLib.Put(pivot, name, ts, ts, ts, 0, 0, 0, 0f, TERRA_RE);
-        var mf = go.GetComponent<MeshFilter>(); if (mf != null) mf.sharedMesh = NoSlab(name, mf.sharedMesh);
+        pivot.localPosition = new Vector3(0, TOP_H * GameConfig.K - 0.02f, 0);
+        ToyMesh.Put(pivot, "tree", TreeMesh(s.tall, v), ToyMesh.Mat(0.08f), Vector3.zero).transform.localScale = Vector3.one * 1.2f;   // 방석보다 조금 크게(예전 나무 묶음 폭과 비슷)
         s.trees = pivot;
         pivot.localRotation = Quaternion.Euler(0, -s.ry * Mathf.Rad2Deg, 0);
     }
 
-    static GameObject Blob(Transform parent, string name, Mesh mesh, Color c, float ry)
+    // 둥근 이끼 방석: 아랫단(짙은 가장자리 → 이끼) + 윗단(이끼 → 밝은 윗면), 매끈한 옆면이라 테두리가 깔끔한 원으로 읽힌다
+    static Mesh MossMesh() => ToyMesh.Cached("terraMoss", m =>
     {
-        var go = new GameObject(name); go.transform.SetParent(parent, false);
-        go.transform.localRotation = Quaternion.Euler(0, -ry * Mathf.Rad2Deg, 0);
-        go.AddComponent<MeshFilter>().sharedMesh = mesh;
-        var mr = go.AddComponent<MeshRenderer>(); mr.sharedMaterial = Mats.Solid(c);
-        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; mr.receiveShadows = true;
-        return go;
-    }
-
-    // 울퉁불퉁한 저폴리 원판(플랫 셰이딩). r: 반지름(논리), 윗면 높이 h, 옆면 바닥 y0. 변형 4종 × 크기별 캐시
-    const int BLOB_VARIANTS = 4;
-    static readonly Dictionary<string, Mesh> blobCache = new Dictionary<string, Mesh>();
-    static Mesh BlobMesh(int variant, float r, float h, float y0)
-    {
-        string key = variant + "|" + r.ToString("0.00") + "|" + h.ToString("0.00") + "|" + y0.ToString("0.00");
-        if (blobCache.TryGetValue(key, out var m) && m != null) return m;
-        const int N = 13; float k = GameConfig.K;
-        var rnd = new System.Random(101 + variant * 17);
-        var ring = new Vector2[N];
-        for (int i = 0; i < N; i++)
-        {
-            float a = i * Mathf.PI * 2f / N + (float)(rnd.NextDouble() - 0.5) * 0.25f, rr = r * (0.86f + (float)rnd.NextDouble() * 0.2f);
-            ring[i] = new Vector2(Mathf.Cos(a) * rr, Mathf.Sin(a) * rr);
-        }
-        var vs = new List<Vector3>(); var tris = new List<int>();
-        void Tri(Vector3 a, Vector3 b, Vector3 c) { int o = vs.Count; vs.Add(a); vs.Add(b); vs.Add(c); tris.Add(o); tris.Add(o + 1); tris.Add(o + 2); }
-        var top = new Vector3(0, h, 0) * k;
-        for (int i = 0; i < N; i++)
-        {
-            var p = ring[i]; var q = ring[(i + 1) % N];
-            Vector3 pt = new Vector3(p.x, h, p.y) * k, qt = new Vector3(q.x, h, q.y) * k;
-            Vector3 pb = new Vector3(p.x * 1.06f, y0, p.y * 1.06f) * k, qb = new Vector3(q.x * 1.06f, y0, q.y * 1.06f) * k;
-            Tri(top, qt, pt);              // 윗면(위에서 보면 시계 방향 = Unity 앞면)
-            Tri(pt, qt, qb); Tri(pt, qb, pb);   // 옆면(바깥쪽)
-        }
-        m = new Mesh { name = "terraBlob" };
-        m.SetVertices(vs); m.SetTriangles(tris, 0); m.RecalculateNormals(); m.RecalculateBounds();
-        blobCache[key] = m;
+        float r = TS * 0.5f;
+        m.At(0, 0, 0).Cyl(r, r * 0.95f, 1.1f, 28, MOSS_D, MOSS, true, MOSS);
+        m.At(0, 1.1f, 0).Cyl(r * 0.95f, r * 0.76f, TOP_H - 1.1f, 28, MOSS, MOSS_L, true, MOSS_L);
         return m;
-    }
+    });
 
-    // Kenney grass-trees 모델의 사각 잔디판(모델 높이 y ≤ 0.05)만 떼어 낸 메시 사본(모델별 1회)
-    static readonly Dictionary<string, Mesh> noSlab = new Dictionary<string, Mesh>();
-    static Mesh NoSlab(string name, Mesh src)
+    // 통통한 저폴리 나무(밑동 = 원점). tall: 수관 두 덩어리를 겹쳐 얹은 키 큰 나무 하나 / 보통: 큰 나무 + 옆 작은 나무
+    static Mesh TreeMesh(bool tall, int v) => ToyMesh.Cached("terraTree" + (tall ? "T" : "N") + v, m =>
     {
-        if (src == null) return null;
-        if (noSlab.TryGetValue(name, out var hit) && hit != null) return hit;
-        var m = Instantiate(src); m.name = src.name + "_noslab";
-        var v = m.vertices;
-        for (int sm = 0; sm < m.subMeshCount; sm++)
+        if (tall)
         {
-            var t = m.GetTriangles(sm); var keep = new List<int>(t.Length);
-            for (int i = 0; i + 2 < t.Length; i += 3)
-            {
-                float my = Mathf.Max(v[t[i]].y, Mathf.Max(v[t[i + 1]].y, v[t[i + 2]].y));
-                if (my <= 0.0505f) continue;
-                keep.Add(t[i]); keep.Add(t[i + 1]); keep.Add(t[i + 2]);
-            }
-            m.SetTriangles(keep, sm);
+            m.At(0, 0, 0).Cyl(1.9f, 1.4f, 7f, 8, TRUNK_D, TRUNK, false, TRUNK);
+            m.At(0, 10.5f, 0).Blob(new Vector3(7.2f, 6.2f, 7.2f), 1, 3 + v, 0.09f, LEAF_T, LEAF, LEAF_D, LEAF_A);
+            m.At(0.6f, 16.6f, -0.4f).Blob(new Vector3(5.2f, 4.6f, 5.2f), 1, 7 + v, 0.09f, LEAF_T, LEAF, LEAF_D, LEAF_A);
+            return m;
         }
-        m.RecalculateBounds();
-        noSlab[name] = m;
+        float sx = v == 0 ? 1f : -1f;
+        m.At(-2.6f * sx, 0, 2f).Cyl(1.8f, 1.3f, 5.5f, 8, TRUNK_D, TRUNK, false, TRUNK);
+        m.At(-2.6f * sx, 10f, 2f).Blob(new Vector3(7.4f, 6.6f, 7.4f), 1, 11 + v, 0.09f, LEAF_T, LEAF, LEAF_D, LEAF_A);
+        m.At(6.4f * sx, 0, -5f).Cyl(1.3f, 1f, 3.6f, 8, TRUNK_D, TRUNK, false, TRUNK);
+        m.At(6.4f * sx, 6.6f, -5f).Blob(new Vector3(4.4f, 4f, 4.4f), 1, 17 + v, 0.1f, LEAF_T, LEAF, LEAF_D, LEAF_A);
         return m;
-    }
+    });
 }

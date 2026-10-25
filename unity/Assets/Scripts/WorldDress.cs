@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// §9 환경: 맵 바깥을 감싸는 메사(평평한 붉은 절벽) 테두리 + 포인트 바위 몇 개, 착륙선 4단, 로버, 위성 안테나, 드럼통.
+// §9 환경: 맵 바깥을 감싸는 메사(평평한 붉은 절벽) 테두리 + 포인트 바위 몇 개(저폴리 돌무더기), 착륙선 4단, 로버, 위성 안테나, 드럼통.
 // jake 피드백("어설픈 산맥이 아쉽다")으로 원본의 가장자리 바위 40여 개 흩뿌림을 "협곡 안 기지" 테두리로 바꿨다.
 // 원본 index.html 546~550행(착륙선), 555행(드럼통), 562행(안테나), 573행(로버). World.Start가 호출한다.
 public static class WorldDress
@@ -25,8 +25,6 @@ public static class WorldDress
         new GameObject("HQ").AddComponent<HQSystem>();
         // 착륙장 옆 로버 (원본 573행: mdl('rover',64,SK(orange,dark)), rotation.y=-2.3, at(344,990)) → 본부 터 자리라 터 남서쪽 모서리 밖(놀이 경계 밖)으로
         ModelLib.Put(worldRoot, "rover", 64, 64, 64, 274 - 200, 0, 1052 - 520, -2.3f, ModelLib.SK(ModelLib.COL.orange, ModelLib.COL.dark));
-        Dish(worldRoot);
-        Barrels(worldRoot);
         NorthPipe(worldRoot);
     }
 
@@ -61,14 +59,25 @@ public static class WorldDress
         // 착륙장 옆(134,1050) 바위는 뺐다(다듬기 3차: 착륙장 앞 갈색 파편처럼 보였다, target_south_v1)
         var spots = new[] { new Vector4(4, 188, 10, .4f), new Vector4(398, 724, 10, 3.5f),
                             new Vector4(400, -606, 9, 2.8f), new Vector4(4, -44, 10, 1.3f), new Vector4(397, -128, 9, .6f) };
-        string[] names = { "rockA", "rockB", "rockC", "rockD" };
-        var reAB = RockRe(0x8a3418, 0xf0a878); var reCD = RockRe(0x6e2a12, 0xd0683a);
         for (int i = 0; i < spots.Length; i++)
         {
-            var sp = spots[i]; float sc = sp.z * 1.5f; int k = i % 4;
-            ModelLib.Put(rockRoot, names[k], sc, sc, sc, sp.x - 200, 0, sp.y - 520, sp.w, k < 2 ? reAB : reCD);
+            var sp = spots[i];
+            var go = ToyMesh.Put(rockRoot, "rock", RockMesh(i % 3, sp.z * 1.5f), ToyMesh.Mat(0.08f), WorldMap.W2U(sp.x, sp.y, 0f) - rockRoot.position);
+            go.transform.localRotation = Quaternion.Euler(0, sp.w * Mathf.Rad2Deg, 0);
         }
     }
+
+    // 포인트 바위(fb2 "돌 디자인이 엉성하다"): Kenney 바위 대신 둥글고 덩어리감 있는 저폴리 돌 무더기(큰 돌 + 작은 돌 둘, 붉은 갈색 3톤).
+    //  윗면은 밝은 테라코타, 옆은 붉은 갈색 두 톤 섞어, 아래는 짙게(목표 그림 target_north_v1 의 붉은 돌무더기). sc: 무더기 지름(논리)
+    public static readonly Color ROCK_T = GameConfig.Hex("c26442"), ROCK_M = GameConfig.Hex("9a4529"), ROCK_A = GameConfig.Hex("873a23"), ROCK_D = GameConfig.Hex("5c2517");
+    static Mesh RockMesh(int v, float sc) => ToyMesh.Cached("rock" + v + "_" + Mathf.RoundToInt(sc), m =>
+    {
+        float r = sc * 0.5f;
+        m.At(new Vector3(0, r * 0.3f, 0), new Vector3(0, v * 40, 0)).Blob(new Vector3(r, r * 0.68f, r * 0.82f), 1, 50 + v, 0.18f, ROCK_T, ROCK_M, ROCK_D, ROCK_A, 0.45f);
+        m.At(new Vector3(r * 0.95f, r * 0.12f, -r * 0.45f), new Vector3(0, 30 + v * 25, 0)).Blob(new Vector3(r * 0.45f, r * 0.34f, r * 0.4f), 0, 60 + v, 0.2f, ROCK_T, ROCK_A, ROCK_D);
+        m.At(new Vector3(-r * 0.8f, r * 0.08f, -r * 0.6f), new Vector3(0, -20 - v * 15, 0)).Blob(new Vector3(r * 0.3f, r * 0.24f, r * 0.28f), 0, 70 + v, 0.2f, ROCK_T, ROCK_M, ROCK_D);
+        return m;
+    });
 
     // 메사 한 덩어리: 들쭉날쭉한 10각 바닥을 지층 띠 4단으로 쌓아 올리고(단마다 살짝 들여 넣어 턱), 위는 평평한 밝은 뚜껑.
     // 한 메시에 서브메시(띠 4 + 뚜껑)로 그려 드로우콜을 줄이고, 면마다 꼭짓점을 따로 둬 저폴리 플랫 셰이딩
@@ -132,7 +141,6 @@ public static class WorldDress
         mr.sharedMaterials = new[] { Mats.Solid(STRATA[0]), Mats.Solid(STRATA[1]), Mats.Solid(STRATA[2]), Mats.Solid(STRATA[3]), Mats.Solid(MESA_TOP) };
         mr.receiveShadows = true;
     }
-    static Dictionary<int, int> RockRe(int a, int b) => new Dictionary<int, int> { { 0xdeb590, a }, { 0xede2cd, b }, { 0xc9d8e2, a } };
 
     // 북쪽 물 배관: 해빙 구역 동쪽 밖(x 388)을 따라 토양 공장 모서리까지 낮게 기는 관 + 받침, 끝에 저장 탱크 하나.
     // 온실이 물을 "파이프로" 먼저 가져간다는 설정을 배경으로만 보여 준다(충돌 없음, 놀이 경계 밖 가장자리)

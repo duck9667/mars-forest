@@ -118,11 +118,13 @@ public static class WorldMap
     const float GATE_POST = 4f;     // 게이트 굵은 기둥(7) 몫만큼 틈을 좁힌다
 
     // 열린 구역의 울타리 변(게이트 틈 제외) 선분 충돌. 줄 난간(qL/qR)은 충돌 없음
+    // 울타리가 있는 구역(토끼가 사는 우리만). 나머지 구역은 바닥 색으로만 나뉘고 자유롭게 드나든다(jake 10/26 "울타리 경계가 애매")
+    public static readonly HashSet<string> FENCED = new HashSet<string> { "pen" };
     static bool FenceBlocked(float x, float y)
     {
         foreach (var z in ZONES)
         {
-            if (!openZones.Contains(z.key)) continue;
+            if (!openZones.Contains(z.key) || !FENCED.Contains(z.key)) continue;
             if (x < z.x0 - FENCE_HW || x > z.x1 + FENCE_HW || y < z.y0 - FENCE_HW || y > z.y1 + FENCE_HW) continue;
             foreach (char side in z.sides)
             {
@@ -187,7 +189,6 @@ public static class WorldMap
             foreach (var b in BEDS) if (Mathf.Abs(x - b.x) < 20 && Mathf.Abs(y - b.y) < 20) return true;
             var a = AIRLOCK; if (Mathf.Abs(x - a.x) < 18 && Mathf.Abs(y - a.y) < 11) return true;   // 반폭 ±18·±11 (원본 947행)
         }
-        if (x > 338 && y > 358 && y < 404) return true;                 // 병입 구역 드럼통
         if (y > 566 && y < 680 && (Mathf.Abs(x - 186) < 5 || Mathf.Abs(x - 246) < 5)) return true;   // 줄 난간 qL·qR(울타리처럼 보이니 통과 금지, jake 10/25)
         if ((p - LANDER).sqrMagnitude < 34 * 34) return true;            // 착륙선
         if (HQSystem.Blocked(x, y)) return true;                          // 기지 본부(레벨별 건물 발자국)

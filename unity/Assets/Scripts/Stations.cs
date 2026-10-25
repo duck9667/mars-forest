@@ -7,6 +7,10 @@ public class Stations : MonoBehaviour
     GameState G => GameState.I;
 
     public Transform meltAnchor, trayAnchor, shelfAnchor, cashAnchor;
+    // 레벨 외형(LevelLook): 해빙기·병입기·카운터(선반 칸)·계산대(프리미엄 라벨). StationDress 가 만든다
+    public TierLook melterLook, bottlerLook, counterLook, registerLook;
+    // 병입기 고급 단계의 두 번째 병 상자(trayTwin 이면 trayAnchor·trayAnchor2 에 3×2씩 번갈아 채운다)
+    public Transform trayAnchor2; bool trayTwin;
     // 카운터 종류별 칸: 물(shelfAnchor)·산소·식량. 산소·식량이 열리기 전엔 물이 카운터 전체(12×3)를 쓴다
     public Transform shelfO2Anchor, shelfFoodAnchor;
     Transform[] shelfMarks = new Transform[3];   // 칸마다 상판 위 색 받침판(글자 라벨은 두지 않는다). 앞면은 늘 있는 차양에 가려 위에 둔다
@@ -25,10 +29,17 @@ public class Stations : MonoBehaviour
 
     // 카운터 칸 받침판(물 하늘색·산소 흰빛·식량 밀색): 진한 원색 판은 상판을 덮은 색 블록처럼 보여 옅은 톤으로, 둘레에 상판이 테처럼 남게
     static readonly Color[] SHELF_MARK = { GameConfig.Hex("7fc3e8"), GameConfig.Hex("e3e9ee"), GameConfig.Hex("eed29b") };
-    // 얼음 덩어리(다듬기 3차): 옅은 얼음색 매끈한 몸통 + 흰 윗면 + 앞 윗모서리 흰 빛줄 + 반투명 겉껍질 한 겹(Mats.Glass, 외곽선 마스크에 안 잡힘)
-    static readonly Color ICE_SIDE = GameConfig.Hex("8ccaec"), ICE_TOP = GameConfig.Hex("cdebfa"), ICE_EDGE = GameConfig.Hex("ffffff");
-    static Material iceShell;
-    static Material IceShell => iceShell != null ? iceShell : (iceShell = Mats.Glass(new Color(0.85f, 0.95f, 1f, 0.07f), new Color(0.88f, 0.97f, 1f, 0.42f), 1.8f, 0f));
+    // 얼음 더미(fb2): 등짐·호퍼 얼음과 같은 언어(Items.ICE_*) — 모서리를 깎은 하늘색 덩어리, 가운데가 진하고 깎은 위 모서리가 흰빛.
+    // 큰 덩어리 하나 + 앞 작은 덩어리 + 조각 하나를 메시 하나로(예전 몸통·윗판·빛줄·유리 껍질 5조각은 회색 상자처럼 보였고 껍질은 투명 정렬이 흔들렸다)
+    static Mesh IcePileMesh(int v) => ToyMesh.Cached("icePile" + v, m =>
+    {
+        Color F = Items.ICE_FACE, C = Items.ICE_CORE, E = Items.ICE_EDGE, T = Items.ICE_TOP, TC = Items.ICE_TOP_CORE;
+        // 큰 덩어리(살짝 기움) + 앞 오른쪽에 기대 선 중간 덩어리 + 큰 덩어리 위 뒤쪽 조각: 한쪽으로 쏠리게(양옆 대칭이면 소파처럼 보였다)
+        m.At(new Vector3(-1.5f, 5.4f, 0.5f), new Vector3(0, 0, v == 1 ? 3 : -2)).Bevel(new Vector3(19, 10.6f, 14), 1.8f, F, C, E, T, TC);
+        m.At(new Vector3(9.5f, 4.3f, -6f), new Vector3(-6, 30 + v * 9, -12)).Bevel(new Vector3(10, 8.4f, 8.5f), 1.4f, F, C, E, T, TC);
+        m.At(new Vector3(-4.5f, 12.4f, 3f), new Vector3(6, -24 - v * 11, 7)).Bevel(new Vector3(7.5f, 4.4f, 6.5f), 1f, F, C, E, T, TC);
+        return m;
+    });
     void Awake() { I = this; }
 
     void Start()
@@ -37,7 +48,40 @@ public class Stations : MonoBehaviour
         G.OnPadLevel += OnPad;
     }
     void OnDestroy() { if (GameState.I != null) GameState.I.OnPadLevel -= OnPad; }
-    void OnPad(string id, int lv) { if (id == "o2" || id == "farm") RefreshShelfLayout(); }
+    void OnPad(string id, int lv)
+    {
+        if (id == "o2" || id == "farm") RefreshShelfLayout();
+        // 레벨이 올라 외형 단계가 바뀌면 바뀐 부품이 솟아오른다(같은 단계면 아무 일 없음)
+        int t = LevelLook.Tier(lv);
+        if (id == "melter") melterLook?.Apply(t, true);
+        else if (id == "bottler") bottlerLook?.Apply(t, true);
+        else if (id == "shelf") counterLook?.Apply(t, true);
+        else if (id == "price") registerLook?.Apply(t, true);
+    }
+
+    // 병 상자 하나(3×4) ↔ 둘(3×2씩) 바꾸기: 다음 Update 에서 병을 다시 놓는다
+    public void SetTrayTwin(bool twin)
+    {
+        if (twin == trayTwin && lastBottles >= 0) return;
+        trayTwin = twin; lastBottles = -1;
+        if (!twin && trayAnchor2 != null) Items.SyncStack(trayAnchor2, "bottle", 0, 1, 1, 0, 0, 0);
+    }
+    // 고급 두 상자: 한 층 6개씩 A → B → A → B 순서(병 번호 i 의 상자·층)
+    static int TwinA(int n) => (n / 12) * 6 + Mathf.Min(n % 12, 6);
+
+    // 칸 표지 외형(단계): 기본 각진 판 / 개량 둥근 판 / 고급 둥근 판 + 금 테. 레벨 업 순간엔 보이는 표지가 솟아오른다
+    public void DressShelfMarks(int t, bool anim)
+    {
+        var c = WorldMap.STN["counter"];
+        for (int i = 0; i < 3; i++)
+        {
+            var mk = shelfMarks[i]; if (mk == null) continue;
+            mk.localScale = Vector3.one;
+            mk.GetComponent<MeshFilter>().sharedMesh = StationDress.ShelfMarkMesh(t, SHELF_MARK[i], c.w / 3f - 8, c.h - 10);
+            mk.GetComponent<MeshRenderer>().sharedMaterial = LevelLook.Mat(t);
+            if (anim && mk.gameObject.activeInHierarchy) JuiceFX.I.Rise(mk, 0.15f + 0.1f * i, 6f);
+        }
+    }
 
     void Build()
     {
@@ -51,16 +95,7 @@ public class Stations : MonoBehaviour
             var pile = new GameObject("pile"); pile.transform.SetParent(g.transform, false);
             // 얼음 덩어리(목표 그림처럼 하늘색 큰 덩어리 하나 + 밝은 윗면 + 옆 작은 조각): 예전 흰 판 3장은 소파처럼 보였다
             pile.transform.localRotation = Quaternion.Euler(0, (i * 37) % 24 - 12, 0);
-            float k = GameConfig.K;
-            var body = Prim.Box(pile.transform, "a", new Vector3(0, 5f * k, 0), new Vector3(20, 10, 14), ICE_SIDE);
-            body.GetComponent<Renderer>().sharedMaterial = Mats.Gloss(ICE_SIDE, 0.8f);
-            Prim.Box(pile.transform, "b", new Vector3(0, 10.2f * k, 0.6f * k), new Vector3(18, 0.8f, 12), ICE_TOP);
-            Prim.NoShadow(Prim.Box(pile.transform, "edge", new Vector3(0, 10.1f * k, -6.6f * k), new Vector3(18.5f, 1.1f, 1.1f), ICE_EDGE));   // 앞 윗모서리 빛줄(카메라 쪽)
-            var shell = Prim.Box(pile.transform, "shell", new Vector3(0, 5.6f * k, 0), new Vector3(22.5f, 11.4f, 16.5f), Color.white);
-            shell.GetComponent<Renderer>().sharedMaterial = IceShell; Prim.NoShadow(shell);
-            var small = Prim.Box(pile.transform, "c", new Vector3(13f * k, 3f * k, 6f * k), new Vector3(8, 6, 7), ICE_SIDE);
-            small.transform.localRotation = Quaternion.Euler(0, 25, 0); small.GetComponent<Renderer>().sharedMaterial = Mats.Gloss(ICE_SIDE, 0.8f);
-            Prim.NoShadow(Prim.Box(small.transform, "cTop", new Vector3(0, 0.52f, 0), new Vector3(0.9f, 0.08f, 0.88f) / GameConfig.K, ICE_TOP));   // 부모 스케일 기준(윗면 흰 판)
+            ToyMesh.Put(pile.transform, "ice", IcePileMesh(i % 3), Items.IceMat, Vector3.zero);
             spotViews[i] = pile.transform; spotShown[i] = true;
         }
         // 해빙기
@@ -115,9 +150,10 @@ public class Stations : MonoBehaviour
     const float SHELF_H = 42f, MARK_T = 0.7f;   // 상판 윗면 높이·받침판 두께
     static float SectionX(int i) { var c = WorldMap.STN["counter"]; return c.x + (i - 1) * c.w / 3f; }
     Transform AnchorOf(string kind) => kind == "o2" ? shelfO2Anchor : kind == "food" ? shelfFoodAnchor : shelfAnchor;
-    // 칸 배치: 나뉘기 전 물 12×3(한 층 36) / 나뉜 뒤 칸마다 4×3(한 층 12)
-    int ShelfCols => shelfSplit ? 4 : 12;
-    int ShelfLayer => ShelfCols * 3;
+    // 칸 배치(모형 크기에 맞춘 간격): 나뉘기 전 물 18×3(한 층 54, 상판 가득 한 층) / 나뉜 뒤 칸마다 병·산소통 6×3, 감자 상자 5×3
+    int ColsOf(string kind) => !shelfSplit ? 18 : kind == "food" ? 5 : 6;
+    float GapOf(string kind) => !shelfSplit ? 9.6f : kind == "food" ? 11.5f : 9.6f;
+    int ShelfLayer(string kind) => ColsOf(kind) * 3;
 
     // 산소·식량 중 하나라도 열리면 카운터를 3구역으로 나눈다. 칸 위치·표지를 다시 맞추고 다음 Update에서 더미를 재배치
     public void RefreshShelfLayout(bool force = false)
@@ -170,39 +206,56 @@ public class Stations : MonoBehaviour
         if (S.meltQ > 0)
         {
             S.meltT += dt;
-            if (S.meltT >= G.MeltTime) { S.meltT = 0; S.meltQ--; S.water += 10; JuiceFX.I.Squash(melterView, 0.5f); }
+            if (S.meltT >= G.MeltTime) { S.meltT = 0; S.meltQ--; S.water += 10; JuiceFX.I.Squash(melterView, 0.12f); }
         }
         else S.meltT = 0;
         // 병입: water≥10 & bottles<24 → bottle. 온실 큐가 있으면 온실 몫 물(10)을 남겨 둔다(온실 우선)
         if (S.water >= 10 + (SettleStations.I != null ? SettleStations.I.WaterReserve : 0) && S.bottles < GameConfig.BOTTLE_CAP)
         {
             S.botT += dt;
-            if (S.botT >= G.BottleTime) { S.botT = 0; S.water -= 10; S.bottles++; JuiceFX.I.Squash(bottlerView, 0.4f); }
+            if (S.botT >= G.BottleTime) { S.botT = 0; S.water -= 10; S.bottles++; JuiceFX.I.Squash(bottlerView, 0.12f); }
         }
         else S.botT = 0;
         // 제빙 코어 발광 흉내(크기 맥동)
         coreT += dt; meltCore.transform.localScale = Vector3.one * 16 * GameConfig.K * (S.meltQ > 0 ? 1 + Mathf.Sin(coreT * 9f) * 0.08f : 1f);
 
         // 시각 동기화
-        if (S.meltQ != lastMeltQ) { lastMeltQ = S.meltQ; Items.SyncStack(meltAnchor, "ice", S.meltQ, 2, 1, 16, 0, GameConfig.MELT_VIS_MAX); }
-        if (S.bottles != lastBottles) { lastBottles = S.bottles; Items.SyncStack(trayAnchor, "bottle", S.bottles, TRAY_COLS, TRAY_ROWS, 15, 11, GameConfig.BOTTLE_CAP); }
+        if (S.meltQ != lastMeltQ) { lastMeltQ = S.meltQ; Items.SyncStack(meltAnchor, "ice", S.meltQ, MELT_COLS, MELT_ROWS, Items.Gap("ice").x, Items.Gap("ice").y, GameConfig.MELT_VIS_MAX); }
+        if (S.bottles != lastBottles)
+        {
+            lastBottles = S.bottles;
+            if (!trayTwin) Items.SyncStack(trayAnchor, "bottle", S.bottles, TRAY_COLS, TRAY_ROWS, 9.2f, 9.6f, GameConfig.BOTTLE_CAP);
+            else
+            {
+                int n = Mathf.Min(S.bottles, GameConfig.BOTTLE_CAP), na = TwinA(n);
+                Items.SyncStack(trayAnchor, "bottle", na, TRAY_COLS, 2, 9.2f, 9.6f, GameConfig.BOTTLE_CAP);
+                Items.SyncStack(trayAnchor2, "bottle", n - na, TRAY_COLS, 2, 9.2f, 9.6f, GameConfig.BOTTLE_CAP);
+            }
+        }
         // 표지는 열린 종류만(식량은 산소보다 늦게 열린다)
         if (shelfSplit && shelfMarks[2].gameObject.activeSelf != G.KindOpen("food")) shelfMarks[2].gameObject.SetActive(G.KindOpen("food"));
-        if (S.shelf != lastShelf) { lastShelf = S.shelf; Items.SyncStack(shelfAnchor, "bottle", S.shelf, ShelfCols, 3, 15, 12, 36); }
-        if (shelfSplit && S.shelfO2 != lastShelfO2) { lastShelfO2 = S.shelfO2; Items.SyncStack(shelfO2Anchor, "o2", S.shelfO2, 4, 3, 15, 12, 36); }
-        if (shelfSplit && S.shelfFood != lastShelfFood) { lastShelfFood = S.shelfFood; Items.SyncStack(shelfFoodAnchor, "food", S.shelfFood, 4, 3, 15, 12, 36); }
+        if (S.shelf != lastShelf) { lastShelf = S.shelf; Items.SyncStack(shelfAnchor, "bottle", S.shelf, ColsOf("bottle"), 3, GapOf("bottle"), 8.6f, 36); }
+        if (shelfSplit && S.shelfO2 != lastShelfO2) { lastShelfO2 = S.shelfO2; Items.SyncStack(shelfO2Anchor, "o2", S.shelfO2, ColsOf("o2"), 3, GapOf("o2"), 8.6f, 36); }
+        if (shelfSplit && S.shelfFood != lastShelfFood) { lastShelfFood = S.shelfFood; Items.SyncStack(shelfFoodAnchor, "food", S.shelfFood, ColsOf("food"), 3, GapOf("food"), 9.2f, 36); }
         if (S.cash != lastCash) { lastCash = S.cash; Items.SyncStack(cashAnchor, "bill", Bills(S.cash), 3, 1, 16, 0, GameConfig.BILL_MAX); }
     }
 
     public static int Bills(int cash) => Mathf.Min(GameConfig.BILL_MAX, Mathf.CeilToInt(cash / 12f));
-    // 병입기 산출 받침대(동쪽 32×42)에 물통 2×3을 한 층으로 쌓는다(StationDress.Bottler)
-    public const int TRAY_COLS = 2, TRAY_ROWS = 3;
-    public Vector3 TrayTop() => trayAnchor.position + Vector3.up * (Mathf.Max(0, G.S.bottles - 1) / (TRAY_COLS * TRAY_ROWS) + 1) * Items.ITEM_H["bottle"] * GameConfig.K;
+    // 병입기 병 상자(동쪽 32×42)에 물병 3×4를 한 층으로 세운다(StationDress.Bottler) · 해빙기 넓은 호퍼에 얼음 4×3 한 층
+    public const int TRAY_COLS = 3, TRAY_ROWS = 4, MELT_COLS = 4, MELT_ROWS = 3;
+    public Vector3 TrayTop()
+    {
+        int i = Mathf.Max(0, G.S.bottles - 1);
+        if (!trayTwin) return trayAnchor.position + Vector3.up * (i / (TRAY_COLS * TRAY_ROWS) + 1) * Items.ITEM_H["bottle"] * GameConfig.K;
+        // 두 상자: 맨 위 병(i)이 든 상자와 층
+        var a = i % 12 < 6 ? trayAnchor : trayAnchor2;
+        return a.position + Vector3.up * (i / 12 + 1) * Items.ITEM_H["bottle"] * GameConfig.K;
+    }
     public Vector3 ShelfTop() => ShelfTop("bottle");
-    public Vector3 ShelfTop(string kind) => AnchorOf(kind).position + Vector3.up * (G.ShelfOf(kind) / ShelfLayer + 1) * Items.ITEM_H[kind] * GameConfig.K;
+    public Vector3 ShelfTop(string kind) => AnchorOf(kind).position + Vector3.up * (G.ShelfOf(kind) / ShelfLayer(kind) + 1) * Items.ITEM_H[kind] * GameConfig.K;
     // 그 칸으로 날아가는 중인 수
     public int ShelfPendOf(string kind) => kind == "o2" ? shelfPendO2 : kind == "food" ? shelfPendFood : G.shelfPend;
     public void AddShelfPend(string kind, int n) { if (kind == "o2") shelfPendO2 += n; else if (kind == "food") shelfPendFood += n; else G.shelfPend += n; }
     public Vector3 CashTop() => cashAnchor.position + Vector3.up * (Bills(G.S.cash) / 3 + 1) * Items.ITEM_H["bill"] * GameConfig.K;
-    public Vector3 MeltTop() => meltAnchor.position + Vector3.up * (Mathf.Min(G.S.meltQ, GameConfig.MELT_VIS_MAX) / 2 + 1) * Items.ITEM_H["ice"] * GameConfig.K;
+    public Vector3 MeltTop() => meltAnchor.position + Vector3.up * (Mathf.Min(G.S.meltQ, GameConfig.MELT_VIS_MAX) / (MELT_COLS * MELT_ROWS) + 1) * Items.ITEM_H["ice"] * GameConfig.K;
 }
