@@ -312,21 +312,19 @@ public class GroundPainter
         p.Grain(0.03f);
         p.BaseVignette();
 
-        // 7) 손님 길: 다져진 띠(연한 둥근 사각)만. 바퀴 자국·로버 자국 점선은 낙서처럼 보여 없앰
+        // 7) 길(크림 타일, 목표 그림 target_base_v1·target_north_v1의 넓은 길): 손님 길(입구→줄)·가운데 통로·상점 북쪽 띠·북쪽 길·가운데 길·개척 길.
+        //    충돌·좌표는 그대로 두고 그림만 넓다(울타리가 우리에만 남아 구역 경계가 통행을 막지 않는다). 맞닿은 구역 바닥은 Vis()로 그만큼 안쪽으로 줄인다.
+        //    바퀴 자국·로버 자국 점선은 낙서처럼 보여 없앰
         float QX = WorldMap.QUEUE_X; var E = WorldMap.ENTRY;
-        // 길은 크림 타일(목표 그림): 손님 길(입구→줄), 기지 가운데 통로(x 236~256)·상점 북쪽 띠(y 404~420)
-        p.TilePath(QX - 30f, 560f, 60f, GameConfig.H - 560f + 40f);
-        p.TilePath(236f, 46f, 20f, 374f, 20f);
-        p.TilePath(16f, 404f, 364f, 16f, 16f);
-        // 7b) 생존 기지 길(크림 타일): 북쪽 길(y 10~46)·가운데 길(y −210~−180)·통로(x 236~256)
-        float nY0 = WorldMap.NORTH_Y, nY1 = 46f, nMid = (nY0 + nY1) / 2f;
-        p.TilePath(14f, nY0, 372f, nY1 - nY0);
-        float mY0 = WorldMap.MID_Y0, mY1 = WorldMap.MID_Y1, mMid = (mY0 + mY1) / 2f;
-        p.TilePath(16f, mY0, 364f, mY1 - mY0);
-        // 7c) 2장 개척 길(y −410~−380): 온실·토양 공장 북쪽, 거주 구역·태양광 단지 앞(발판 두 개가 이 길 위에 있다)
-        p.TilePath(16f, WorldMap.ROAD3_Y0, 364f, WorldMap.ROAD3_Y1 - WorldMap.ROAD3_Y0);
-        // 통로(x 236~256)는 맨 북쪽(거주 구역·태양광 단지 사이)까지
-        p.TilePath(236f, GameConfig.Y_MIN + 20f, 20f, nY0 - GameConfig.Y_MIN - 20f, 20f);
+        p.TilePaths(new[]
+        {
+            new Rect(QX - 30f, 560f, 60f, GameConfig.H - 560f + 40f),                              // 손님 길(이미 60)
+            new Rect(AISLE_X0, GameConfig.Y_MIN + 20f, AISLE_X1 - AISLE_X0, BAND_Y1 - GameConfig.Y_MIN - 20f), // 가운데 통로: 맨 북쪽(거주 구역·태양광 단지 사이) → 상점 북쪽 띠
+            new Rect(16f, BAND_Y0, 364f, BAND_Y1 - BAND_Y0),                                       // 상점 북쪽 띠
+            new Rect(14f, NROAD_Y0, 372f, NROAD_Y1 - NROAD_Y0),                                    // 북쪽 길
+            new Rect(16f, MID_Y0, 364f, MID_Y1 - MID_Y0),                                          // 가운데 길
+            new Rect(16f, ROAD3_Y0, 364f, ROAD3_Y1 - ROAD3_Y0),                                    // 2장 개척 길(발판 두 개가 이 길 위에 있다)
+        });
 
         // 9) 착륙장: 원 r58 흰 .14 채움 + 테두리 .55 폭4, 안쪽 r34 폭3, "H" 폭4 .5
         p.Disc(E.x, E.y, 58f, Color.white, 0.14f);
@@ -353,6 +351,48 @@ public class GroundPainter
         for (float gx = x + ts; gx < x + w - 1f; gx += ts) Line(gx, y + 1f, gx, y + h - 1f, 1f, C(120, 70, 40), 0.10f);
         for (float gy = y + ts; gy < y + h - 1f; gy += ts) Line(x + 1f, gy, x + w - 1f, gy, 1f, C(120, 70, 40), 0.10f);
         Polyline(RoundRectPath(x, y, w, h, 4f), 2f, C(150, 90, 50), 0.22f, true);
+    }
+
+    // 여러 길을 한 번에: 테두리(합집합 둘레만 남게 먼저) → 채움 → 세계 격자에 맞춘 줄눈(겹친 곳도 한 번만). 교차로에 이음선이 생기지 않는다
+    void TilePaths(IList<Rect> rs, float ts = 20f)
+    {
+        BeginStroke();
+        foreach (var r in rs) { var q = RoundRectPath(r.x, r.y, r.width, r.height, 4f); for (int i = 0; i < q.Count; i++) { var b = q[(i + 1) % q.Count]; Line(q[i].x, q[i].y, b.x, b.y, 3f, C(150, 90, 50), 0.22f); } }
+        EndStroke(C(150, 90, 50), 0.22f);
+        foreach (var r in rs) RoundRect(r.x, r.y, r.width, r.height, 4f, PATH_TILE, 0.96f);
+        BeginStroke();
+        foreach (var r in rs)
+        {
+            for (float gx = Mathf.Ceil((r.x + 1f) / ts) * ts; gx < r.xMax - 1f; gx += ts) Line(gx, r.y + 1f, gx, r.yMax - 1f, 1f, C(120, 70, 40), 0.10f);
+            for (float gy = Mathf.Ceil((r.y + 1f) / ts) * ts; gy < r.yMax - 1f; gy += ts) Line(r.x + 1f, gy, r.xMax - 1f, gy, 1f, C(120, 70, 40), 0.10f);
+        }
+        EndStroke(C(120, 70, 40), 0.10f);
+    }
+
+    // ---- 길 폭(그림만): 논리 길(통로 x 236~256·북쪽 길 y 10~46 등)은 20~36 폭이지만 목표 그림은 약 50~60.
+    //      충돌·구역 좌표·물건 자리는 그대로 두고, 길을 넓게 그린 만큼 맞닿은 구역 바닥·윤곽·측량 점선을 안쪽으로 줄인다(Vis).
+    //      통로 동쪽은 태양광 패널(x 266~)·해빙기 발판(x 268~)이 닿아 50에서 멈췄다
+    public const float AISLE_X0 = 222f, AISLE_X1 = 272f;      // 가운데 통로(논리 236~256)
+    public const float BAND_Y0 = 392f, BAND_Y1 = 440f;        // 상점 북쪽 띠(논리 404~420)
+    public const float NROAD_Y0 = 0f, NROAD_Y1 = 56f;         // 북쪽 길(논리 10~46)
+    public const float MID_Y0 = -222f, MID_Y1 = -168f;        // 가운데 길(논리 −210~−180)
+    public const float ROAD3_Y0 = -422f, ROAD3_Y1 = -368f;    // 개척 길(논리 −410~−380)
+    // 구역의 보이는 사각형: 길에 맞닿은 변만 넓힌 길 가장자리까지 물린다. 울타리 충돌이 있는 우리(pen)는 그대로
+    public static WorldMap.Zone Vis(WorldMap.Zone z)
+    {
+        if (WorldMap.FENCED.Contains(z.key)) return z;
+        if (z.x1 == 236f) z.x1 = AISLE_X0;
+        if (z.x0 == 256f) z.x0 = AISLE_X1;
+        if (z.y1 == 404f) z.y1 = BAND_Y0;
+        if (z.y0 == 420f) z.y0 = BAND_Y1;
+        if (z.y1 == WorldMap.NORTH_Y) z.y1 = NROAD_Y0;
+        if (z.y0 == 46f) z.y0 = NROAD_Y1;
+        if (z.y1 == WorldMap.MID_Y0) z.y1 = MID_Y0;
+        if (z.y0 == WorldMap.MID_Y1) z.y0 = MID_Y1;
+        if (z.y1 == WorldMap.ROAD3_Y0) z.y1 = ROAD3_Y0;
+        if (z.y0 == WorldMap.ROAD3_Y1) z.y0 = ROAD3_Y1;
+        if (z.key == "dome") z.x1 = Mathf.Min(z.x1, WorldMap.QUEUE_X - 32f);   // 손님 길(x 186~246)과 겹치지 않게
+        return z;
     }
 
     public static Texture2D PaintFloor(WorldMap.Zone z)
@@ -439,11 +479,15 @@ public class GroundPainter
         return Quad(parent, "ground", WorldMap.W2U(GX0 + GW / 2f, GY0 + GH / 2f, 0f), GW, GH, GroundMaterial);
     }
 
+    // 바닥·윤곽·측량 점선은 모두 보이는 사각형(Vis: 넓힌 길만큼 안쪽)으로 그린다
     public static GameObject FloorQuad(Transform parent, WorldMap.Zone z, float hL)
+        => FloorQuadVis(parent, Vis(z), hL);
+    static GameObject FloorQuadVis(Transform parent, WorldMap.Zone z, float hL)
         => Quad(parent, "floor", WorldMap.W2U((z.x0 + z.x1) / 2f, (z.y0 + z.y1) / 2f, hL), z.x1 - z.x0, z.y1 - z.y0, TexMat(PaintFloor(z), false));
 
     public static GameObject DashQuad(Transform parent, WorldMap.Zone z, float hL, bool survey = false)
     {
+        z = Vis(z);
         var go = Quad(parent, survey ? "survey" : "outline", WorldMap.W2U((z.x0 + z.x1) / 2f, (z.y0 + z.y1) / 2f, hL), z.x1 - z.x0 + 12f, z.y1 - z.y0 + 12f, TexMat(survey ? PaintSurvey(z) : PaintDash(z), true));
         go.GetComponent<Renderer>().receiveShadows = false;
         return go;

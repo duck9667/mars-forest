@@ -185,7 +185,8 @@ public static class Items
     // 햇빛을 받아도 블룸 문턱(2.4)에 안 닿게 가장 밝은 모서리도 흰색 1.0 이하
     //  (햇빛·ACES 가 밝은 하늘색을 회백색으로 바래게 해서 몸통은 한 톤 진하게, 흰빛은 깎은 모서리에만)
     public static readonly Color ICE_FACE = GameConfig.Hex("74c8f0"), ICE_CORE = GameConfig.Hex("3f9fdc"), ICE_EDGE = GameConfig.Hex("e2f6ff"),
-        ICE_TOP = GameConfig.Hex("98d8f6"), ICE_TOP_CORE = GameConfig.Hex("5db7e8");
+        ICE_TOP = GameConfig.Hex("98d8f6"), ICE_TOP_CORE = GameConfig.Hex("5db7e8"),
+        ICE_GLINT = GameConfig.Hex("f2fbff");   // 윗면 사선 반사 줄(ToyMesh.Glint)
     static readonly Color BOT_D = GameConfig.Hex("4fb0e6"), BOT = GameConfig.Hex("6fc3f0"), BOT_L = GameConfig.Hex("9ad7f6"), LABEL = GameConfig.Hex("f4f1ea"), BOT_CAP = GameConfig.Hex("2f6fb3");
     static readonly Color O2_D = GameConfig.Hex("d5e2ee"), O2_BAND = GameConfig.Hex("4fb0f0"), O2_VALVE = GameConfig.Hex("7d8894");
     static readonly Color CRATE = GameConfig.Hex("e08a45"), CRATE_D = GameConfig.Hex("b9682f"), CRATE_L = GameConfig.Hex("f0a865"), CRATE_IN = GameConfig.Hex("8a4a22");
@@ -240,7 +241,7 @@ public static class Items
                 m.At(3.4f, y0 + 1.0f, -2f).Blob(new Vector3(2.2f, 1.6f, 2f), 0, 9, 0.2f, REGO_T, REGO_A, REGO_D);
                 return m;
             case "ice":      // 얼음: 깎은 하늘색 덩어리(가운데 진하고 모서리 흰빛)
-                m.At(0, -0.2f, 0).Bevel(new Vector3(9, 4.6f, 7), 0.9f, ICE_FACE, ICE_CORE, ICE_EDGE, ICE_TOP, ICE_TOP_CORE);
+                m.At(0, -0.2f, 0).Bevel(new Vector3(9, 4.6f, 7), 0.9f, ICE_FACE, ICE_CORE, ICE_EDGE, ICE_TOP, ICE_TOP_CORE).Glint(new Vector3(9, 4.6f, 7), ICE_GLINT);
                 return m;
         }
         return m.Box(new Vector3(10, h, 8), ColorOf(kind));
@@ -260,7 +261,7 @@ public static class Items
         switch (kind)
         {
             case "ice":
-                m.At(0, -0.25f, 0).Bevel(new Vector3(17, h - 0.5f, 12.5f), 1.2f, ICE_FACE, ICE_CORE, ICE_EDGE, ICE_TOP, ICE_TOP_CORE);
+                m.At(0, -0.25f, 0).Bevel(new Vector3(17, h - 0.5f, 12.5f), 1.2f, ICE_FACE, ICE_CORE, ICE_EDGE, ICE_TOP, ICE_TOP_CORE).Glint(new Vector3(17, h - 0.5f, 12.5f), ICE_GLINT);
                 return m;
             case "bottle":   // 나무 상자 + 병 6개(뚜껑이 위로)
                 m.At(0, y0 + 1.6f, 0).Bevel(new Vector3(17, 3.2f, 12.5f), 0.6f, CRATE, CRATE_D, CRATE_L, CRATE_IN, CRATE_IN);
