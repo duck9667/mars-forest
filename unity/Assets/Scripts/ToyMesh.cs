@@ -51,17 +51,19 @@ public class ToyMesh
 
     // 매끈한 반 타원 돔(바닥 중심이 원점, 가로 반지름 rx·세로 rz·높이 h). 색은 아래 side → 꼭대기 top
     public ToyMesh Dome(float rx, float rz, float h, Color side, Color top, int sides = 20, int rings = 5)
+        => Dome(rx, rz, h, (i, k) => Color.Lerp(side, top, k / (float)rings), sides, rings);
+    // 정점마다 색을 정하는 돔: col(i 둘레 칸 0..sides, k 위도 칸 0..rings). 둘레 각 = i/sides·360°(0° = 동, 90° = 북), 위도 0 = 바닥 테
+    public ToyMesh Dome(float rx, float rz, float h, System.Func<int, int, Color> col, int sides, int rings)
     {
         var o = Vector3.zero;
         Vector3 Pt(int i, int k) { float p = k * Mathf.PI / 2f / rings, a = i * Mathf.PI * 2f / sides; return new Vector3(Mathf.Cos(a) * Mathf.Cos(p) * rx, Mathf.Sin(p) * h, Mathf.Sin(a) * Mathf.Cos(p) * rz); }
         Vector3 Nm(Vector3 p) => new Vector3(p.x / (rx * rx), p.y / (h * h), p.z / (rz * rz)).normalized;
-        Color Cl(int k) => Color.Lerp(side, top, k / (float)rings);
         for (int k = 0; k < rings; k++)
             for (int i = 0; i < sides; i++)
             {
                 Vector3 a0 = Pt(i, k), a1 = Pt(i + 1, k), b0 = Pt(i, k + 1), b1 = Pt(i + 1, k + 1);
-                if (k < rings - 1) Tri(a0, b0, b1, Cl(k), Cl(k + 1), Cl(k + 1), o, Nm(a0), Nm(b0), Nm(b1));
-                Tri(a0, b1, a1, Cl(k), Cl(k + 1), Cl(k), o, Nm(a0), Nm(b1), Nm(a1));
+                if (k < rings - 1) Tri(a0, b0, b1, col(i, k), col(i, k + 1), col(i + 1, k + 1), o, Nm(a0), Nm(b0), Nm(b1));
+                Tri(a0, b1, a1, col(i, k), col(i + 1, k + 1), col(i + 1, k), o, Nm(a0), Nm(b1), Nm(a1));
             }
         return this;
     }
@@ -129,6 +131,16 @@ public class ToyMesh
         Quad(P(-1, -1, 1), P(1, -1, 1), P(1, 1, 1), P(-1, 1, 1), col, col, col, col, o);
         Quad(P(-1, -1, -1), P(1, -1, -1), P(1, 1, -1), P(-1, 1, -1), col, col, col, col, o);
         return this;
+    }
+
+    // 얼음 윗면 반사 줄(10/26): 방금 놓은 Bevel(같은 At)의 윗면에 사선 흰 줄 둘(굵은 것 + 가는 것)을 살짝 띄워 얹는다.
+    //  불투명 정점 색이라 정렬 깜빡임이 없고, 0.15 띄운 얇은 판이라 외곽선이 생기지 않는다. 투명 껍질 대신 윗면에 빛이 비친 느낌만
+    public ToyMesh Glint(Vector3 size, Color c)
+    {
+        var b0 = xf; float y = size.y / 2f + 0.15f, L = Mathf.Min(size.x, size.z) * 0.62f, w = Mathf.Max(0.5f, size.x * 0.1f);
+        xf = b0 * Matrix4x4.TRS(new Vector3(-size.x * 0.12f, y, size.z * 0.04f), Quaternion.Euler(0, 38, 0), Vector3.one); Box(new Vector3(w, 0.1f, L), c);
+        xf = b0 * Matrix4x4.TRS(new Vector3(size.x * 0.1f, y, -size.z * 0.04f), Quaternion.Euler(0, 38, 0), Vector3.one); Box(new Vector3(w * 0.45f, 0.1f, L * 0.62f), c);
+        xf = b0; return this;
     }
 
     // 모서리를 깎은 상자(가운데가 원점, 깎은 폭 b). 큰 면은 가운데 core → 둘레 face 로 번지는 그라데이션(얼음 속이 진해 보이게),

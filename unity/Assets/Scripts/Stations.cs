@@ -35,7 +35,7 @@ public class Stations : MonoBehaviour
     {
         Color F = Items.ICE_FACE, C = Items.ICE_CORE, E = Items.ICE_EDGE, T = Items.ICE_TOP, TC = Items.ICE_TOP_CORE;
         // 큰 덩어리(살짝 기움) + 앞 오른쪽에 기대 선 중간 덩어리 + 큰 덩어리 위 뒤쪽 조각: 한쪽으로 쏠리게(양옆 대칭이면 소파처럼 보였다)
-        m.At(new Vector3(-1.5f, 5.4f, 0.5f), new Vector3(0, 0, v == 1 ? 3 : -2)).Bevel(new Vector3(19, 10.6f, 14), 1.8f, F, C, E, T, TC);
+        m.At(new Vector3(-1.5f, 5.4f, 0.5f), new Vector3(0, 0, v == 1 ? 3 : -2)).Bevel(new Vector3(19, 10.6f, 14), 1.8f, F, C, E, T, TC).Glint(new Vector3(19, 10.6f, 14), Items.ICE_GLINT);   // 윗면 반사 줄(투명감)
         m.At(new Vector3(9.5f, 4.3f, -6f), new Vector3(-6, 30 + v * 9, -12)).Bevel(new Vector3(10, 8.4f, 8.5f), 1.4f, F, C, E, T, TC);
         m.At(new Vector3(-4.5f, 12.4f, 3f), new Vector3(6, -24 - v * 11, 7)).Bevel(new Vector3(7.5f, 4.4f, 6.5f), 1f, F, C, E, T, TC);
         return m;

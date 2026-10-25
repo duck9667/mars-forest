@@ -34,6 +34,19 @@ public static class StationDress
         var go = ToyMesh.Put(g, name, mesh, LevelLook.GlassMat, local); Prim.NoShadow(go); return go;
     }
 
+    // 유리 돔 하이라이트 양(정점 알파, 0 = 맑은 유리 · 1 = 흰 반사). i 둘레 칸(40칸, 0° 동·90° 북), k 위도 칸(10칸, 0 = 바닥 테)
+    static Color MeltDomeHi(int i, int k)
+    {
+        float a = i * 9f, t = k / 10f;
+        float Bump(float x, float c, float w) => Mathf.Clamp01((1f - Mathf.Abs(x - c) / w) * 1.6f);
+        float Ang(float c) => Mathf.Abs(Mathf.DeltaAngle(a, c));
+        float hi = k == 0 ? 0.65f : k == 1 ? 0.18f : 0f;                                   // 바닥 테
+        hi = Mathf.Max(hi, Bump(Ang(138f), 0f, 38f) * Bump(t, 0.55f, 0.2f));                 // 북서쪽 굽은 반사 줄
+        hi = Mathf.Max(hi, Bump(Ang(80f), 0f, 16f) * Bump(t, 0.82f, 0.14f));                // 그 위 작은 반짝 점
+        hi = Mathf.Max(hi, 0.45f * Bump(Ang(315f), 0f, 34f) * Bump(t, 0.22f, 0.13f));        // 남동쪽 옅은 반사
+        return new Color(1f, 1f, 1f, hi);
+    }
+
     // ═════════════ 해빙기(얼음 → 물) ═════════════
     // 열·녹임의 기계(fb2): 숯빛 화로(앞면 주황 불꽃 창 + 굵은 창살) 위 넓은 호퍼에 얼음 4×3, 일하면 김이 피어오르고 동쪽 주둥이 물줄기가 둥근 수조에 고인다.
     //  기본: 주황·빨강 호퍼 테 · 굴뚝 하나 · 불꽃 창
@@ -153,7 +166,9 @@ public static class StationDress
         a.AddLiquid(liq2.transform);
         MachineKit.Knob(g, FX - 21, FY - 12, TOP + WALL + 1.8f, MachineKit.HEAT, a);
         // 고급: 호퍼를 덮는 낮은 유리 돔(금 윗테 위). 유리는 깊이를 안 써서 안의 얼음·날아드는 얼음이 그대로 보인다
-        var dome = GlassPart(g, "glassDome", ToyMesh.Cached("meltDome", m => m.Dome(27.5f, 18.5f, 12f, Color.white, Color.white, 28, 7)), MachineKit.L(FX, FY, TOP + WALL + 2.4f));
+        //  위에서 보면 프레넬 테가 거의 안 생겨 돔이 사라졌다(10/26) → 바닥 테 + 북서쪽 굽은 반사 줄 + 작은 반짝 점 + 남동쪽 옅은 반사를 정점 알파로 굽는다(GlassHiMat)
+        var dome = ToyMesh.Put(g, "glassDome", ToyMesh.Cached("meltDomeHi", m => m.Dome(27.5f, 18.5f, 12f, MeltDomeHi, 40, 10)), LevelLook.GlassHiMat, MachineKit.L(FX, FY, TOP + WALL + 2.4f));
+        Prim.NoShadow(dome);
         var look = new TierLook { squashRoot = st.melterView };
         look.Swap(body, MeltBody).Swap(parts, MeltParts, null, true).Part(dome, 2).Part(liq2, 2);
         look.onTier = (t, anim) =>
@@ -372,12 +387,20 @@ public static class StationDress
         var g = MachineKit.Group(st.counterView, c, CW, CD, false);
         var body = Holder(g, "counterBody"); var parts = Holder(g, "counterParts");
         // 유리 진열 벽(고급): 뒤쪽 + 양 끝(앞은 손님 쪽이라 열어 둔다). 두께 있는 유리판
-        var glass = ToyMesh.Put(g, "counterGlass", ToyMesh.Cached("counterGlass", m =>
+        //  위에서는 판이 옆으로 서서 거의 안 보였다(10/26) → 윗면 흰 테 + 옆면 위쪽으로 번지는 옅은 빛 + 뒤 벽 앞면 사선 반사 줄 쌍을 정점 알파로 굽는다
+        var glass = ToyMesh.Put(g, "counterGlass", ToyMesh.Cached("counterGlassHi", m =>
         {
             float ex = CW / 2 - 1.5f, ey = CD / 2 - 1.5f;
-            m.AtM(0, -ey, SHELF_TOP + 4.8f).RBox(new Vector3(CW - 3, 9.6f, 1.6f), 0.6f, Color.white);
-            m.AtM(-ex, 0, SHELF_TOP + 4.8f).RBox(new Vector3(1.6f, 9.6f, CD - 3), 0.6f, Color.white);
-            m.AtM(ex, 0, SHELF_TOP + 4.8f).RBox(new Vector3(1.6f, 9.6f, CD - 3), 0.6f, Color.white);
+            Color clear = new Color(1f, 1f, 1f, 0f), glow = new Color(1f, 1f, 1f, 0.4f), rim = new Color(1f, 1f, 1f, 1f);
+            m.AtM(0, -ey, SHELF_TOP + 4.8f).RBox(new Vector3(CW - 3, 9.6f, 1.6f), 0.6f, clear, rim, glow);
+            m.AtM(-ex, 0, SHELF_TOP + 4.8f).RBox(new Vector3(1.6f, 9.6f, CD - 3), 0.6f, clear, rim, glow);
+            m.AtM(ex, 0, SHELF_TOP + 4.8f).RBox(new Vector3(1.6f, 9.6f, CD - 3), 0.6f, clear, rim, glow);
+            // 사선 반사 줄(굵은 것 + 가는 것): 뒤 벽 앞면(손님 쪽)에 살짝 띄워 같은 메시 뒤에 그린다(정렬 고정)
+            foreach (float x in new[] { -78f, -6f, 66f })
+            {
+                m.At(new Vector3(x, SHELF_TOP + 4.8f, ey - 1.0f), new Vector3(0, 0, -32)).Box(new Vector3(1.8f, 7f, 0.25f), new Color(1f, 1f, 1f, 0.75f));
+                m.At(new Vector3(x + 3.4f, SHELF_TOP + 5.2f, ey - 1.0f), new Vector3(0, 0, -32)).Box(new Vector3(0.7f, 5f, 0.25f), new Color(1f, 1f, 1f, 0.6f));
+            }
             return m;
         }), CounterGlassMat, Vector3.zero);
         Prim.NoShadow(glass);
@@ -393,7 +416,17 @@ public static class StationDress
     }
     // 진열장 유리판: 평평한 판은 가장자리 테가 잘 안 생겨 가운데를 조금 더 하늘빛으로(휴게 돔 유리보다 진하게)
     static Material _cGlass;
-    static Material CounterGlassMat => _cGlass != null ? _cGlass : (_cGlass = Mats.Glass(new Color(0.84f, 0.94f, 1f, 0.2f), new Color(0.9f, 0.97f, 1f, 0.7f), 2f, 0.8f, 120f));
+    static Material CounterGlassMat
+    {
+        get
+        {
+            if (_cGlass != null) return _cGlass;
+            // 크림 바닥 위에선 흰 유리가 묻혀 몸통을 한 톤 하늘빛으로(가운데 알파 0.2 → 0.42), 흰 테·반사 줄이 그 위에서 읽힌다
+            _cGlass = Mats.Glass(new Color(0.66f, 0.85f, 1f, 0.42f), new Color(0.8f, 0.92f, 1f, 0.8f), 2f, 0.8f, 120f);
+            _cGlass.SetFloat("_VHi", 1f); _cGlass.SetColor("_HiColor", new Color(1f, 1f, 1f, 0.85f));   // 구운 윗면 테·반사 줄
+            return _cGlass;
+        }
+    }
     // 칸 표지(물 하늘·산소 흰빛·식량 밀색): 기본 각진 판 / 개량 둥근 판 / 고급 둥근 판 + 금 테. 두께 0.7(물건 앵커가 그 위)
     public static Mesh ShelfMarkMesh(int t, Color col, float w, float d) => ToyMesh.Cached("shelfMark" + t + col + w, m =>
     {
