@@ -140,7 +140,7 @@ public class Frontier : MonoBehaviour
     void Tax()
     {
         int n = S.pop * TaxEach; if (n <= 0) return;
-        G.AddBells(n);   // 즉시 가산, 동전은 연출
+        G.AddBells(n, "tax");   // 즉시 가산, 동전은 연출
         var cam = Camera.main; Vector3 from = WorldMap.W2U(SPINE_X, -490, 2);
         JuiceFX.I.CoinPop(from, 5);
         if (cam != null && HUD.I != null)

@@ -516,7 +516,7 @@ public class MarsEvents : MonoBehaviour
 
     void GiveBells(int n, Vector3 from)
     {
-        G.AddBells(n);   // 즉시 가산, 동전은 연출
+        G.AddBells(n, "event");   // 즉시 가산, 동전은 연출
         JuiceFX.I.CoinPop(from, 6);
         var cam = Camera.main;
         if (cam != null && HUD.I != null) HUD.I.Coins(cam.WorldToScreenPoint(from), () => HUD.I.BellsScreen(), 5);

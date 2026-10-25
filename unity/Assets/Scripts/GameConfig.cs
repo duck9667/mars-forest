@@ -45,7 +45,8 @@ public static class GameConfig
     public const int RUNNER_CAP = 8;
     public const float RUNNER_LOAD_T = 0.18f, RUNNER_UNLOAD_T = 0.15f, RUNNER_DEPART_T = 1.5f;
     public const float DRILL_PERIOD = 2.0f, DRILL_GAP = 0.15f, DRILL_FLY_T = 0.9f, DRILL_LIFT = 140f;
-    public const int MELT_CAP = 40;   // 드릴에만 적용
+    public const int WATER_FULL = 400;   // 물탱크가 이만큼(물통 40개분) 차 있으면 플레이어는 얼음을 더 줍지 않는다
+    public const int MELT_CAP = 40;   // 해빙기 큐 상한: 드릴은 이 아래일 때만 쏘고, 플레이어도 이 이상이면 지나가다 얼음을 줍지 않는다(페이싱 점검 10/25)
 
     // 발판 납입 (§3.2)
     public const float PAD_MIN_TAKE = 3f, PAD_RATE = 0.6f, PAD_COIN_GAP = 0.05f;
@@ -108,7 +109,7 @@ public static class Pads
     {
         new PadDef{ id="hand",    name="손 크기",      icon="✋", pos=new Vector2(60,452),  cost=l=>40f*Mathf.Pow(1.75f,l),  max=6, req=g=>true, reqText="", menu=true, active=true },
         new PadDef{ id="spd",     name="이동 속도",    icon="👟", pos=new Vector2(200,452), cost=l=>60f*Mathf.Pow(1.8f,l),   max=5, req=g=>true, reqText="", menu=true, active=true },
-        new PadDef{ id="price",   name="프리미엄 라벨", icon="🏷", pos=new Vector2(134,598), cost=l=>200f*Mathf.Pow(1.9f,l),  max=5, req=g=>g.S.sold>=10, reqText="판매 10", menu=true, active=true },
+        new PadDef{ id="price",   name="프리미엄 라벨", icon="🏷", pos=new Vector2(134,598), cost=l=>300f*Mathf.Pow(2f,l),  max=5, req=g=>g.S.sold>=10, reqText="판매 10", menu=true, active=true },
         new PadDef{ id="cashier", name="삐걱 고용",    icon="🤖", pos=new Vector2(360,598), cost=l=>150f,                   max=1, req=g=>g.S.sold>=3, reqText="판매 3", active=true },
         new PadDef{ id="bottler", name="병입기 속도",  icon="🧴", pos=new Vector2(290,372), cost=l=>80f*Mathf.Pow(1.7f,l),   max=6, req=g=>g.S.sold>=3, reqText="판매 3", active=true },
         new PadDef{ id="melter",  name="해빙기 속도",  icon="❄", pos=new Vector2(290,192), cost=l=>70f*Mathf.Pow(1.7f,l),   max=6, req=g=>g.PadLv("ice2")>=1, reqText="얼음밭 확장", active=true },
@@ -128,17 +129,19 @@ public static class Pads
         new PadDef{ id="mine",    name="레골리스 채굴장", icon="⛏", pos=new Vector2(52,28),   cost=l=>500f,  max=1, req=g=>g.PadLv("o2")>=1, reqText="전기분해기", zone=true, active=true },
         new PadDef{ id="soil",    name="토양 공장",     icon="🪴", pos=new Vector2(282,-20), cost=l=>700f,  max=1, req=g=>g.PadLv("mine")>=1, reqText="채굴장", zone=true, active=true },
         // ---- 2장 정착지 확장 (docs/chapter2-design.md) ----
-        new PadDef{ id="solar",   name="태양광 단지",   icon="☀", pos=new Vector2(214,-395), cost=l=>1200f, max=1, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", zone=true, active=true },
-        new PadDef{ id="hab",     name="거주 구역",     icon="🏠", pos=new Vector2(60,-395),  cost=l=>1500f, max=1, req=g=>g.PadLv("farm")>=1, reqText="온실", zone=true, active=true },
-        new PadDef{ id="hq",      name="기지 본부",     icon="🏛", pos=new Vector2(270,966),  cost=l=>300f*Mathf.Pow(2.2f,l), max=5, req=g=>g.S.stage>g.PadLv("hq"), reqText="정착 단계", active=true },   // 발판은 본부 터(HQSystem.POS) 서쪽, 착륙장 원 북동쪽
+        new PadDef{ id="solar",   name="태양광 단지",   icon="☀", pos=new Vector2(214,-395), cost=l=>6000f, max=1, req=g=>g.PadLv("soil")>=1 && g.S.stage>=5, reqText="1장 생존 완료", zone=true, active=true },
+        new PadDef{ id="hab",     name="거주 구역",     icon="🏠", pos=new Vector2(60,-395),  cost=l=>10000f, max=1, req=g=>g.PadLv("farm")>=1 && g.S.stage>=6, reqText="전력 확보", zone=true, active=true },
+        new PadDef{ id="hq",      name="기지 본부",     icon="🏛", pos=new Vector2(270,966),  cost=l=>4000f*Mathf.Pow(2f,l), max=5, req=g=>g.S.stage>=g.PadLv("hq")+5, reqText="2장 다음 단계", active=true },   // 2장 단계마다 한 레벨(Lv1 = 1장 끝, Lv3 = 6·7단계 뒤 → 8단계 조건, Lv5 = 9단계 뒤 → 10단계 조건)   // 발판은 본부 터(HQSystem.POS) 서쪽, 착륙장 원 북동쪽
         new PadDef{ id="farm",    name="온실",         icon="🥔", pos=new Vector2(214,-110), cost=l=>1000f, max=1, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", zone=true, active=true },
     };
 
     // §3.1 노출 순서. n번째 등장 = 그 id의 Lv n 차례.
     public static readonly string[] ORDER =
     {
-        "cashier","bottler","ice2","melter","hq","o2","shelf","runner","ads","bottler","mine","melter","hq","soil","ads","drill","farm","pen","hq","shelf","dome","solar","hab","hq",
-        "runspd","bottler","melter","runner2","ads","shelf","runspd","bottler","melter","runspd","ads","bottler","melter","runspd","shelf","hq"
+        // 1장: 물(삐걱·병입기·얼음밭·해빙기) → 산소(전기분해기) → 가게 손(선반·뽀삐·간판) → 흙·비료(채굴장·토양 공장) → 식량(온실) → 쉼터(우리·돔)
+        "cashier","bottler","ice2","melter","o2","shelf","runner","ads","bottler","mine","melter","soil","farm","ads","drill","pen","shelf","dome",
+        // 2장(태양광·거주 구역·본부는 정착 단계로 잠겨 있다가 열림): 전력 → 본부 → 거주 → 본부 …
+        "solar","hq","hab","hq","runspd","bottler","melter","hq","runner2","ads","shelf","runspd","bottler","melter","hq","runspd","ads","bottler","melter","runspd","shelf","hq"
     };
 
     static Dictionary<string, PadDef> _byId;

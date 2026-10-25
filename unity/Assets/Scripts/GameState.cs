@@ -63,7 +63,7 @@ public class GameState : MonoBehaviour
     // ---- 파생값 (§1.2) ----
     public int CarryMax => GameConfig.CARRY[Mathf.Min(6, PadLv("hand"))] + 3 * Mathf.Min(2, S.prestige) + HQSystem.CarryBonus(this);   // 본부 Lv1 +4
     public int ShelfCap => 8 + PadLv("shelf") * 7;
-    public int BottlePrice => Mathf.FloorToInt((12 + PadLv("price") * 6) * Mathf.Pow(1.5f, S.prestige) * HQSystem.PriceMul(this) + 0.5f);   // 본부 Lv2 ×1.1
+    public int BottlePrice => Mathf.FloorToInt((12 + PadLv("price") * 4) * Mathf.Pow(1.5f, S.prestige) * HQSystem.PriceMul(this) + 0.5f);   // 본부 Lv2 ×1.1
     public float MeltTime => 1.6f / (1 + PadLv("melter") * 0.35f) / MachineSpeedMul;
     public float BottleTime => 1.6f / (1 + PadLv("bottler") * 0.35f) / MachineSpeedMul;
     // 정착민 도착 간격: 본부 Lv3 ×0.9 · 거주 구역 인구만큼 조금 더 줄어듦
@@ -75,11 +75,26 @@ public class GameState : MonoBehaviour
 
     public int Carry => S.p.carry.Count;
     public string CarryTop => S.p.carry.Count == 0 ? "" : S.p.carry[S.p.carry.Count - 1];
+    // 얼음을 더 주울 이유가 있나: 해빙기 큐가 상한(MELT_CAP) 아래이고 물탱크가 넉넉하지 않을 때(WATER_FULL). 아니면 얼음밭을 지나가도 줍지 않는다(Player 1번)
+    public static bool IceWanted(SaveData s) => s.meltQ < GameConfig.MELT_CAP && s.water < GameConfig.WATER_FULL;
+    // 물통을 둘 곳이 있나: 카운터 물 칸에 자리가 있거나, 전기분해기가 열려 있고 큐·출력에 자리가 있을 때. 둘 다 가득이면 병입기를 지나가도 병을 집지 않는다(Player 3번)
+    public bool BottleHasPlace
+    {
+        get
+        {
+            if (S.shelf + shelfPend < ShelfCap) return true;
+            var ss = SettleStations.I;
+            return ss != null && ss.Open(0) && S.elecQ + ss.qPend[0] < GameConfig.SETTLE_Q_CAP / 2 && S.elecOut < GameConfig.SETTLE_OUT_CAP;
+        }
+    }
     public bool CanCarry(string kind) => Carry + pend < CarryMax && (Carry == 0 || CarryTop == kind) && (pend == 0 || pendK == kind);
 
-    public void AddBells(float n)
+    // 수입 출처별 누계(페이싱 점검용, 저장 안 함): src = sales·mission·stage·quest·tax·subsidy·event·pen 등, 없으면 etc(돔 팁 등)
+    public static readonly Dictionary<string, float> Income = new Dictionary<string, float>();
+    public void AddBells(float n, string src = null)
     {
         S.bells += n;
+        if (n > 0) { var k = src ?? "etc"; Income[k] = (Income.TryGetValue(k, out var v) ? v : 0f) + n; }
         OnBellsChanged?.Invoke();
     }
     public void NotifySold() { OnSold?.Invoke(); }

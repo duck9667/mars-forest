@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // 2장 C 미션 보드(docs/chapter2-design.md): 화성 하루(DayNight 300초)마다 미션 3개를 발급한다(S.missions, S.missionDay = S.day).
-//  · 종류 풀(열린 시설만): 물·산소·식량 공급 n, 얼음 n개 줍기, 레골리스 n개 캐기, 비료 n개 만들기, 정착민 n명, 벨 n 벌기, VIP n명, 업그레이드 n번.
+//  · 종류 풀(열린 시설만): 물·산소·식량 공급 n, 얼음 n개 줍기(드릴 전만), 레골리스 n개 캐기, 비료 n개 만들기, 정착민 n명, 벨 n 벌기, VIP n명, 업그레이드 n번(살 레벨이 4 이상 남았을 때만).
 //    네 묶음(공급·채집·손님·살림)에서 서로 다른 묶음 셋을 골라 하루가 한쪽으로 쏠리지 않게 한다.
 //  · 목표 수치는 진행도(열린 발판 수/3 + 정착 단계, 0~8)에 맞춰 하루 안에 할 만큼(QA 봇 기준 하루의 1/3~2/3), 보상 벨 = 목표 × 종류별 무게 × 병값(벨 벌기는 목표 × 0.12).
 //  · S.missions[3]은 보너스 상자(id "bonus", goal 3, prog = 끝낸 미션 수, reward = 세 미션 보상 합의 절반).
@@ -36,19 +36,21 @@ public class MissionBoard : MonoBehaviour
     {
         // 공급(정착민에게 결제로 건넨 개수)
         new Kind{ id="water", group="supply", icon="bottle", unit=0.6f, goal=t=>R5(20+6*t), open=g=>true,                 name=n=>"물 "+n+" 공급" },
-        new Kind{ id="o2",    group="supply", icon="o2",     unit=0.9f, goal=t=>R5(12+4*t), open=g=>g.KindOpen("o2"),     name=n=>"산소 "+n+" 공급" },
+        new Kind{ id="o2",    group="supply", icon="o2",     unit=0.9f, goal=t=>R5(10+3*t), open=g=>g.KindOpen("o2"),     name=n=>"산소 "+n+" 공급" },
         new Kind{ id="food",  group="supply", icon="food",   unit=1.4f, goal=t=>6+2*t,      open=g=>g.KindOpen("food"),   name=n=>"식량 "+n+" 공급" },
         // 채집·생산
-        new Kind{ id="ice",   group="gather", icon="ice",    unit=0.25f, goal=t=>R5(50+15*t), open=g=>true,                                                         name=n=>"얼음 "+n+"개 줍기" },
-        new Kind{ id="rego",  group="gather", icon="rego",   unit=0.3f,  goal=t=>R5(30+8*t),  open=g=>SettleStations.I != null && SettleStations.I.MineOpen && SettleStations.I.Open(1), name=n=>"레골리스 "+n+"개 캐기" },
+        new Kind{ id="ice",   group="gather", icon="ice",    unit=0.25f, goal=t=>R5(50+15*t), open=g=>g.PadLv("drill")==0,                                                         name=n=>"얼음 "+n+"개 줍기" },
+        new Kind{ id="rego",  group="gather", icon="rego",   unit=0.3f,  goal=t=>R5(30+5*t),  open=g=>SettleStations.I != null && SettleStations.I.MineOpen && SettleStations.I.Open(1), name=n=>"레골리스 "+n+"개 캐기" },
         new Kind{ id="fert",  group="gather", icon="fert",   unit=0.8f,  goal=t=>8+2*t,       open=g=>SettleStations.I != null && SettleStations.I.Open(2),          name=n=>"비료 "+n+"개 만들기" },
         // 손님
         new Kind{ id="cust",  group="people", icon="heart",  unit=0.8f, goal=t=>R5(15+5*t), open=g=>true,                              name=n=>"정착민 "+n+"명 받기" },
         new Kind{ id="vip",   group="people", icon="crown",  unit=4f,   goal=t=>1+t/3,      open=g=>g.S.sold >= 40,                    name=n=>"VIP "+n+"명 받기" },
         // 살림
         new Kind{ id="bell",  group="econ",   icon="bell",   unit=0.12f, goal=t=>R50(GameState.I.BottlePrice*(60+20*t)), open=g=>true, name=n=>"벨 "+n.ToString("N0")+" 벌기" },
-        new Kind{ id="up",    group="econ",   icon="up",     unit=3f,    goal=t=>2+t/4,      open=g=>true,                             name=n=>"업그레이드 "+n+"번" },
+        new Kind{ id="up",    group="econ",   icon="up",     unit=3f,    goal=t=>2+t/4,      open=g=>UpsLeft(g)>=4,                             name=n=>"업그레이드 "+n+"번" },
     };
+    // 아직 살 수 있는 업그레이드 레벨 수(발판·시트 스탯, 지금 조건이 열린 것만). 다 사 버렸으면 "업그레이드 n번" 미션은 낼 수 없다
+    static int UpsLeft(GameState g) { int n = 0; foreach (var d in Pads.ALL) if (d.active && g.PadReq(d.id)) n += Mathf.Max(0, d.max - g.PadLv(d.id)); return n; }
     static readonly string[] GROUPS = { "supply", "gather", "people", "econ" };
     static Kind Def(string id) { foreach (var k in KINDS) if (k.id == id) return k; return null; }
 
@@ -154,7 +156,7 @@ public class MissionBoard : MonoBehaviour
         return true;
     }
 
-    void Grant(int bells) { granting = true; G.AddBells(bells); granting = false; lastBells = S.bells; }
+    void Grant(int bells) { granting = true; G.AddBells(bells, "mission"); granting = false; lastBells = S.bells; }
     void Changed() { OnChanged?.Invoke(); HUD.I?.Refresh(); }
 
     // ───────────────────────── 발급 ─────────────────────────
