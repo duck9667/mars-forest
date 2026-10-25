@@ -136,7 +136,7 @@ public class SettlementManager : MonoBehaviour
         if (Settled || PrestigeManager.I != null && PrestigeManager.I.Busy) return;
         if (!StageMet(Stage)) { holdT = 0; return; }
         // 보류: 걷는 중·아이템 비행 중·목표 상자 팝(QuestManager) 중 — 최대 3초
-        bool busy = (Player.I != null && Player.I.walking) || (ArcFlyer.I != null && ArcFlyer.I.Active > 0) || (HUD.I != null && HUD.I.transform.Find("chest") != null);
+        bool busy = (Player.I != null && Player.I.walking) || (ArcFlyer.I != null && ArcFlyer.I.Active > 0) || (HUD.I != null && SafeArea.Find(HUD.I.transform, "chest") != null);
         if (busy && holdT < 3f) { holdT += 0.3f; return; }
         holdT = 0;
         Complete(Stage);

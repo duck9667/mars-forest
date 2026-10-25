@@ -208,7 +208,7 @@ public class StoryManager : MonoBehaviour
         }
         bool busy = Busy();
         // 엔딩 컷: 카드가 없고 화면이 한가할 때 맨 먼저
-        if (endingPending && !busy && card == null && Time.unscaledTime >= endingAt && HUD.I.transform.Find("chest") == null) { endingPending = false; ShowEnding(); return; }   // 목표 상자 팝(QuestManager)과도 겹치지 않게
+        if (endingPending && !busy && card == null && Time.unscaledTime >= endingAt && SafeArea.Find(HUD.I.transform, "chest") == null) { endingPending = false; ShowEnding(); return; }   // 목표 상자 팝(QuestManager)과도 겹치지 않게
         if (card != null)
         {
             cardT += Time.unscaledDeltaTime;
