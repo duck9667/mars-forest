@@ -37,7 +37,7 @@ public class PostFX : MonoBehaviour
 
     [Header("블룸")]
     public float bloomIntensity = 0.5f;
-    public float bloomThreshold = 1.3f;   // 낮의 햇빛 받는 크림색 바닥(≈1.26)은 걸리지 않고 발광(≥1.6)만
+    public float bloomThreshold = 2.4f;   // 햇빛 받은 얼음·흰 기계(≈1.3~2)가 흰 덩어리로 번쩍이던 문제(jake 10/26 "흰색 깜빡임") → 밤 발광만
     public float bloomKnee = 0.4f;
 
     [Header("그림자")]
@@ -157,7 +157,8 @@ public class PostFX : MonoBehaviour
     {
         QualitySettings.shadows = ShadowQuality.All;
         QualitySettings.shadowCascades = 1;                       // 직교 카메라는 캐스케이드가 의미 없고 단일 맵이 텍셀 밀도가 높다
-        QualitySettings.shadowProjection = ShadowProjection.CloseFit;
+        QualitySettings.shadowProjection = ShadowProjection.StableFit;   // CloseFit은 카메라가 움직일 때 그림자 가장자리가 지글거렸다(jake 10/26 "확대하면 지지직")
+        QualitySettings.antiAliasing = 4;
         QualitySettings.shadowDistance = shadowDistance;          // 카메라 거리 90 ± 보이는 깊이 ~16 + 화면 밖 긴 그림자 여유
         QualitySettings.shadowResolution = shadowRes;
         QualitySettings.shadowNearPlaneOffset = 2f;

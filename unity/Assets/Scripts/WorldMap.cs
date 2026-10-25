@@ -118,11 +118,13 @@ public static class WorldMap
     const float GATE_POST = 4f;     // 게이트 굵은 기둥(7) 몫만큼 틈을 좁힌다
 
     // 열린 구역의 울타리 변(게이트 틈 제외) 선분 충돌. 줄 난간(qL/qR)은 충돌 없음
+    // 울타리가 있는 구역(토끼가 사는 우리만). 나머지 구역은 바닥 색으로만 나뉘고 자유롭게 드나든다(jake 10/26 "울타리 경계가 애매")
+    public static readonly HashSet<string> FENCED = new HashSet<string> { "pen" };
     static bool FenceBlocked(float x, float y)
     {
         foreach (var z in ZONES)
         {
-            if (!openZones.Contains(z.key)) continue;
+            if (!openZones.Contains(z.key) || !FENCED.Contains(z.key)) continue;
             if (x < z.x0 - FENCE_HW || x > z.x1 + FENCE_HW || y < z.y0 - FENCE_HW || y > z.y1 + FENCE_HW) continue;
             foreach (char side in z.sides)
             {

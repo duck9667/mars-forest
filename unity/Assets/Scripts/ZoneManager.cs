@@ -93,7 +93,7 @@ public class ZoneManager : MonoBehaviour
         // 바닥: 코드로 그린 텍스처 판(색 면 + 타일 명암 + 점선 테두리, GroundPainter.PaintFloor). 접지 그림자(0.01m)보다 낮게 0.1
         v.floor = GroundPainter.FloorQuad(v.root, z, 0.1f).transform;
         v.fence = new GameObject("fence").transform; v.fence.SetParent(v.root, false);
-        BuildFence(v); Corners(v);
+        if (WorldMap.FENCED.Contains(z.key)) { BuildFence(v); Corners(v); }   // 울타리는 우리만
         v.open = z.open || (z.pad != null && G.PadLv(z.pad) >= 1);
         WorldMap.SetZoneOpen(z.key, v.open);
         if (!v.open)

@@ -25,7 +25,6 @@ public static class WorldDress
         new GameObject("HQ").AddComponent<HQSystem>();
         // 착륙장 옆 로버 (원본 573행: mdl('rover',64,SK(orange,dark)), rotation.y=-2.3, at(344,990)) → 본부 터 자리라 터 남서쪽 모서리 밖(놀이 경계 밖)으로
         ModelLib.Put(worldRoot, "rover", 64, 64, 64, 274 - 200, 0, 1052 - 520, -2.3f, ModelLib.SK(ModelLib.COL.orange, ModelLib.COL.dark));
-        Dish(worldRoot);
         Barrels(worldRoot);
         NorthPipe(worldRoot);
     }
