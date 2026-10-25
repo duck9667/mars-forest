@@ -9,7 +9,7 @@ using UnityEngine.UI;
 //   / 4 첫 수확: 온실·식량 공급 20 → 1,000벨 / 5 생존 완료: 정착민 60·물 200·산소 100·식량 100 누적 → 1,200벨(1장 끝, 2장 시작 무전)
 //  2장 마을(6~10): 6 전력 확보: 태양광 단지·전력으로 기계 가동 180초 → 1,500벨 / 7 첫 이웃: 거주 구역·인구 10 → 2,000벨
 //   / 8 기지 정비: 본부 Lv3·산소 누적 250 → 3,000벨 / 9 자급 마을: 인구 24·하루 미션 누적 완료 MISSION_GOAL개(8단계 뒤) → 4,000벨
-//   / 10 화성 마을 선포: 본부 Lv5·주택 증축(인구 상한 40)·인구 40·물 2,300·산소 600·식량 400 누적 → 큰 축하(약한 번쩍임) + 엔딩 무전(StoryManager.QueueEnding)
+//   / 10 화성 마을 선포: 본부 Lv5·주택 증축(인구 상한 40)·인구 40·물 2,000·산소 600·식량 400 누적 → 큰 축하(약한 번쩍임) + 엔딩 무전(StoryManager.QueueEnding)
 //  (수치는 페이싱 점검 10/25 · 밸런스 10/25, docs/pacing-report.md: 시설 속도 업그레이드 뒤 2장이 봇 25~32분으로 짧아져 9·10단계를 늘림)
 // 공급 누계(S.supW/supO/supF)는 결제 때 GameState.NotifySupplied가, 비료 누계(S.fertMade)는 배합기가, 인구(S.pop)는 Frontier가 올린다.
 // 2장 전용 누계 두 개는 여기서 센다: S.powerRun(2장에 들어선 뒤 S.stage ≥ 5, 태양광 전력이 들어오는 동안 기계 하나라도 일한 초),
@@ -92,7 +92,7 @@ public class SettlementManager : MonoBehaviour
             case 6: l.Add(Bin("거주 구역 열기", G.PadLv("hab") >= 1)); l.Add(Cnt("인구", S.pop, 10)); break;
             case 7: l.Add(Cnt("본부 레벨", G.PadLv("hq"), 3)); l.Add(Cnt("산소 누적", S.supO, 250)); break;
             case 8: l.Add(Cnt("인구", S.pop, 24)); l.Add(Cnt("하루 미션 완료", S.missionAll, MISSION_GOAL)); break;
-            case 9: l.Add(Cnt("본부 레벨", G.PadLv("hq"), 5)); l.Add(Bin("주택 증축", G.PadLv("habx") >= 1)); l.Add(Cnt("인구", S.pop, 40)); l.Add(Cnt("물 누적", S.supW, 2300)); l.Add(Cnt("산소 누적", S.supO, 600)); l.Add(Cnt("식량 누적", S.supF, 400)); break;
+            case 9: l.Add(Cnt("본부 레벨", G.PadLv("hq"), 5)); l.Add(Bin("주택 증축", G.PadLv("habx") >= 1)); l.Add(Cnt("인구", S.pop, 40)); l.Add(Cnt("물 누적", S.supW, 2000)); l.Add(Cnt("산소 누적", S.supO, 600)); l.Add(Cnt("식량 누적", S.supF, 400)); break;
         }
         return l;
     }
