@@ -41,6 +41,7 @@ public static class LevelLook
             // 밝은 호퍼 위에선 흰 유리가 묻혀 몸통을 옅은 하늘빛으로(가운데 알파 0.05 → 0.26), 흰 테·반사 줄이 그 위에서 읽힌다
             _glassHi = Mats.Glass(new Color(0.66f, 0.85f, 1f, 0.26f), new Color(0.74f, 0.89f, 1f, 0.7f), 2.4f, 0.7f, 160f);
             _glassHi.SetFloat("_VHi", 1f); _glassHi.SetColor("_HiColor", new Color(1f, 1f, 1f, 0.92f));
+            _glassHi.SetFloat("_RimAdd", 0.75f); _glassHi.SetFloat("_RimPow", 1f);   // 가장자리 밝힘(r6): 돔 둘레가 흰 하늘빛 테로 읽힌다
             return _glassHi;
         }
     }

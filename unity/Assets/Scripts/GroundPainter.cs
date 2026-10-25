@@ -398,7 +398,7 @@ public class GroundPainter
     public static Texture2D PaintFloor(WorldMap.Zone z)
     {
         float w = z.x1 - z.x0, h = z.y1 - z.y0;
-        bool ice = z.key.StartsWith("ice"), shop = z.key == "shop" || ice || z.key == "melt" || z.key == "bottle" || z.key == "pen";   // 기지 안(얼음밭·해빙·병입·상점·우리)은 크림 타일, 개척지(북쪽)·돔은 맨땅 — 목표 그림 target_base_v1·target_north_v1·target_south_v1(우리 바닥 타일)에 맞춤
+        bool ice = z.key.StartsWith("ice"), shop = z.key == "shop" || ice || z.key == "melt" || z.key == "bottle" || z.key == "pen";   // 기지 안(얼음밭·해빙·병입·상점)은 길과 다른 포장 바닥(PaintPaved), 우리는 크림 타일, 개척지(북쪽)·돔은 맨땅 — 목표 그림 target_north_v1·target_south_v1(우리 바닥 타일)
         if (!shop)
         {   // 목표 그림(docs/art/target_north_v1.png): 구역 안은 타일 없이 땅보다 한 톤 밝은 맨땅, 경계는 연석이 맡는다
             var g = new GroundPainter(0f, 0f, w, h, 2f, 31 + z.key.Length * 7 + (int)z.x0, ZONE_GROUND);
@@ -409,6 +409,7 @@ public class GroundPainter
             if (walks != null) foreach (var r in walks) g.TilePath(r.x - z.x0, r.y - z.y0, r.width, r.height, 12f);
             return g.ToTexture(false);
         }
+        if (z.key != "pen") return PaintPaved(z, w, h);
         var p = new GroundPainter(0f, 0f, w, h, 2f, 31 + z.key.Length * 7 + (int)z.x0, PATH_TILE);
         const float ts = 26f;
         p.Cells(ts, 0.05f, Color.white, Color.black, 0f, 0f, w, h);
@@ -419,6 +420,71 @@ public class GroundPainter
         p.EdgeShade(14f, 0.12f, C(40, 15, 5));
         p.Polyline(RoundRectPath(1.5f, 1.5f, w - 3f, h - 3f, 2f, 2), 3f, Color.black, 0.16f, true);
         return p.ToTexture(false);
+    }
+
+    // ---- 기지 안 구역 바닥(r6): 구역 바닥도 크림 타일이라 넓힌 크림 길이 바닥 테두리로만 구분됐다 → 구역마다 길과 다른 재질·톤으로.
+    //      얼음밭 = 옅은 하늘빛 회색 큰 타일(40), 해빙·병입 = 연회색 콘크리트 판(48), 상점 = 따뜻한 나무 바닥(카운터 몸통 d9b38a보다 한 톤 진하게).
+    //      둘레엔 낮은 둥근 경계 줄(밝은 모래 띠 + 윗면 빛 + 안쪽 그늘)을 바닥 그림으로만 그린다(입체 연석·충돌 없음). 잔무늬 없이 판 명암·줄눈만
+    public static readonly Color ICE_FLOOR = GameConfig.Hex("d2dce0"), SLAB_FLOOR = GameConfig.Hex("d0cbc3"), WOOD_FLOOR = GameConfig.Hex("cc9c6c"), CURB_LINE = GameConfig.Hex("e2bf98");
+    const float CURB_W = 5f, CURB_R = 7f;   // 경계 줄 폭·안쪽 모서리 반지름(논리)
+
+    static Texture2D PaintPaved(WorldMap.Zone z, float w, float h)
+    {
+        bool ice = z.key.StartsWith("ice"), shop = z.key == "shop";
+        var p = new GroundPainter(0f, 0f, w, h, 2f, 31 + z.key.Length * 7 + (int)z.x0, ice ? ICE_FLOOR : shop ? WOOD_FLOOR : SLAB_FLOOR);
+        const float B = CURB_W;
+        if (shop) p.Planks(B, B, w - 2f * B, h - 2f * B);
+        else if (ice) p.Slabs(B, B, w - 2f * B, h - 2f * B, 40f, 0.05f, C(235, 245, 255), C(60, 85, 110), C(70, 95, 120), 0.17f);
+        else p.Slabs(B, B, w - 2f * B, h - 2f * B, 48f, 0.07f, Color.white, C(70, 60, 50), C(85, 75, 65), 0.2f);
+        p.Grain(0.015f);
+        p.EdgeShade(CURB_W + 10f, 0.06f, C(40, 20, 10));
+        p.CurbFrame(w, h);
+        return p.ToTexture(false);
+    }
+
+    // 큰 판 타일: 판마다 옅은 명암 + 줄눈(어두운 선 + 바로 아래쪽 옅은 빛 선 → 판 가장자리가 살짝 도드라져 보인다)
+    void Slabs(float x0, float y0, float w, float h, float ts, float amp, Color light, Color dark, Color seam, float seamA)
+    {
+        Cells(ts, amp, light, dark, x0, y0, w, h);
+        for (float x = x0 + ts; x < x0 + w - 2f; x += ts) { Line(x, y0, x, y0 + h, 1.3f, seam, seamA); Line(x + 1.2f, y0, x + 1.2f, y0 + h, 0.9f, Color.white, seamA * 0.8f); }
+        for (float y = y0 + ts; y < y0 + h - 2f; y += ts) { Line(x0, y, x0 + w, y, 1.3f, seam, seamA); Line(x0, y + 1.2f, x0 + w, y + 1.2f, 0.9f, Color.white, seamA * 0.8f); }
+    }
+
+    // 나무 바닥: 동서로 긴 널(폭 13, 길이 50~90 엇갈림), 널마다 옅은 명암 + 이음 줄. 결무늬는 그리지 않는다(잔무늬 금지)
+    void Planks(float x0, float y0, float w, float h)
+    {
+        const float ph = 13f; Color seam = C(105, 62, 32);
+        int row = 0;
+        for (float y = y0; y < y0 + h - 0.5f; y += ph, row++)
+        {
+            float rh = Mathf.Min(ph, y0 + h - y), x = x0 - Rn(0f, 60f) - (row % 2) * 24f;
+            while (x < x0 + w)
+            {
+                float L = Rn(50f, 90f), a = (Rn() - 0.5f) * 0.12f;
+                float xa = Mathf.Max(x0, x), xb = Mathf.Min(x0 + w, x + L);
+                if (xb > xa) Rect(xa, y, xb - xa, rh, a > 0 ? C(255, 235, 205) : C(90, 50, 25), Mathf.Abs(a));
+                if (x + L < x0 + w - 2f && x + L > x0 + 2f) Line(x + L, y + 0.8f, x + L, y + rh - 0.8f, 1.1f, seam, 0.24f);
+                x += L;
+            }
+            if (y + ph < y0 + h - 1f) { Line(x0, y + ph, x0 + w, y + ph, 1.2f, seam, 0.26f); Line(x0, y + ph + 1.1f, x0 + w, y + ph + 1.1f, 0.8f, C(255, 230, 190), 0.18f); }
+        }
+    }
+
+    // 낮은 둥근 경계 줄(그림만): 바깥 CURB_W 띠를 밝은 모래로 덮고 안쪽 모서리는 둥글게, 띠 윗면에 흰 빛 줄·안쪽 가장자리에 옅은 그늘
+    void CurbFrame(float w, float h)
+    {
+        const float B = CURB_W, r = CURB_R; var c = CURB_LINE;
+        Rect(0f, 0f, w, B, c, 1f); Rect(0f, h - B, w, B, c, 1f); Rect(0f, 0f, B, h, c, 1f); Rect(w - B, 0f, B, h, c, 1f);
+        foreach (var (sx, sy, a0) in new[] { (-1, -1, 180f), (1, -1, 270f), (1, 1, 0f), (-1, 1, 90f) })
+        {
+            float cx = sx < 0 ? B + r : w - B - r, cy = sy < 0 ? B + r : h - B - r;
+            var pts = new List<Vector2> { new Vector2(cx + sx * (r + 0.6f), cy + sy * (r + 0.6f)) };
+            for (int i = 0; i <= 8; i++) { float a = (a0 + i * 90f / 8f) * Mathf.Deg2Rad; pts.Add(new Vector2(cx + Mathf.Cos(a) * r, cy + Mathf.Sin(a) * r)); }
+            Poly(pts, c, 1f);
+        }
+        Polyline(RoundRectPath(0.6f, 0.6f, w - 1.2f, h - 1.2f, 2f, 2), 1.2f, C(120, 70, 40), 0.22f, true);                  // 길과 맞닿은 바깥 선
+        Polyline(RoundRectPath(B * 0.42f, B * 0.42f, w - B * 0.84f, h - B * 0.84f, r + B * 0.58f), 1.6f, Color.white, 0.38f, true);   // 둥근 윗면 빛
+        Polyline(RoundRectPath(B + 0.9f, B + 0.9f, w - 2f * B - 1.8f, h - 2f * B - 1.8f, r - 0.9f), 2f, C(70, 35, 15), 0.14f, true); // 안쪽 그늘
     }
 
     // 잠긴 구역 윤곽(원본 buildDash 483행): 구역보다 12 큰 투명 판에 어두운 둥근 면(.09) + 크림색 점선(.65, 폭3, [12,9])
