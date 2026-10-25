@@ -76,8 +76,22 @@ public class DevTools : MonoBehaviour
         var st = DevArgs.Get("-start");
         if (!string.IsNullOrEmpty(st)) { var xy = st.Split(','); if (xy.Length == 2 && float.TryParse(xy[0], out var sx) && float.TryParse(xy[1], out var sy)) { G.S.p.x = sx; G.S.p.y = sy; if (Player.I != null) Player.I.pos = new Vector2(sx, sy); } }
         // -intro: 새 게임 인트로 강제 · -story id: 그 무전 카드 바로 띄우기(본 적 있어도)
+        // -padup id@초[,id@초]: 그 초에 발판 완료 경로로 한 레벨 올림(레벨 외형 솟아오름 확인용, 본부 -hqup 의 일반판)
+        var pu = DevArgs.Get("-padup");
+        if (!string.IsNullOrEmpty(pu))
+            foreach (var e in pu.Split(','))
+            {
+                var a = e.Split('@');
+                if (a.Length == 2 && Pads.Get(a[0]) != null && float.TryParse(a[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var sec)) StartCoroutine(CoPadUp(a[0], sec));
+            }
         if (DevArgs.Has("-intro")) StoryManager.I?.DevIntro();
         StoryManager.I?.DevStory(DevArgs.Get("-story"));
+    }
+
+    IEnumerator CoPadUp(string id, float sec)
+    {
+        while (t < sec) yield return null;
+        if (!G.PadMaxed(id)) PadManager.I.Complete(id);
     }
 
     int S_cash() => G.S.cash;

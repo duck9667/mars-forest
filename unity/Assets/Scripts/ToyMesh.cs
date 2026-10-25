@@ -16,6 +16,81 @@ public class ToyMesh
     public ToyMesh At(Vector3 pos, Vector3 euler) { xf = Matrix4x4.TRS(pos, Quaternion.Euler(euler), Vector3.one); return this; }
     public ToyMesh At(Vector3 pos) => At(pos, Vector3.zero);
     public ToyMesh At(float x, float y, float z, float ry = 0f) => At(new Vector3(x, y, z), new Vector3(0, ry, 0));
+    public ToyMesh At(Vector3 pos, Quaternion q) { xf = Matrix4x4.TRS(pos, q, Vector3.one); return this; }
+    // 기계 좌표(dx 동·dy 남(카메라 쪽)·h 높이, MachineKit.L 과 같은 규약)로 다음 조각 위치
+    public ToyMesh AtM(float dx, float dy, float h, float ry = 0f) => At(new Vector3(dx, h, -dy), new Vector3(0, ry, 0));
+
+    // 둥근 모서리 상자(가운데가 원점): 윗면 부채꼴 + 옆면 띠(모서리는 매끈한 법선). 십자 상자 둘 + 원기둥 넷 대신 겹침 없는 한 덩어리
+    //  r 모서리 반지름, seg 모서리 하나의 토막 수, top 윗면 색, sideTop 옆면 위쪽 색(아래 side 에서 번지는 그라데이션)
+    public ToyMesh RBox(Vector3 size, float r, Color side, Color? top = null, Color? sideTop = null, int seg = 4, bool bottom = false)
+    {
+        Color tc = top ?? side, st = sideTop ?? side;
+        float hx = size.x / 2f, hy = size.y / 2f, hz = size.z / 2f;
+        r = Mathf.Clamp(r, 0.01f, Mathf.Min(hx, hz) - 0.01f);
+        var pts = new List<Vector3>(); var nrm = new List<Vector3>();
+        float[] cx = { hx - r, -hx + r, -hx + r, hx - r }, cz = { hz - r, hz - r, -hz + r, -hz + r };
+        for (int k = 0; k < 4; k++)
+            for (int s = 0; s <= seg; s++)
+            {
+                float a = (k * 90f + s * 90f / seg) * Mathf.Deg2Rad;
+                var d = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
+                pts.Add(new Vector3(cx[k], 0, cz[k]) + d * r); nrm.Add(d);
+            }
+        var o = Vector3.zero; var up = Vector3.up * hy; int n = pts.Count;
+        for (int i = 0; i < n; i++)
+        {
+            int j = (i + 1) % n;
+            Vector3 a0 = pts[i] - up, a1 = pts[j] - up, b0 = pts[i] + up, b1 = pts[j] + up;
+            Tri(a0, b0, b1, side, st, st, o, nrm[i], nrm[i], nrm[j]);
+            Tri(a0, b1, a1, side, st, side, o, nrm[i], nrm[j], nrm[j]);
+            Tri(up, b0, b1, tc, tc, tc, o);
+            if (bottom) Tri(-up, a0, a1, side, side, side, o);
+        }
+        return this;
+    }
+
+    // 매끈한 반 타원 돔(바닥 중심이 원점, 가로 반지름 rx·세로 rz·높이 h). 색은 아래 side → 꼭대기 top
+    public ToyMesh Dome(float rx, float rz, float h, Color side, Color top, int sides = 20, int rings = 5)
+    {
+        var o = Vector3.zero;
+        Vector3 Pt(int i, int k) { float p = k * Mathf.PI / 2f / rings, a = i * Mathf.PI * 2f / sides; return new Vector3(Mathf.Cos(a) * Mathf.Cos(p) * rx, Mathf.Sin(p) * h, Mathf.Sin(a) * Mathf.Cos(p) * rz); }
+        Vector3 Nm(Vector3 p) => new Vector3(p.x / (rx * rx), p.y / (h * h), p.z / (rz * rz)).normalized;
+        Color Cl(int k) => Color.Lerp(side, top, k / (float)rings);
+        for (int k = 0; k < rings; k++)
+            for (int i = 0; i < sides; i++)
+            {
+                Vector3 a0 = Pt(i, k), a1 = Pt(i + 1, k), b0 = Pt(i, k + 1), b1 = Pt(i + 1, k + 1);
+                if (k < rings - 1) Tri(a0, b0, b1, Cl(k), Cl(k + 1), Cl(k + 1), o, Nm(a0), Nm(b0), Nm(b1));
+                Tri(a0, b1, a1, Cl(k), Cl(k + 1), Cl(k), o, Nm(a0), Nm(b1), Nm(a1));
+            }
+        return this;
+    }
+
+    // 매끈한 공(가운데가 원점): 위아래 돔 둘
+    public ToyMesh Ball(float r, Color c, Color? top = null, int sides = 14, int rings = 4)
+    {
+        var b = xf;
+        Dome(r, r, r, c, top ?? c, sides, rings);
+        xf = b * Matrix4x4.Rotate(Quaternion.Euler(180, 0, 0)); Dome(r, r, r, c, c, sides, rings);
+        xf = b; return this;
+    }
+
+    // 관(a → b, 반지름 r): 방향에 맞춰 눕힌 원기둥 + 양 끝 마디(조금 굵은 고리). 좌표는 Unity 로컬(논리 단위)
+    public ToyMesh Pipe(Vector3 a, Vector3 b, float r, Color c, bool joints = true, int sides = 12)
+    {
+        var d = b - a; float len = d.magnitude; if (len < 0.01f) return this;
+        var q = Quaternion.FromToRotation(Vector3.up, d / len);
+        At(a, q).Cyl(r, r, len, sides, c, c, true, null, true);
+        if (joints)
+        {
+            At(a, q).Cyl(r + 0.9f, r + 0.9f, 1.6f, sides, c, c, true, null, true);
+            At(b - d / len * 1.6f, q).Cyl(r + 0.9f, r + 0.9f, 1.6f, sides, c, c, true, null, true);
+        }
+        return this;
+    }
+    // 기계 좌표(dx, dy, h) 두 점 사이 관
+    public ToyMesh PipeM(float ax, float ay, float ah, float bx, float by, float bh, float r, Color c, bool joints = true)
+        => Pipe(new Vector3(ax, ah, -ay), new Vector3(bx, bh, -by), r, c, joints);
 
     // 삼각형 하나. 법선은 면 법선(nA 등이 주어지면 그 값, 매끈한 옆면용). 조각 중심 o 에서 바깥을 보게 감김을 뒤집는다
     void Tri(Vector3 a, Vector3 b, Vector3 d, Color ca, Color cb, Color cd, Vector3 o, Vector3? na = null, Vector3? nb = null, Vector3? nd = null)

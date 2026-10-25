@@ -7,6 +7,10 @@ public class Stations : MonoBehaviour
     GameState G => GameState.I;
 
     public Transform meltAnchor, trayAnchor, shelfAnchor, cashAnchor;
+    // 레벨 외형(LevelLook): 해빙기·병입기·카운터(선반 칸)·계산대(프리미엄 라벨). StationDress 가 만든다
+    public TierLook melterLook, bottlerLook, counterLook, registerLook;
+    // 병입기 고급 단계의 두 번째 병 상자(trayTwin 이면 trayAnchor·trayAnchor2 에 3×2씩 번갈아 채운다)
+    public Transform trayAnchor2; bool trayTwin;
     // 카운터 종류별 칸: 물(shelfAnchor)·산소·식량. 산소·식량이 열리기 전엔 물이 카운터 전체(12×3)를 쓴다
     public Transform shelfO2Anchor, shelfFoodAnchor;
     Transform[] shelfMarks = new Transform[3];   // 칸마다 상판 위 색 받침판(글자 라벨은 두지 않는다). 앞면은 늘 있는 차양에 가려 위에 둔다
@@ -44,7 +48,40 @@ public class Stations : MonoBehaviour
         G.OnPadLevel += OnPad;
     }
     void OnDestroy() { if (GameState.I != null) GameState.I.OnPadLevel -= OnPad; }
-    void OnPad(string id, int lv) { if (id == "o2" || id == "farm") RefreshShelfLayout(); }
+    void OnPad(string id, int lv)
+    {
+        if (id == "o2" || id == "farm") RefreshShelfLayout();
+        // 레벨이 올라 외형 단계가 바뀌면 바뀐 부품이 솟아오른다(같은 단계면 아무 일 없음)
+        int t = LevelLook.Tier(lv);
+        if (id == "melter") melterLook?.Apply(t, true);
+        else if (id == "bottler") bottlerLook?.Apply(t, true);
+        else if (id == "shelf") counterLook?.Apply(t, true);
+        else if (id == "price") registerLook?.Apply(t, true);
+    }
+
+    // 병 상자 하나(3×4) ↔ 둘(3×2씩) 바꾸기: 다음 Update 에서 병을 다시 놓는다
+    public void SetTrayTwin(bool twin)
+    {
+        if (twin == trayTwin && lastBottles >= 0) return;
+        trayTwin = twin; lastBottles = -1;
+        if (!twin && trayAnchor2 != null) Items.SyncStack(trayAnchor2, "bottle", 0, 1, 1, 0, 0, 0);
+    }
+    // 고급 두 상자: 한 층 6개씩 A → B → A → B 순서(병 번호 i 의 상자·층)
+    static int TwinA(int n) => (n / 12) * 6 + Mathf.Min(n % 12, 6);
+
+    // 칸 표지 외형(단계): 기본 각진 판 / 개량 둥근 판 / 고급 둥근 판 + 금 테. 레벨 업 순간엔 보이는 표지가 솟아오른다
+    public void DressShelfMarks(int t, bool anim)
+    {
+        var c = WorldMap.STN["counter"];
+        for (int i = 0; i < 3; i++)
+        {
+            var mk = shelfMarks[i]; if (mk == null) continue;
+            mk.localScale = Vector3.one;
+            mk.GetComponent<MeshFilter>().sharedMesh = StationDress.ShelfMarkMesh(t, SHELF_MARK[i], c.w / 3f - 8, c.h - 10);
+            mk.GetComponent<MeshRenderer>().sharedMaterial = LevelLook.Mat(t);
+            if (anim && mk.gameObject.activeInHierarchy) JuiceFX.I.Rise(mk, 0.15f + 0.1f * i, 6f);
+        }
+    }
 
     void Build()
     {
@@ -184,7 +221,17 @@ public class Stations : MonoBehaviour
 
         // 시각 동기화
         if (S.meltQ != lastMeltQ) { lastMeltQ = S.meltQ; Items.SyncStack(meltAnchor, "ice", S.meltQ, MELT_COLS, MELT_ROWS, Items.Gap("ice").x, Items.Gap("ice").y, GameConfig.MELT_VIS_MAX); }
-        if (S.bottles != lastBottles) { lastBottles = S.bottles; Items.SyncStack(trayAnchor, "bottle", S.bottles, TRAY_COLS, TRAY_ROWS, 9.2f, 9.6f, GameConfig.BOTTLE_CAP); }
+        if (S.bottles != lastBottles)
+        {
+            lastBottles = S.bottles;
+            if (!trayTwin) Items.SyncStack(trayAnchor, "bottle", S.bottles, TRAY_COLS, TRAY_ROWS, 9.2f, 9.6f, GameConfig.BOTTLE_CAP);
+            else
+            {
+                int n = Mathf.Min(S.bottles, GameConfig.BOTTLE_CAP), na = TwinA(n);
+                Items.SyncStack(trayAnchor, "bottle", na, TRAY_COLS, 2, 9.2f, 9.6f, GameConfig.BOTTLE_CAP);
+                Items.SyncStack(trayAnchor2, "bottle", n - na, TRAY_COLS, 2, 9.2f, 9.6f, GameConfig.BOTTLE_CAP);
+            }
+        }
         // 표지는 열린 종류만(식량은 산소보다 늦게 열린다)
         if (shelfSplit && shelfMarks[2].gameObject.activeSelf != G.KindOpen("food")) shelfMarks[2].gameObject.SetActive(G.KindOpen("food"));
         if (S.shelf != lastShelf) { lastShelf = S.shelf; Items.SyncStack(shelfAnchor, "bottle", S.shelf, ColsOf("bottle"), 3, GapOf("bottle"), 8.6f, 36); }
@@ -196,7 +243,14 @@ public class Stations : MonoBehaviour
     public static int Bills(int cash) => Mathf.Min(GameConfig.BILL_MAX, Mathf.CeilToInt(cash / 12f));
     // 병입기 병 상자(동쪽 32×42)에 물병 3×4를 한 층으로 세운다(StationDress.Bottler) · 해빙기 넓은 호퍼에 얼음 4×3 한 층
     public const int TRAY_COLS = 3, TRAY_ROWS = 4, MELT_COLS = 4, MELT_ROWS = 3;
-    public Vector3 TrayTop() => trayAnchor.position + Vector3.up * (Mathf.Max(0, G.S.bottles - 1) / (TRAY_COLS * TRAY_ROWS) + 1) * Items.ITEM_H["bottle"] * GameConfig.K;
+    public Vector3 TrayTop()
+    {
+        int i = Mathf.Max(0, G.S.bottles - 1);
+        if (!trayTwin) return trayAnchor.position + Vector3.up * (i / (TRAY_COLS * TRAY_ROWS) + 1) * Items.ITEM_H["bottle"] * GameConfig.K;
+        // 두 상자: 맨 위 병(i)이 든 상자와 층
+        var a = i % 12 < 6 ? trayAnchor : trayAnchor2;
+        return a.position + Vector3.up * (i / 12 + 1) * Items.ITEM_H["bottle"] * GameConfig.K;
+    }
     public Vector3 ShelfTop() => ShelfTop("bottle");
     public Vector3 ShelfTop(string kind) => AnchorOf(kind).position + Vector3.up * (G.ShelfOf(kind) / ShelfLayer(kind) + 1) * Items.ITEM_H[kind] * GameConfig.K;
     // 그 칸으로 날아가는 중인 수

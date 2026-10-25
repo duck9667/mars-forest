@@ -40,7 +40,13 @@ public class SettleStations : MonoBehaviour
         G.OnPadLevel += OnPad;
     }
     void OnDestroy() { if (G != null) G.OnPadLevel -= OnPad; }
-    void OnPad(string id, int lv) { if (id == "o2" || id == "mine" || id == "soil" || id == "farm") Refresh(true); }
+    void OnPad(string id, int lv)
+    {
+        if (id == "o2" || id == "mine" || id == "soil" || id == "farm") Refresh(true);
+        // 시설 속도 발판 레벨이 외형 단계를 넘으면 바뀐 부품이 솟아오른다(LevelLook)
+        int fi = System.Array.IndexOf(Pads.FAC_SPD, id);
+        if (fi >= 0 && looks[fi] != null) looks[fi].Apply(LevelLook.Tier(lv), facShown[fi]);
+    }
 
     // ---- 상태 접근 (저장 필드는 시설별 이름이라 번호로 묶는다) ----
     public ref int Q(int i) { switch (i) { case 0: return ref S.elecQ; case 1: return ref S.purQ; case 2: return ref S.mixQ; default: return ref S.grnQ; } }
@@ -128,7 +134,7 @@ public class SettleStations : MonoBehaviour
             if (!Open(i)) { t = 0; continue; }
             bool can = Q(i) > 0 && Out(i) < GameConfig.SETTLE_OUT_CAP && (i != 3 || S.water >= GREEN_WATER);
             if (!can) { t = 0; continue; }
-            t += dt * G.MachineSpeedMul;   // 공용 기계 속도 배율(본부 Lv4·태양광 전력)
+            t += dt * G.MachineSpeedMul * G.FacSpeedMul(i);   // 공용 기계 속도 배율(본부 Lv4·태양광 전력) × 시설별 속도 발판
             if (t >= TIMES[i])
             {
                 t = 0; Q(i)--; Out(i)++;
@@ -201,6 +207,8 @@ public class SettleStations : MonoBehaviour
         // 목표 그림(docs/art/target_north_v1.png)처럼 기계가 구역을 채우게: 키만 1.25배(충돌 발자국 그대로), 온실은 전체 1.2배
         for (int i = 0; i < 3; i++) Grow(i, new Vector3(1f, 1.25f, 1f));
         Grow(3, new Vector3(1.2f, 1.2f, 1.2f));
+        // 레벨 외형(시설 속도 발판): 저장된 레벨 그대로 짓는다
+        for (int i = 0; i < 4; i++) BuildLook(i);
         for (int i = 0; i < 4; i++) views[i].gameObject.SetActive(false);
     }
 
@@ -227,14 +235,20 @@ public class SettleStations : MonoBehaviour
         var v = new GameObject(KEYS[i]).transform; v.SetParent(transform, false); v.position = WorldMap.W2U(s.x, s.y, 0);
         float gs = i == 3 ? 1.2f : 1f;   // 온실은 뷰를 1.2배 키우므로(Grow) 판은 설계 크기로
         // 받침(다듬기 3차): 둥근 모서리 콘크리트 판 + 한 단 밝은 윗판(목표 그림 docs/art/target_north_v1.png). 예전 직각 판·어두운 입력 쟁반은 네모 블록으로 읽혔다
-        MachineKit.RoundSlab(v, "plate", 0, 0, 0, s.w / gs, s.h / gs, PLATE, 12, MachineKit.PAD);
-        MachineKit.RoundSlab(v, "plateTop", 0, 0, PLATE, s.w / gs - 6, s.h / gs - 6, 0.6f, 9, MachineKit.PAD_TOP);
+        // 받침 쟁반(둥근 판, 두께 TRAY): 입력은 옅은 회색, 출력은 금색 테 + 크림 안쪽(안쪽을 살짝 높여 테가 턱으로 보이게).
+        // 판 다섯 장을 ToyMesh 한 메시로(예전 둥근 판 = 프리미티브 6개씩 30개)
+        float pw = s.w / gs, pd = s.h / gs;
+        ToyMesh.Put(v, "base", ToyMesh.Cached("settleBase" + i, m =>
+        {
+            m.AtM(0, 0, PLATE / 2).RBox(new Vector3(pw, PLATE, pd), 12, MachineKit.PAD);
+            m.AtM(0, 0, PLATE + 0.3f).RBox(new Vector3(pw - 6, 0.6f, pd - 6), 9, MachineKit.PAD_TOP);
+            m.AtM(inAt.x, inAt.y, PLATE + TRAY / 2).RBox(new Vector3(44, TRAY, 24), 7, GameConfig.Hex("c4bcb0"));
+            m.AtM(outAt.x, outAt.y, PLATE + (TRAY - 0.3f) / 2).RBox(new Vector3(48, TRAY - 0.3f, 28), 9, GameConfig.GOLD, GameConfig.Hex("f6cf6a"));
+            m.AtM(outAt.x, outAt.y, PLATE + TRAY / 2).RBox(new Vector3(42, TRAY, 22), 7, GameConfig.Hex("fff4d6"));
+            return m;
+        }), ToyMesh.Mat(0.12f), Vector3.zero);
         inA[i] = new GameObject("in").transform; inA[i].SetParent(v, false); inA[i].localPosition = L(inAt.x, inAt.y, PLATE + TRAY);
         outA[i] = new GameObject("out").transform; outA[i].SetParent(v, false); outA[i].localPosition = L(outAt.x, outAt.y, PLATE + TRAY);
-        // 받침 쟁반(둥근 판, 두께 TRAY): 입력은 옅은 회색, 출력은 금색 테 + 크림 안쪽(안쪽을 살짝 높여 테가 턱으로 보이게)
-        MachineKit.RoundSlab(v, "inTray", inAt.x, inAt.y, PLATE, 44, 24, TRAY, 7, GameConfig.Hex("c4bcb0"));
-        MachineKit.RoundSlab(v, "outTray", outAt.x, outAt.y, PLATE, 48, 28, TRAY - 0.3f, 9, GameConfig.GOLD);
-        MachineKit.RoundSlab(v, "outTrayIn", outAt.x, outAt.y, PLATE, 42, 22, TRAY, 7, GameConfig.Hex("fff4d6"));
         views[i] = v;
         return v;
     }
@@ -370,6 +384,128 @@ public class SettleStations : MonoBehaviour
         Prim.Cyl(v, "wcap", L(40, -26, PLATE + 37.5f), 8, 2, PIPE);
         Prim.Box(v, "wpipe", L(CX + R + 6, -26, PLATE + 5), new Vector3(16, 3, 3), PIPE);
     }
+
+    // ================= 레벨 외형(시설 속도 발판 elecspd·purspd·mixspd·grnspd, LevelLook) =================
+    //  기본(Lv0~1): 지금 모형 그대로
+    //  개량(Lv2~3): 금속 테·띠 + 부품 하나 더(전기분해기 두 탱크를 잇는 관 아치·전해조 테, 정화기 물탱크, 배합기 모터, 온실 둘째 물탱크·지붕 살수관)
+    //  고급(Lv4~5): 흰 매끈한 외피 + 샴페인 금 테, 전기분해기 전해조 유리 덮개, 온실 지붕 아래 은은한 조명 띠
+    //  단계 부품은 시설마다 ToyMesh 한 덩어리(드로우콜 1), 테·띠 색 바꾸기는 기존 프리미티브의 재질만 바꾼다
+    readonly TierLook[] looks = new TierLook[4];
+    static readonly Color GLOSS = LevelLook.GLOSS, GLOSS_D = LevelLook.GLOSS_D, TRIM = LevelLook.TRIM, TRIM_L = LevelLook.TRIM_L,
+        METAL = LevelLook.METAL, METAL_L = LevelLook.METAL_L, METAL_D = LevelLook.METAL_D;
+
+    static List<Renderer> Named(Transform v, string[] names)
+    {
+        var l = new List<Renderer>();
+        foreach (var r in v.GetComponentsInChildren<Renderer>(true)) if (System.Array.IndexOf(names, r.gameObject.name) >= 0) l.Add(r);
+        return l;
+    }
+
+    void BuildLook(int i)
+    {
+        var v = views[i];
+        var look = new TierLook { squashRoot = v }; looks[i] = look;
+        look.Swap(LevelLook.Holder(v, "tierParts"), t => FacParts(i, t), null, true);
+        // 단계별 재질 바꾸기: (렌더러들, 원래 재질, 개량 재질(null = 그대로), 고급 재질)
+        var paints = new List<(List<Renderer> rs, Material[] orig, Material m1, Material m2)>();
+        void Paint(Material m1, Material m2, params string[] names)
+        {
+            var rs = Named(v, names); var orig = new Material[rs.Count];
+            for (int k = 0; k < rs.Count; k++) orig[k] = rs[k].sharedMaterial;
+            paints.Add((rs, orig, m1, m2));
+        }
+        Material metL = Mats.Solid(METAL_L), met = Mats.Solid(METAL), gold = Mats.Gloss(TRIM, 0.5f), white = Mats.Gloss(GLOSS, 0.55f);
+        switch (i)
+        {
+            case 0:   // 전기분해기: 기체 탱크 흰 외피, 고급은 전해조 위 유리 덮개
+                Paint(null, white, "tank", "dome");
+                look.Part(Glass(v, "tubGlass", ToyMesh.Cached("elecGlass", m => m.Dome(19.5f, 11.5f, 13f, Color.white, Color.white, 24, 6)), L(0, -4, PLATE + 12.6f)), 2);
+                break;
+            case 1:   // 토양 정화기: 호퍼 윗테·드럼 고리 금속 → 금, 드럼·호퍼 흰 외피, 앞면 창틀 금
+                Paint(metL, gold, "rim"); Paint(met, gold, "hoop"); Paint(null, white, "shell", "hopper", "cradle"); Paint(null, gold, "ring");
+                break;
+            case 2:   // 비료 배합기: 깔때기 윗테 금속 → 금, 깔때기 흰 외피
+                Paint(metL, gold, "rim"); Paint(null, white, "funnel");
+                break;
+            case 3:   // 온실: 아치 살·문틀·문턱 금속 → 금, 물탱크 흰 외피 + 금 띠, 고급은 지붕 아래 조명 띠
+                Paint(metL, gold, "rib", "sill", "doorL", "doorR", "doorT"); Paint(null, white, "wtank", "wdome"); Paint(null, gold, "wband", "wcap");
+                var lamp = ToyMesh.Put(v, "ridgeLamp", ToyMesh.Cached("greenLamp", m => m.AtM(-20, -14, PLATE + 32.6f).RBox(new Vector3(2.6f, 1.2f, 54), 0.5f, Color.white)),
+                    MachineKit.GlowMat(GameConfig.Hex("ffe2a8"), 0.8f), Vector3.zero);
+                Prim.NoShadow(lamp); look.Part(lamp, 2);
+                break;
+        }
+        look.onTier = (t, anim) =>
+        {
+            foreach (var p in paints)
+                for (int k = 0; k < p.rs.Count; k++)
+                    p.rs[k].sharedMaterial = t >= 2 && p.m2 != null ? p.m2 : t >= 1 && p.m1 != null ? p.m1 : p.orig[k];
+        };
+        look.Apply(LevelLook.TierOf(Pads.FAC_SPD[i]), false);
+    }
+    static GameObject Glass(Transform v, string name, Mesh mesh, Vector3 local)
+    {
+        var go = ToyMesh.Put(v, name, mesh, LevelLook.GlassMat, local); Prim.NoShadow(go); return go;
+    }
+
+    // 단계 부품 메시(시설 중심 기준 논리 좌표, 뷰 배율 Grow 가 그대로 적용된다). 기본 단계는 없음
+    static Mesh FacParts(int i, int t) => t <= 0 ? null : ToyMesh.Cached("facParts" + i + "_" + t, m =>
+    {
+        bool hi = t >= 2;
+        Color hoop = hi ? TRIM : METAL, hoopL = hi ? TRIM_L : METAL_L, body = hi ? GLOSS : MachineKit.SHELL, bodyD = hi ? GLOSS_D : MachineKit.SHELL_D;
+        switch (i)
+        {
+            case 0:
+                // 기체 탱크 두 개에 두툼한 띠 둘씩 + 꼭대기 밸브 → 두 탱크를 잇는 관 아치(가운데 밸브 공) + 전해조 윗테
+                foreach (float x in new[] { -38f, 38f })
+                {
+                    m.AtM(x, -10, PLATE + 6).Band(8.95f, 2.4f, 22, hoop);
+                    m.AtM(x, -10, PLATE + 27).Band(8.95f, 2.4f, 22, hoop);
+                    m.PipeM(x, -10, PLATE + 39, x, -10, PLATE + 50, 1.8f, hi ? GLOSS : METAL_L, false);
+                    m.AtM(x, -10, PLATE + 50).Ball(2.5f, hoop, hoopL);
+                }
+                m.PipeM(-38, -10, PLATE + 50, 38, -10, PLATE + 50, 1.8f, hi ? GLOSS : METAL_L, false);
+                m.AtM(0, -10, PLATE + 50).Ball(3.4f, hoop, hoopL);
+                m.AtM(0, -4 - 10, PLATE + 12.9f).Bevel(new Vector3(38.6f, 1.8f, 2.4f), 0.5f, hoop, hoop, hoopL, hoopL, hoop);
+                m.AtM(0, -4 + 10, PLATE + 12.9f).Bevel(new Vector3(38.6f, 1.8f, 2.4f), 0.5f, hoop, hoop, hoopL, hoopL, hoop);
+                m.AtM(-18, -4, PLATE + 12.9f).Bevel(new Vector3(2.4f, 1.8f, 20), 0.5f, hoop, hoop, hoopL, hoopL, hoop);
+                m.AtM(18, -4, PLATE + 12.9f).Bevel(new Vector3(2.4f, 1.8f, 20), 0.5f, hoop, hoop, hoopL, hoopL, hoop);
+                break;
+            case 1:
+                // 뒤 동쪽 작은 물탱크(띠 둘·둥근 뚜껑) → 드럼으로 짧은 관
+                m.AtM(42, -22, PLATE).Cyl(5.4f, 5.4f, 24, 18, bodyD, body, true, body);
+                m.AtM(42, -22, PLATE + 24).Dome(5.4f, 5.4f, 3.6f, body, hi ? Color.white : body, 18, 4);
+                m.AtM(42, -22, PLATE + 5).Band(5.7f, 2.2f, 18, hoop);
+                m.AtM(42, -22, PLATE + 18).Band(5.7f, 2.2f, 18, hoop);
+                m.AtM(42, -22, PLATE + 27.2f).Cyl(1.6f, 1.6f, 2, 10, hoop, hoopL);
+                m.PipeM(37.5f, -20, PLATE + 14, 30, -14, PLATE + 14, 1.5f, GameConfig.Hex("4fb0f0"));
+                break;
+            case 2:
+                // 동쪽 모터 상자(위에 둥근 팬) → 배합 통으로 굴대, 깔때기 허리에 두툼한 띠
+                m.AtM(41, -14, PLATE + 8).RBox(new Vector3(12, 16, 14), 3, bodyD, body, body);
+                m.AtM(41, -14, PLATE + 12).RBox(new Vector3(12.8f, 2, 14.8f), 3.4f, hoop, hoopL, hoopL);
+                m.AtM(41, -14, PLATE + 16).Cyl(4.4f, 4.4f, 1.2f, 18, MachineKit.STEEL_D, GameConfig.Hex("2a2e36"));
+                m.AtM(41, -14, PLATE + 17.2f).Cyl(1.4f, 1.4f, 0.8f, 10, hoop, hoopL);
+                m.PipeM(35, -13, PLATE + 5, 27, -11, PLATE + 5, 1.5f, METAL_D);
+                m.AtM(14, -10, PLATE + 35).Band(12.9f, 1.9f, 26, hoop);
+                break;
+            case 3:
+            {
+                // 둘째 물탱크(동쪽 끝) + 첫 탱크와 잇는 관, 터널 꼭대기 살수관(살수 머리 셋)
+                const float CX = -20f, CY = -14f;
+                m.AtM(62, -24, PLATE).Cyl(8, 8, 22, 20, bodyD, body, true, body);
+                m.AtM(62, -24, PLATE + 22).Dome(8, 8, 5.5f, body, hi ? Color.white : body, 20, 4);
+                m.AtM(62, -24, PLATE + 6).Band(8.3f, 2.4f, 20, hoop);
+                m.AtM(62, -24, PLATE + 16).Band(8.3f, 2.4f, 20, hoop);
+                m.AtM(62, -24, PLATE + 27f).Cyl(2.6f, 2.6f, 1.8f, 12, hoop, hoopL);
+                m.PipeM(50, -25, PLATE + 6, 54, -25, PLATE + 6, 1.6f, GameConfig.Hex("4fb0f0"));
+                Color rp = hi ? TRIM : GameConfig.Hex("4fb0f0");
+                m.PipeM(CX, CY - 31, PLATE + 37.4f, CX, CY + 31, PLATE + 37.4f, 1.3f, rp);
+                foreach (float y in new[] { CY - 18, CY, CY + 18 }) m.AtM(CX, y, PLATE + 38.6f).Ball(1.9f, hi ? TRIM_L : METAL_L);
+                break;
+            }
+        }
+        return m;
+    });
 
     // 축 x, 바닥 y=0인 반원통의 바깥 면(논리 단위; 뷰가 K로 줄인다)
     static Mesh TunnelMesh(float r, float len, int seg)

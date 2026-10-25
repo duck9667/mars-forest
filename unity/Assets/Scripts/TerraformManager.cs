@@ -25,7 +25,7 @@ public class TerraformManager : MonoBehaviour
         if (G == null) return 0f;
         float zones = (Mathf.Min(1, G.PadLv("ice2")) + Mathf.Min(1, G.PadLv("pen")) + Mathf.Min(1, G.PadLv("dome"))) / 3f;
         int sum = 0;
-        foreach (var p in Pads.ALL) if (p.active) sum += G.PadLv(p.id);
+        foreach (var p in Pads.ALL) if (p.active && !Pads.IsFacSpd(p.id)) sum += G.PadLv(p.id);   // 시설 속도 발판(10/25)은 빼서 테라 진행은 예전과 같게
         return Mathf.Clamp01(0.5f * zones + 0.5f * sum / PAD_MAX);
     }
     /// 지금 켜져 있어야 할 타일 수

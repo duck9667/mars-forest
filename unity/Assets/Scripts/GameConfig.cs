@@ -135,7 +135,16 @@ public static class Pads
         new PadDef{ id="hab",     name="거주 구역",     icon="🏠", pos=new Vector2(60,-395),  cost=l=>10000f, max=1, req=g=>g.PadLv("farm")>=1 && g.S.stage>=6, reqText="전력 확보", zone=true, active=true },
         new PadDef{ id="hq",      name="기지 본부",     icon="🏛", pos=new Vector2(270,966),  cost=l=>4000f*Mathf.Pow(2f,l), max=5, req=g=>g.S.stage>=g.PadLv("hq")+5, reqText="2장 다음 단계", active=true },   // 2장 단계마다 한 레벨(Lv1 = 1장 끝, Lv3 = 6·7단계 뒤 → 8단계 조건, Lv5 = 9단계 뒤 → 10단계 조건)   // 발판은 본부 터(HQSystem.POS) 서쪽, 착륙장 원 북동쪽
         new PadDef{ id="farm",    name="온실",         icon="🥔", pos=new Vector2(214,-110), cost=l=>1000f, max=1, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", zone=true, active=true },
+        // ---- 생존 기지 시설 속도(시트 전용, 10/25 레벨 외형): 레벨마다 처리 시간 ÷(1 + 0.3×Lv), Lv2·Lv4 에 외형 단계(LevelLook)
+        //  비용은 1장 끝 잔고(약 1만)·2장 소비처(본부 Lv5 뒤 14~16만 남음, docs/pacing-report.md)에 맞춰 시설당 합 6.7~13천
+        new PadDef{ id="elecspd", name="전기분해기 속도", icon="🫧", pos=Vector2.zero, cost=l=>300f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("o2")>=1, reqText="전기분해기", menu=true, active=true },
+        new PadDef{ id="purspd",  name="토양 정화기 속도", icon="🪴", pos=Vector2.zero, cost=l=>450f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", menu=true, active=true },
+        new PadDef{ id="mixspd",  name="비료 배합기 속도", icon="🌱", pos=Vector2.zero, cost=l=>450f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", menu=true, active=true },
+        new PadDef{ id="grnspd",  name="온실 속도",      icon="🥔", pos=Vector2.zero, cost=l=>600f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("farm")>=1, reqText="온실", menu=true, active=true },
     };
+    // 시트 전용 시설 속도 발판(SettleStations 시설 순서: 전기분해기·정화기·배합기·온실)
+    public static readonly string[] FAC_SPD = { "elecspd", "purspd", "mixspd", "grnspd" };
+    public static bool IsFacSpd(string id) => System.Array.IndexOf(FAC_SPD, id) >= 0;
 
     // §3.1 노출 순서. n번째 등장 = 그 id의 Lv n 차례.
     public static readonly string[] ORDER =

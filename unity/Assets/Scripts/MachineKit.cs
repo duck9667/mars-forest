@@ -15,7 +15,9 @@ public static class MachineKit
     public static Vector3 L(float dx, float dy, float h) => new Vector3(dx * GameConfig.K, h * GameConfig.K, -dy * GameConfig.K);
 
     // 플레이스홀더(body/top 등)를 숨기고 스테이션 중심 그룹 + 받침판
-    public static Transform Group(Transform view, WorldMap.Stn s, float w, float d, params string[] hide)
+    public static Transform Group(Transform view, WorldMap.Stn s, float w, float d, params string[] hide) => Group(view, s, w, d, true, hide);
+    // plate=false: 받침은 부르는 쪽이 ToyMesh 본체 메시에 함께 넣는다(StationDress.Plate, 드로우콜 1)
+    public static Transform Group(Transform view, WorldMap.Stn s, float w, float d, bool plate, params string[] hide)
     {
         foreach (Transform c in view)
         {
@@ -24,6 +26,7 @@ public static class MachineKit
         }
         var g = new GameObject("machine").transform; g.SetParent(view, false);
         g.position = WorldMap.W2U(s.x, s.y, 0f);
+        if (!plate) return g;
         // 밝은 콘크리트 받침(어두운 강철판은 무거워 보였다, 목표 그림 docs/art): 둥근 모서리 판 + 한 단 밝은 윗단(얇은 판 대신 두께 1.2)
         RoundSlab(g, "plate", 0, 0, 0, w, d, 5, 9, PAD);
         RoundSlab(g, "plateTop", 0, 0, 5, w - 8, d - 8, 1.2f, 6, PAD_TOP);
@@ -197,6 +200,13 @@ public class MachineAnim : MonoBehaviour
     float t, lv = -1;
 
     public void SetLiquid(Transform l) { liquid = l; liqH = l.localScale.y; liqY0 = l.localPosition.y - liqH; }
+    // 같은 level 을 따르는 액체 하나 더(레벨 외형: 두 번째 수조·탱크). 꺼져 있어도 높이는 맞춰 둔다
+    readonly List<(Transform t, float h, float y0)> liquids2 = new List<(Transform, float, float)>();
+    public void AddLiquid(Transform l) => liquids2.Add((l, l.localScale.y, l.localPosition.y - l.localScale.y));
+    // 일할 때 켜지는 발광 재질 바꾸기(고급 단계는 불꽃이 더 밝다)
+    public void SetGlowOn(Renderer r, Material on) { for (int i = 0; i < glow.Count; i++) if (glow[i].r == r) glow[i] = (r, on, glow[i].off); }
+    // 일할 때 좌우로 까딱이는 부품(병입기 로봇 팔): 로컬 y 축으로 ±swingDeg
+    public readonly List<Transform> swing = new List<Transform>(); public float swingDeg = 35f, swingSpeed = 2.4f; float swingA;
     public void AddBlink(Renderer r, Color on) => blink.Add((r, Mats.Solid(on), Mats.Solid(Color.Lerp(on, MachineKit.STEEL_D, 0.65f))));
     public void AddGlow(Renderer r, Color on, Color off) => glow.Add((r, Mats.Solid(on), Mats.Solid(off)));
     public void AddGlowMat(Renderer r, Material on, Material off) => glow.Add((r, on, off));
@@ -211,6 +221,18 @@ public class MachineAnim : MonoBehaviour
             float h = Mathf.Max(0.02f, lv) * liqH;
             liquid.localScale = new Vector3(liquid.localScale.x, h, liquid.localScale.z);
             liquid.localPosition = new Vector3(liquid.localPosition.x, liqY0 + h, liquid.localPosition.z);
+            foreach (var l in liquids2)
+            {
+                float h2 = Mathf.Max(0.02f, lv) * l.h;
+                l.t.localScale = new Vector3(l.t.localScale.x, h2, l.t.localScale.z);
+                l.t.localPosition = new Vector3(l.t.localPosition.x, l.y0 + h2, l.t.localPosition.z);
+            }
+        }
+        if (swing.Count > 0)
+        {
+            if (w) swingA += dt * swingSpeed;
+            float ry = Mathf.Sin(swingA) * swingDeg;
+            foreach (var s in swing) s.localRotation = Quaternion.Euler(0, ry, 0);
         }
         foreach (var s in spin) if (w) s.Rotate(0, spinSpeed * dt, 0, Space.Self);
         bool on = w && Mathf.Repeat(t, 0.8f) < 0.5f;

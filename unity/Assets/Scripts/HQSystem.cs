@@ -83,6 +83,7 @@ public class HQSystem : MonoBehaviour
         root.position = WorldMap.W2U(POS); root.localScale = Vector3.one * SCALE;
         for (int i = 0; i <= MAX; i++) parts[i] = new List<Transform>();
         BuildSlab(); BuildModule(); BuildAntenna(); BuildDome(); BuildSailFlag(); BuildTower();
+        BuildLook();
         Show(Mathf.Clamp(G.PadLv("hq"), 0, MAX), false);
         G.OnPadLevel += OnPadLevel;
         lastDay = G.S.day;
@@ -96,10 +97,40 @@ public class HQSystem : MonoBehaviour
 
     void OnPadLevel(string id, int lv) { if (id == "hq") Show(Mathf.Clamp(lv, 0, MAX), true); }
 
+    // ---- 레벨 외형 단계(LevelLook: Lv0~1 기본 · Lv2~3 개량 · Lv4~5 고급) ----
+    //  레벨마다 솟는 건물 조각과 별개로, 단계가 오르면 터와 띠가 함께 세련돼진다.
+    //  기본: 밝은 콘크리트 터 / 개량: 한 단 넓은 아랫단 + 크림 타일 윗면 / 고급: 터 둘레 금 테 + 주황 띠(모듈·통신탑·관제탑)·돔 테가 금
+    TierLook look;
+    static Mesh SlabMesh(int t) => ToyMesh.Cached("hqSlab" + t, m =>
+    {
+        // 좌표: dx 동·dy 남·h 높이(모형 단위, root 배율 SCALE 이 곱해진다)
+        if (t >= 1) m.AtM(0, 0, 0.8f).RBox(new Vector3(SLAB_W + 7, 1.6f, SLAB_D + 7), 12, MachineKit.PAD, GameConfig.Hex("e6d6c0"));
+        m.AtM(0, 0, SLAB_H / 2).RBox(new Vector3(SLAB_W, SLAB_H, SLAB_D), 9, MachineKit.PAD);
+        if (t >= 2) m.AtM(0, 0, SLAB_H - 0.5f).RBox(new Vector3(SLAB_W + 0.8f, 1.2f, SLAB_D + 0.8f), 9.4f, LevelLook.TRIM, LevelLook.TRIM_L, LevelLook.TRIM_L);
+        m.AtM(0, 0, SLAB_H + 0.1f).RBox(new Vector3(SLAB_W - 6, 0.6f, SLAB_D - 6), 6, t == 0 ? MachineKit.PAD_TOP : t == 1 ? GameConfig.Hex("f1dcc0") : GameConfig.Hex("f6e7cf"));
+        return m;
+    });
+    void BuildLook()
+    {
+        look = new TierLook { squashRoot = null };
+        look.Swap(slabMf, SlabMesh, t => ToyMesh.Mat(t >= 2 ? 0.3f : 0.12f));
+        var accents = new List<Renderer>();
+        foreach (var r in root.GetComponentsInChildren<Renderer>(true)) if (r.gameObject.name == "band" || r.gameObject.name == "rim") accents.Add(r);
+        var gold = Mats.Gloss(LevelLook.TRIM, 0.5f); var orig = new Material[accents.Count];
+        for (int k = 0; k < accents.Count; k++) orig[k] = accents[k].sharedMaterial;
+        look.onTier = (t, anim) =>
+        {
+            for (int k = 0; k < accents.Count; k++) accents[k].sharedMaterial = t >= 2 ? gold : orig[k];
+            if (anim) { JuiceFX.I.Pop(slabMf.transform, 0.92f, 0.45f, 2.2f); JuiceFX.I.Dust(root.position + Vector3.up * 0.2f, 8); }
+        };
+        look.Apply(LevelLook.Tier(Mathf.Clamp(G.PadLv("hq"), 0, MAX)), false);
+    }
+
     // 레벨 lv까지 보이기. 올라간 레벨의 조각은 땅에서 솟아오른다(팝·먼지, 화면 번쩍임 없음)
     void Show(int lv, bool anim)
     {
         int prev = shownLv; shownLv = lv;
+        look?.Apply(LevelLook.Tier(lv), anim);
         SetCol(lv);
         for (int l = 1; l <= MAX; l++)
         {
@@ -195,12 +226,9 @@ public class HQSystem : MonoBehaviour
             Prim.Cyl(p, name, L(dx + sx * (w / 2 - r), dy + sy * (d / 2 - r), h0 + h / 2), 2 * r, h, c);
     }
 
-    // Lv0: 밝은 콘크리트 터(둥근 모서리). 걸을 수 있다
-    void BuildSlab()
-    {
-        RoundSlab(root, "slab", 0, 0, SLAB_W, SLAB_D, 0, SLAB_H, 9, MachineKit.PAD);
-        RoundSlab(root, "slabTop", 0, 0, SLAB_W - 6, SLAB_D - 6, SLAB_H - 0.2f, 0.6f, 6, MachineKit.PAD_TOP);
-    }
+    // Lv0: 밝은 콘크리트 터(둥근 모서리, ToyMesh 한 덩어리). 걸을 수 있다. 단계마다 메시를 바꿔 끼운다(SlabMesh)
+    MeshFilter slabMf;
+    void BuildSlab() { slabMf = LevelLook.Holder(root, "slab"); }
 
     // Lv1: 지휘 모듈 — 받침 위에 누운 흰 캡슐, 앞(남)쪽 문·발판, 양 끝 둥근 창, 주황 띠 둘, 지붕 해치
     void BuildModule()

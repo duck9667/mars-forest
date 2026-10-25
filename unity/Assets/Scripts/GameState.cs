@@ -71,6 +71,8 @@ public class GameState : MonoBehaviour
     public float BaseGap => Mathf.Max(2f, 6.5f - PadLv("ads") * 0.9f) * HQSystem.GapMul(this) * (Frontier.I != null ? Frontier.I.GapMul : 1f);
     // 공용 기계 속도 배율(곱셈 훅): 해빙기·병입기·생존 기지 시설(SettleStations) 처리 시간을 이 값으로 나눈다. 본부 Lv4 ×1.1 · 태양광 전력(낮·배터리 동안 ×1.2)
     public float MachineSpeedMul => HQSystem.SpeedMul(this) * Frontier.PowerMul;
+    // 생존 기지 시설별 속도 배율(시트 전용 발판 elecspd·purspd·mixspd·grnspd): 공용 MachineSpeedMul 과 곱한다. i 는 SettleStations 시설 번호
+    public float FacSpeedMul(int i) => i < 0 || i >= Pads.FAC_SPD.Length ? 1f : 1f + 0.3f * PadLv(Pads.FAC_SPD[i]);
     public float Speed => (GameConfig.BASE_SPEED + GameConfig.SPEED_PER_LV * PadLv("spd")) * MarsEvents.MoveMul;   // 먼지 폭풍 중 −15%
     public bool HasCashier => PadLv("cashier") >= 1;
 

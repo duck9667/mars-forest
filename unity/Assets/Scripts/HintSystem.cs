@@ -78,7 +78,8 @@ public class HintSystem : MonoBehaviour
         int hn = hk == "" ? 0 : G.HeldAll(hk);
         delivering = hk != "";
         // 출력 더미 옆에서 받는 중이면(근처일 때만: 멀어진 뒤 새로 1개 생겼다고 되돌아오지 않게) 가득 차거나 빌 때까지 그 자리
-        bool Taking(int i, int outN) => !full && outN > 0 && ss.Near(i, Player.I.pos);
+        //  그 종류를 더 받을 수 없으면(종류별 상한, GameState.WantsMore) 기다리지 않는다: 비료 40을 든 채 배합기 옆에서 영영 서 있던 막힘(10/25 시설 속도 발판 뒤 페이싱 점검)
+        bool Taking(int i, int outN) => !full && outN > 0 && ss.Near(i, Player.I.pos) && G.WantsMore(SettleStations.OUT_K[i]);
         // 얼음은 ICE_BATCH개 모이거나 밭이 비면 해빙기로(등짐 100개를 다 채울 때까지 얼음밭에 붙잡아 두지 않는다), 아니면 계속 줍기
         if (hk == "ice") return (full || hn >= Mathf.Min(G.CarryMax, GameConfig.ICE_BATCH) || !anyOpen) ? P("melter") : Ice();
         if (ss != null)

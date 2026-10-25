@@ -215,7 +215,8 @@ public class UpgradeSheet : MonoBehaviour
         if (tab == UP)
         {
             if (PrestigeManager.I != null && PrestigeManager.I.ShowCard) k.Add("prest");
-            foreach (var d in Pads.ALL.Where(p => p.active && p.menu)) k.Add("pad:" + d.id);
+            // 시설 속도 발판(생존 기지 시설별)은 그 시설이 열린 뒤에만(잠긴 줄 넷이 1장 초반 시트를 채우지 않게)
+            foreach (var d in Pads.ALL.Where(p => p.active && p.menu && (!Pads.IsFacSpd(p.id) || G.PadReq(p.id)))) k.Add("pad:" + d.id);
             int Rank(PadDef d) => G.PadMaxed(d.id) ? 3 : !G.PadReq(d.id) ? 2 : PadManager.I.visSet.Contains(d.id) ? 0 : 1;
             foreach (var d in Pads.ALL.Where(p => p.active && !p.menu && !p.zone).OrderBy(Rank)) k.Add("pad:" + d.id);
         }
@@ -391,11 +392,12 @@ public class UpgradeSheet : MonoBehaviour
         r.pips = UIKit.Pips(r.bg.transform, 0, d.max);
         var prt = r.pips.GetComponent<RectTransform>(); UIKit.Anchor(prt, new Vector2(0, 0.5f), new Vector2(88, -15), new Vector2(240, 12));
         var fit = r.pips.gameObject.AddComponent<ContentSizeFitter>(); fit.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-        // 기지 본부: 핍 오른쪽에 다음 레벨 보너스 한 줄(짧게)
-        if (d.id == "hq")
+        // 기지 본부: 핍 오른쪽에 다음 레벨 보너스 한 줄(짧게). 레벨 외형이 있는 발판은 같은 자리에 다음 외형 레벨 한 줄("Lv4: 외형 변화")
+        if (d.id == "hq" || LevelLook.Has(d.id))
         {
             r.sub = UIKit.Text(r.bg.transform, "", 16, UIKit.SUB, TextAnchor.MiddleLeft);
-            UIKit.Anchor(r.sub.rectTransform, new Vector2(0, 0.5f), new Vector2(88 + d.max * 19 + 8, -14), new Vector2(150, 22));
+            float sx = 88 + d.max * 19 + 8;
+            UIKit.Anchor(r.sub.rectTransform, new Vector2(0, 0.5f), new Vector2(sx, -14), new Vector2(d.id == "hq" ? 150 : Mathf.Min(150, 322 - sx), 22));
             r.sub.resizeTextForBestFit = true; r.sub.resizeTextMinSize = 11; r.sub.resizeTextMaxSize = 16;
         }
         // 구매 버튼(파랑 [벨] 가격 / 회색 잠김 / 금색 MAX)
@@ -421,6 +423,7 @@ public class UpgradeSheet : MonoBehaviour
             r.buy.interactable = !maxed && req;
         }
         if (r.sub != null && d.id == "hq") { string nb = maxed ? "보너스 5개 모두" : "다음: " + HQSystem.BonusText(lv + 1); if (r.sub.text != nb) r.sub.text = nb; }
+        else if (r.sub != null) { string nl = LevelLook.NextText(d.id, lv, d.max); if (r.sub.text != nl) r.sub.text = nl; }
         r.lv = lv; r.maxed = maxed; r.req = req; r.can = can; r.vis = vis; r.label = label; r.state = 0;
     }
     void OnBuyPad(PadDef d, bool stat)
