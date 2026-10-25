@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 // §2 플레이어: 이동(축분리 충돌)·걷기 애니·등짐 스택(흔들림)·§1.1 상호작용 우선순위 표
@@ -15,9 +16,21 @@ public class Player : MonoBehaviour
     Transform armL, armR, legL, legR, head;
     float swX, swZ, swVX, swVZ;   // 등짐 흔들림(스프링: 위치·속도)
     WorldLabels.Label maxTag;      // 가득 찼을 때만 탑 위 "MAX"
-    int lastCarry = -1; string stackKind = "";
-    float popT = 1f;               // 맨 위 블록 팝(0→1)
-    const float LAYER = Items.CARRY_H;
+    // 등짐 탑(섞어 싣기 10/25): 종류마다 블록 풀을 두고 S.p.carry 순서(종류별 묶음)대로 칸에 앉힌다. 맨 아래는 보유 벨 비례 지폐 묶음
+    readonly Dictionary<string, List<Transform>> pools = new Dictionary<string, List<Transform>>();
+    readonly Dictionary<string, int> want = new Dictionary<string, int>(), used = new Dictionary<string, int>();
+    readonly List<Transform> bills = new List<Transform>();
+    readonly Dictionary<Transform, float> pops = new Dictionary<Transform, float>();   // 새로 실린 블록 팝(0→1)
+    readonly List<Transform> popDone = new List<Transform>();
+    // 한 층에 여러 개(2×2, 용량 120 넘으면 3×2)를 원래 블록의 0.6배로 앉힌다: 100개를 한 줄로 쌓으면 화면을 뚫는다
+    const float BS = 0.6f, GX = 10.8f, GZ = 8.0f;   // 블록 배율·칸 간격(논리)
+    const float LH = Items.CARRY_H * BS;            // 한 층 높이
+    const float BILL_LH = 2.4f;                     // 지폐 묶음 한 층 높이
+    const int ROWS = 2;
+    int Cols => G.CarryMax > 120 ? 3 : 2;
+    int PerLayer => Cols * ROWS;
+    int MaxShow => GameConfig.STACK_LAYERS * PerLayer;
+    float BillH => bills.Count * BILL_LH;
 
     void Awake() { I = this; }
 
@@ -27,7 +40,9 @@ public class Player : MonoBehaviour
         BuildView();
         // QA: -carry N 이면 시작부터 얼음 N개를 진 채로(등짐 탑 확인용, 저장 분리 -save 와 함께 쓸 것)
         var cf = DevArgs.Get("-carry");
-        if (!string.IsNullOrEmpty(cf) && int.TryParse(cf, out var cn) && S.p.carry.Count == 0) for (int i = 0; i < cn; i++) S.p.carry.Add("ice");
+        // -carrymix 를 같이 주면 얼음·물통·레골리스·흙·비료·산소통·식량을 돌아가며 섞어 싣는다(종류별로 묶여 쌓이는지 확인)
+        bool mix = DevArgs.Has("-carrymix"); string[] mixK = { "ice", "bottle", "rego", "soil", "fert", "o2", "food" };
+        if (!string.IsNullOrEmpty(cf) && int.TryParse(cf, out var cn) && S.p.carry.Count == 0) for (int i = 0; i < cn; i++) G.AddCarry(mix ? mixK[i % mixK.Length] : "ice");
         // 머리 위 "얼음 n/32" 칩은 없앴다(jake 10/24). 가득 찼을 때만 탑 꼭대기에 금색 말풍선 "MAX"
         maxTag = WorldLabels.I.Add(() => MaxWorld(), "MAX", 18, Color.white, Vector2.zero, true, GameConfig.GOLD);
         maxTag.text.color = GameConfig.Hex("e03c3c");
@@ -51,12 +66,33 @@ public class Player : MonoBehaviour
         stackAnchor.localRotation = Quaternion.Euler(-0.08f * Mathf.Rad2Deg, 0, 0);
     }
 
-    // i층(실수 허용) 블록 중심의 앵커 로컬 위치. 휨은 위로 갈수록 더 커진다(선형+제곱, 상한)
+    // 높이 h(논리)에서의 휨. 예전 한 줄 탑(층 높이 CARRY_H)의 i층 곡선을 높이로 옮긴 것: 위로 갈수록 더 커진다(선형+제곱, 상한)
     float Bend(float i) => Mathf.Min(i * 0.07f + i * i * 0.0035f, 3.6f);
-    Vector3 LayerPos(float i) => new Vector3(swX * Bend(i) * GameConfig.K, (LAYER / 2 + i * LAYER) * GameConfig.K, swZ * Bend(i) * GameConfig.K);
-    // 아이템 비행 도착점: 지금 맨 위(대기 중인 비행 포함) 블록의 윗면. 흔들림까지 따라간다
-    public Vector3 StackTop() => stackAnchor.TransformPoint(LayerPos(Mathf.Min(G.Carry + G.pend, GameConfig.STACK_MAX) - 0.5f));
-    Vector3 MaxWorld() => stackAnchor.TransformPoint(LayerPos(Mathf.Min(G.Carry, GameConfig.STACK_MAX) - 0.5f)) + Vector3.up * 9 * GameConfig.K;
+    float BendH(float h) => Bend(Mathf.Max(0f, h / Items.CARRY_H - 0.5f));
+    Vector3 At(float x, float h, float z) => new Vector3((x + swX * BendH(h)) * GameConfig.K, h * GameConfig.K, (z + swZ * BendH(h)) * GameConfig.K);
+    // 등짐 i번째 칸 중심(앵커 로컬): 지폐 층 위로 층마다 Cols×ROWS
+    Vector3 SlotLocal(int i)
+    {
+        int per = PerLayer, layer = i / per, cell = i % per, c = cell % Cols, r = cell / Cols;
+        return At((c - (Cols - 1) / 2f) * GX, BillH + (layer + 0.5f) * LH, (r - (ROWS - 1) / 2f) * GZ);
+    }
+    int Layers(int n) => Mathf.Min((n + PerLayer - 1) / PerLayer, GameConfig.STACK_LAYERS);
+    float TopH(int n) => BillH + Layers(n) * LH;
+    // 아이템 비행 도착점: 지금 맨 위(대기 중인 비행 포함) 층의 윗면. 흔들림까지 따라간다
+    public Vector3 StackTop() => stackAnchor.TransformPoint(At(0, TopH(G.Carry + G.pend), 0));
+    // 그 종류가 실릴 자리(같은 종류 묶음 끝). 화면에 안 그리는 칸이면 맨 위
+    public Vector3 InsertWorld(string kind) { int i = G.CarryInsertIndex(kind); return i < MaxShow ? stackAnchor.TransformPoint(SlotLocal(i)) : StackTop(); }
+    // 지폐 묶음 맨 위(계산대 지폐가 날아와 앉는 곳)
+    public Vector3 BillTop() => stackAnchor.TransformPoint(At(0, BillH + BILL_LH * 0.5f, 0));
+    Vector3 MaxWorld() => stackAnchor.TransformPoint(At(0, TopH(G.Carry), 0)) + Vector3.up * 9 * GameConfig.K;
+    // 그 종류 하나를 등짐에서 빼고, 빠진 자리(비행 출발점)를 돌려준다
+    Vector3 TakeOut(string kind)
+    {
+        int i = S.p.carry.LastIndexOf(kind);
+        Vector3 from = i >= 0 && i < MaxShow ? stackAnchor.TransformPoint(SlotLocal(i)) : StackTop();
+        G.RemoveCarry(kind);
+        return from;
+    }
 
     void Update()
     {
@@ -118,19 +154,24 @@ public class Player : MonoBehaviour
     // 멈추거나 방향을 틀면 탑이 관성으로 넘어갈 듯 휘청이다 되돌아온다. 걷는 동안엔 발걸음 따라 좌우로 살짝 출렁
     void SyncStack(float dt)
     {
-        var carry = S.p.carry; string kind = G.CarryTop;
-        int n = Mathf.Min(carry.Count, GameConfig.STACK_MAX);
-        if (n != lastCarry || kind != stackKind)
+        var carry = S.p.carry;
+        int show = Mathf.Min(carry.Count, MaxShow);
+        // 종류별 필요 수 → 풀 크기 맞추기. 같은 종류 묶음의 맨 위가 풀의 끝이라, 실으면 끝에 붙고 넣으면 끝에서 빠진다(나머지는 자연스럽게 내려앉음)
+        want.Clear();
+        for (int i = 0; i < show; i++) { var k = carry[i]; want[k] = (want.TryGetValue(k, out var w) ? w : 0) + 1; }
+        foreach (var kv in pools)
+            if (!want.ContainsKey(kv.Key)) Shrink(kv.Value, 0);
+        foreach (var kv in want)
         {
-            // 종류가 바뀌면 전부 교체(빈 손이 되면 전부 비움)
-            if (kind != stackKind) { ClearStack(); stackKind = kind; }
-            // 내려놓기: 맨 위부터 빠진다
-            for (int i = stackAnchor.childCount - 1; i >= n; i--) { var c = stackAnchor.GetChild(i); c.SetParent(null, false); Destroy(c.gameObject); }
-            bool grew = stackAnchor.childCount < n;
-            for (int i = stackAnchor.childCount; i < n; i++) Items.CarryBlock(stackAnchor, kind);
-            if (grew) popT = 0f;      // 줍는 순간 맨 위 블록 팝
-            lastCarry = n;
+            if (!pools.TryGetValue(kv.Key, out var pool)) { pool = new List<Transform>(); pools[kv.Key] = pool; }
+            Shrink(pool, kv.Value);
+            while (pool.Count < kv.Value) { var t = Items.CarryBlock(stackAnchor, kv.Key).transform; pool.Add(t); pops[t] = 0f; }
         }
+        // 지폐 묶음(맨 아래 고정): 보유 벨 비례. 벨을 쓰면 위에서부터 줄어든다
+        int nb = G.BillLayers;
+        Shrink(bills, nb);
+        while (bills.Count < nb) { var t = Items.CarryBlock(stackAnchor, "bill").transform; bills.Add(t); pops[t] = 0f; }
+
         Vector3 fwd = new Vector3(dir.x, 0, -dir.y), right = Vector3.Cross(Vector3.up, fwd);
         Vector3 vu = new Vector3(vel.x, 0, -vel.y);
         float lf = Vector3.Dot(vu, fwd) * 0.06f, ls = Vector3.Dot(vu, right) * 0.06f;
@@ -140,44 +181,65 @@ public class Player : MonoBehaviour
         swVX += ((tx - swX) * KS - swVX * KD) * dt; swX += swVX * dt;
         swVZ += ((tz - swZ) * KS - swVZ * KD) * dt; swZ += swVZ * dt;
         swX = Mathf.Clamp(swX, -14, 14); swZ = Mathf.Clamp(swZ, -14, 14);
-        if (popT < 1f) popT = Mathf.Min(1f, popT + dt / 0.22f);
         float bob = body.localPosition.y;   // 몸 들썩임만 따라감
         stackAnchor.localPosition = new Vector3(0, 34 * GameConfig.K + bob, -25 * GameConfig.K);
-        int cnt = stackAnchor.childCount;
-        for (int i = 0; i < cnt; i++)
+        // 팝 진행
+        if (pops.Count > 0)
         {
-            var c = stackAnchor.GetChild(i);
-            c.localPosition = LayerPos(i);
-            // 기울기 = 휨 곡선의 기울기(층 사이 수평 차이 / 층 높이)
-            float slope = (Bend(i + 0.5f) - Bend(i - 0.5f)) / LAYER * 0.8f;
-            c.localRotation = Quaternion.Euler(-Mathf.Atan(swZ * slope) * Mathf.Rad2Deg, 0, Mathf.Atan(swX * slope) * Mathf.Rad2Deg);
-            float sc = 1f;
-            if (i == cnt - 1 && popT < 1f)
-            {
-                // easeOutBack 0.45→1(살짝 넘쳤다 돌아옴)
-                float p = popT, c1 = 2.2f, c3 = c1 + 1f;
-                float e = 1f + c3 * Mathf.Pow(p - 1f, 3) + c1 * Mathf.Pow(p - 1f, 2);
-                sc = Mathf.LerpUnclamped(0.45f, 1f, e);
-            }
-            c.localScale = Vector3.one * sc;
+            popDone.Clear(); popDone.AddRange(pops.Keys);
+            foreach (var t in popDone) { float p = pops[t] + dt / 0.22f; if (p >= 1f || t == null) pops.Remove(t); else pops[t] = p; }
         }
+        // 지폐: 탑 바닥 넓이만큼 넓고 얇게
+        float bx = Cols * GX / 17f;
+        for (int j = 0; j < bills.Count; j++)
+        {
+            float h = (j + 0.5f) * BILL_LH;
+            Place(bills[j], At(0, h, 0), h, new Vector3(bx, BILL_LH / Items.CARRY_H, 1.25f));
+        }
+        // 물건: carry 순서대로 종류 풀에서 하나씩 꺼내 칸에 앉힌다
+        used.Clear();
+        for (int i = 0; i < show; i++)
+        {
+            var k = carry[i]; int u = used.TryGetValue(k, out var uu) ? uu : 0; used[k] = u + 1;
+            var t = pools[k][u];
+            var lp = SlotLocal(i);
+            Place(t, lp, lp.y / GameConfig.K, Vector3.one * BS);
+        }
+        int n = carry.Count;
         maxTag.Show(n > 0 && n >= G.CarryMax);
         if (n > 0 && n >= G.CarryMax) maxTag.rt.localScale = Vector3.one * (1f + Mathf.Sin(Time.time * 7f) * 0.06f);
     }
 
-    void ClearStack()
+    // 블록 하나 배치: 기울기 = 휨 곡선의 기울기(높이 차이 / 예전 층 높이), 새로 실린 블록은 easeOutBack 팝
+    void Place(Transform c, Vector3 lp, float h, Vector3 scale)
     {
-        for (int i = stackAnchor.childCount - 1; i >= 0; i--) { var c = stackAnchor.GetChild(i); c.SetParent(null, false); Destroy(c.gameObject); }
-        lastCarry = 0;
+        c.localPosition = lp;
+        float slope = (BendH(h + Items.CARRY_H / 2) - BendH(h - Items.CARRY_H / 2)) / Items.CARRY_H * 0.8f;
+        c.localRotation = Quaternion.Euler(-Mathf.Atan(swZ * slope) * Mathf.Rad2Deg, 0, Mathf.Atan(swX * slope) * Mathf.Rad2Deg);
+        float sc = 1f;
+        if (pops.TryGetValue(c, out var p))
+        {
+            // easeOutBack 0.45→1(살짝 넘쳤다 돌아옴)
+            float c1 = 2.2f, c3 = c1 + 1f;
+            float e = 1f + c3 * Mathf.Pow(p - 1f, 3) + c1 * Mathf.Pow(p - 1f, 2);
+            sc = Mathf.LerpUnclamped(0.45f, 1f, e);
+        }
+        c.localScale = scale * sc;
     }
 
-    // §1.1 순서대로 첫 번째로 성립한 행동 1개만
+    void Shrink(List<Transform> pool, int n)
+    {
+        for (int i = pool.Count - 1; i >= n; i--) { var c = pool[i]; pool.RemoveAt(i); pops.Remove(c); c.SetParent(null, false); Destroy(c.gameObject); }
+    }
+
+    // §1.1 순서대로 첫 번째로 성립한 행동 1개만. 등짐은 섞어 싣는다(10/25): 줍기는 용량과 종류별 상한(G.WantsMore)만 보고,
+    // 넣기는 그 시설이 받는 종류를 등짐 어디에 있든 하나 빼서 넣는다
     void Interact()
     {
         if (actT > 0) return;
         var st = Stations.I; if (st == null) return;
-        // 1. 얼음 줍기. 해빙기 큐가 상한(MELT_CAP)이거나 물탱크가 넉넉하면(WATER_FULL) 지나가다 줍지 않는다(북쪽 갈 때 얼음밭을 지나며 손이 차서 얼음만 나르는 고리 방지, 레골리스와 같은 규칙)
-        if (G.CanCarry("ice") && GameState.IceWanted(S))
+        // 1. 얼음 줍기. 해빙기 큐 + 든 얼음이 상한(MELT_CAP)이거나 물탱크가 넉넉하면(WATER_FULL) 지나가다 줍지 않는다(북쪽 갈 때 얼음밭을 지나며 얼음만 쌓이는 고리 방지, 레골리스와 같은 규칙)
+        if (G.WantsMore("ice"))
         {
             int best = -1; float bd = GameConfig.R_ICE;
             for (int i = 0; i < st.SpotCount; i++)
@@ -189,35 +251,35 @@ public class Player : MonoBehaviour
             if (best >= 0)
             {
                 S.spots[best] = GameConfig.SpotRespawn();
-                G.pend++; G.pendK = "ice";
-                ArcFlyer.I.Fly(FlyBlock("ice"), st.SpotWorld(best), StackTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("ice"));
+                G.PendAdd("ice");
+                ArcFlyer.I.Fly(FlyBlock("ice"), st.SpotWorld(best), () => InsertWorld("ice"), GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("ice"));
                 actT = GameConfig.CD_ICE; return;
             }
         }
-        // 2. 해빙기에 넣기
-        if (G.CarryTop == "ice" && WorldMap.NearStn(pos, "melter", GameConfig.R_MELT))
+        // 2. 해빙기에 넣기(등짐 속 얼음 아무거나)
+        if (G.Holds("ice") && WorldMap.NearStn(pos, "melter", GameConfig.R_MELT))
         {
-            PopTop();
-            ArcFlyer.I.Fly(FlyBlock("ice"), StackTop(), st.MeltTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => { S.meltQ++; });
+            ArcFlyer.I.Fly(FlyBlock("ice"), TakeOut("ice"), st.MeltTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => { S.meltQ++; });
             AudioManager.I.Play("put", 1f + Random.Range(-0.05f, 0.05f));
             actT = GameConfig.CD_MELT; return;
         }
-        // 3. 병 받기. 물통을 둘 곳(카운터 물 칸·전기분해기)이 모두 가득이면 집지 않는다(지나가다 손이 병으로 묶여 카운터 앞에서 기다리는 고리 방지)
-        if (S.bottles > 0 && G.CanCarry("bottle") && G.BottleHasPlace && WorldMap.NearStn(pos, "bottler", GameConfig.R_BOTTLE))
+        // 3. 병 받기. 물통을 둘 곳(카운터 물 칸·전기분해기) 빈자리가 이미 든 물통보다 많을 때만 집는다(지나가다 손이 병으로 묶여 카운터 앞에서 기다리는 고리 방지)
+        if (S.bottles > 0 && G.WantsMore("bottle") && WorldMap.NearStn(pos, "bottler", GameConfig.R_BOTTLE))
         {
-            S.bottles--; G.pend++; G.pendK = "bottle";
-            ArcFlyer.I.Fly(FlyBlock("bottle"), st.TrayTop(), StackTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("bottle"));
+            S.bottles--; G.PendAdd("bottle");
+            ArcFlyer.I.Fly(FlyBlock("bottle"), st.TrayTop(), () => InsertWorld("bottle"), GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("bottle"));
             actT = GameConfig.CD_BOTTLE; return;
         }
-        // 4. 선반 올리기 (카운터 뒤쪽 p.y < counter.y): 물병·산소통·식량을 각자 칸으로, 칸마다 ShelfCap
-        string sk = G.CarryTop;
-        if ((sk == "bottle" || sk == "o2" || sk == "food") && G.ShelfOf(sk) + st.ShelfPendOf(sk) < G.ShelfCap && pos.y < WorldMap.STN["counter"].y && WorldMap.NearStn(pos, "counter", GameConfig.R_SHELF))
-        {
-            PopTop(); st.AddShelfPend(sk, 1);
-            ArcFlyer.I.Fly(FlyBlock(sk), StackTop(), () => st.ShelfTop(sk), GameConfig.FLY_T, GameConfig.FLY_LIFT, () => { st.AddShelfPend(sk, -1); G.AddShelf(sk, 1); if (sk == "bottle" && S.tut == 2) TutorialManager.I?.Advance(3); });
-            AudioManager.I.Play("put", 1.2f);
-            actT = GameConfig.CD_SHELF; return;
-        }
+        // 4. 선반 올리기 (카운터 뒤쪽 p.y < counter.y): 물병·산소통·식량을 각자 칸으로, 칸마다 ShelfCap. 등짐에서 칸마다 맞는 종류를 꺼낸다
+        if (pos.y < WorldMap.STN["counter"].y && WorldMap.NearStn(pos, "counter", GameConfig.R_SHELF))
+            foreach (var sk in GameState.SUPPLY_KINDS)
+            {
+                if (!G.Holds(sk) || G.ShelfOf(sk) + st.ShelfPendOf(sk) >= G.ShelfCap) continue;
+                var from = TakeOut(sk); st.AddShelfPend(sk, 1);
+                ArcFlyer.I.Fly(FlyBlock(sk), from, () => st.ShelfTop(sk), GameConfig.FLY_T, GameConfig.FLY_LIFT, () => { st.AddShelfPend(sk, -1); G.AddShelf(sk, 1); if (sk == "bottle" && S.tut == 2) TutorialManager.I?.Advance(3); });
+                AudioManager.I.Play("put", 1.2f);
+                actT = GameConfig.CD_SHELF; return;
+            }
         // 5. 지폐 수거
         if (S.cash > 0 && !G.collectingCash && WorldMap.NearStn(pos, "register", GameConfig.R_CASH))
         {
@@ -240,57 +302,57 @@ public class Player : MonoBehaviour
     void SettleInteract()
     {
         var ss = SettleStations.I; if (ss == null) return;
-        // 정화기 큐가 이미 상한이면 지나가다 줍지 않는다(출력이 가득 차 멈춘 동안 레골리스만 계속 쌓이는 고리 방지)
-        if (G.CanCarry("rego") && S.purQ + ss.qPend[1] < GameConfig.SETTLE_Q_CAP)
+        // 정화기 큐 + 든 레골리스가 이미 상한이면 지나가다 줍지 않는다(출력이 가득 차 멈춘 동안 레골리스만 계속 쌓이는 고리 방지)
+        if (G.WantsMore("rego"))
         {
             int best = ss.NearestRego(pos, SettleStations.R_REGO);
             if (best >= 0)
             {
                 S.rspots[best] = GameConfig.SpotRespawn();
-                G.pend++; G.pendK = "rego";
-                ArcFlyer.I.Fly(FlyBlock("rego"), ss.RegoWorld(best), StackTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("rego"));
+                G.PendAdd("rego");
+                ArcFlyer.I.Fly(FlyBlock("rego"), ss.RegoWorld(best), () => InsertWorld("rego"), GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive("rego"));
                 actT = SettleStations.CD_REGO; return;
             }
         }
-        string top = G.CarryTop;
         for (int i = 0; i < SettleStations.KEYS.Length; i++)
         {
-            if (top != SettleStations.IN_K[i] || !ss.Near(i, pos) || !ss.CanPut(i)) continue;
+            string ik = SettleStations.IN_K[i];
+            if (!G.Holds(ik) || !ss.Near(i, pos) || !ss.CanPut(i)) continue;
             int fi = i;
-            PopTop(); ss.qPend[i]++;
-            ArcFlyer.I.Fly(FlyBlock(top), StackTop(), () => ss.InTop(fi), GameConfig.FLY_T, GameConfig.FLY_LIFT, () => ss.Put(fi));
+            var from = TakeOut(ik); ss.qPend[i]++;
+            ArcFlyer.I.Fly(FlyBlock(ik), from, () => ss.InTop(fi), GameConfig.FLY_T, GameConfig.FLY_LIFT, () => ss.Put(fi));
             AudioManager.I.Play("put", 1f + Random.Range(-0.05f, 0.05f));
             actT = SettleStations.CD_PUT; return;
         }
         for (int i = 0; i < SettleStations.KEYS.Length; i++)
         {
             string k = SettleStations.OUT_K[i];
-            if (!ss.CanTake(i) || !G.CanCarry(k) || !ss.Near(i, pos)) continue;
+            if (!ss.CanTake(i) || !G.WantsMore(k) || !ss.Near(i, pos)) continue;
             Vector3 from = ss.OutTop(i);
-            ss.Out(i)--; G.pend++; G.pendK = k;
-            ArcFlyer.I.Fly(FlyBlock(k), from, StackTop, GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive(k));
+            ss.Out(i)--; G.PendAdd(k);
+            ArcFlyer.I.Fly(FlyBlock(k), from, () => InsertWorld(k), GameConfig.FLY_T, GameConfig.FLY_LIFT, () => Arrive(k));
             actT = SettleStations.CD_TAKE; return;
         }
     }
 
-    void PopTop() { S.p.carry.RemoveAt(S.p.carry.Count - 1); }
     // 탑과 같은 모양의 블록이 날아오고 날아간다(조금 작게)
-    GameObject FlyBlock(string kind) { var go = Items.CarryBlock(ArcFlyer.I.transform, kind); go.transform.localScale = Vector3.one * 0.85f; return go; }
+    GameObject FlyBlock(string kind) { var go = Items.CarryBlock(ArcFlyer.I.transform, kind); go.transform.localScale = Vector3.one * FLY_S; return go; }
+    public const float FLY_S = 0.7f;   // 나는 블록 배율(탑 블록 0.6보다 조금 크게)
 
     void Arrive(string kind)
     {
-        G.pend = Mathf.Max(0, G.pend - 1); if (G.pend == 0) G.pendK = "";
-        S.p.carry.Add(kind);
+        G.PendDone(kind);
+        G.AddCarry(kind);
         JuiceFX.I.Squash(body, 0.9f);
         int n = S.p.carry.Count, max = G.CarryMax;
         AudioManager.I.PlayHz("pick", 520 + 380 * (n / (float)max), 520);
         if (n % 3 == 0) JuiceFX.I.Vibrate(6);
         if (n >= max) AudioManager.I.Play("ding", 1f, 0.7f);
-        if (kind == "ice" && S.tut == 0 && n >= max) TutorialManager.I?.Advance(1);
+        if (kind == "ice" && S.tut == 0 && G.Held("ice") >= Mathf.Min(max, GameConfig.ICE_BATCH)) TutorialManager.I?.Advance(1);
         MissionBoard.I?.Picked(kind);   // 하루 미션: 얼음·레골리스 줍기
     }
 
-    // §1.2 수거 연출: 윗장부터 40ms 간격으로 플레이어에게 날림(0.22s), 도착마다 벨 가산
+    // §1.2 수거 연출: 윗장부터 40ms 간격으로 등짐 맨 아래 지폐 묶음으로 날림(0.22s). 벨은 즉시 가산되고 지폐 층(보유 벨 비례)이 같이 늘어난다
     IEnumerator CollectCash()
     {
         G.collectingCash = true;
@@ -304,7 +366,7 @@ public class Player : MonoBehaviour
             int layer = (n - 1 - i) / 3, col = (n - 1 - i) % 3;
             Vector3 from = st.cashAnchor.position + new Vector3((col - 1) * 16 * GameConfig.K, (layer + 0.5f) * Items.ITEM_H["bill"] * GameConfig.K, 0);
             var go = Items.Slab(ArcFlyer.I.transform, "bill");
-            ArcFlyer.I.Fly(go, from, () => body.position + Vector3.up * 1.4f, 0.22f, 30f, () =>
+            ArcFlyer.I.Fly(go, from, BillTop, 0.22f, 30f, () =>
             {
                 AudioManager.I.PlayHz("coin", 1100 * Mathf.Pow(1.06f, Mathf.Min(12, idx)), 1100, 0.5f);
             });

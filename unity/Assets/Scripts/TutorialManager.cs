@@ -49,11 +49,12 @@ public class TutorialManager : MonoBehaviour
         if (S.tut == 0)
         {
             bool anyOpen = false; for (int i = 0; i < Stations.I.SpotCount; i++) if (Stations.I.SpotOpen(i)) anyOpen = true;
-            if (G.Carry >= G.CarryMax || (!anyOpen && G.Carry > 0 && G.pend == 0)) Advance(1);
+            // 등짐이 100개라(10/25) 가득 채울 때까지가 아니라 얼음 ICE_BATCH개(또는 밭이 비면)에서 다음 말풍선
+            if (G.Held("ice") >= Mathf.Min(G.CarryMax, GameConfig.ICE_BATCH) || (!anyOpen && G.Carry > 0 && G.pend == 0)) Advance(1);
         }
         else if (S.tut == 1)
         {
-            if (G.Carry == 0 && G.pend == 0 && S.meltQ > 0) Advance(2);
+            if (G.HeldAll("ice") == 0 && S.meltQ > 0) Advance(2);   // 들고 있던 얼음을 다 넣었으면(섞어 싣기라 다른 게 남아 있어도)
         }
         // 드래그 손: 첫 이동 시 사라짐. 좌우로 끌리며 누를 때 작아짐(원본 handDrag)
         if (hand.gameObject.activeSelf)

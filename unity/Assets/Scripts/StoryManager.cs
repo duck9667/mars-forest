@@ -167,9 +167,9 @@ public class StoryManager : MonoBehaviour
     {
         switch (id)
         {
-            case "first_o2": return S.elecOut > 0 || S.supO > 0 || S.shelfO2 > 0 || G.CarryTop == "o2";
+            case "first_o2": return S.elecOut > 0 || S.supO > 0 || S.shelfO2 > 0 || G.Holds("o2");
             case "first_fert": return S.fertMade > 0;
-            case "first_food": return S.grnOut > 0 || S.supF > 0 || S.shelfFood > 0 || G.CarryTop == "food";
+            case "first_food": return S.grnOut > 0 || S.supF > 0 || S.shelfFood > 0 || G.Holds("food");
             case "first_vip":
                 if (boot) return S.sold >= 40 && S.custN >= 10;   // 10번째 손님마다 VIP(판매 40 이후)
                 if (CustomerSystem.I != null) foreach (var c in CustomerSystem.I.list) if (c.vip && c.st != Customer.St.Gone) return true;

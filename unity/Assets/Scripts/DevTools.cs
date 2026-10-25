@@ -121,7 +121,7 @@ public class DevTools : MonoBehaviour
                 + " walk=" + (pl && pl.walking) + " esc=" + escapeT.ToString("0.0") + " stuck=" + stuckT.ToString("0.0") + " actT=" + (pl ? pl.actT.ToString("0.00") : "-")
                 + " bells=" + G.S.bells.ToString("0") + " sold=" + G.S.sold + " meltQ=" + G.S.meltQ + " water=" + G.S.water + " bottles=" + G.S.bottles + " shelf=" + G.S.shelf
                 + " | elec=" + G.S.elecQ + "/" + G.S.elecOut + " purif=" + G.S.purQ + "/" + G.S.purOut + " mixer=" + G.S.mixQ + "/" + G.S.mixOut + " green=" + G.S.grnQ + "/" + G.S.grnOut
-                + " fertMade=" + G.S.fertMade + " shelfO2=" + G.S.shelfO2 + " shelfFood=" + G.S.shelfFood + " supO=" + G.S.supO + " supF=" + G.S.supF + " top=" + G.CarryTop + " dumped=" + dumped);
+                + " fertMade=" + G.S.fertMade + " shelfO2=" + G.S.shelfO2 + " shelfFood=" + G.S.shelfFood + " supO=" + G.S.supO + " supF=" + G.S.supF + " bag=[" + G.CarrySummary() + "] dumped=" + dumped);
             frames = 0; fpsT = 0; diagT = 0;
         }
         if (Input.GetKeyDown(KeyCode.F5))
@@ -167,7 +167,9 @@ public class DevTools : MonoBehaviour
         // 사람은 시트 점(살 수 있음 표시)이 뜨면 스탯을 산다: 봇도 가장 싼 시트 스탯을 벨이 그 두 배 이상일 때 산다(월드 발판 몫을 남겨 두려고)
         MenuShop();
         // 돔 좌석 팁이 병값×3 이상 쌓였으면 빈손일 때 들러 수거(좌석 r34 안, 좌석 충돌 r16 밖)
-        int seatTip = 0; int seatI = DomeSystem.I != null && G.Carry == 0 && G.pend == 0 ? DomeSystem.I.RichestSeat(out seatTip) : -1;
+        // 섞어 싣기(10/25): "빈손" 대신 "든 것 중 지금 넣을 곳이 없을 때"(힌트가 넣으러 가는 중이 아님)
+        bool idleHands = !h.delivering && G.pend == 0;
+        int seatTip = 0; int seatI = DomeSystem.I != null && idleHands ? DomeSystem.I.RichestSeat(out seatTip) : -1;
         if (key == "event") { }   // 화성 이벤트 물건(시간 제한)을 주우러 가는 중이면 좌석 팁·발판 쇼핑으로 끊지 않는다
         else if (seatI >= 0 && seatTip >= G.BottlePrice * 3 && S_cash() <= seatTip && (!h.hasTarget || key == "register" || key == "bottler"))   // 좌석 팁은 다른 일이 없을 때만(사람도 급한 일 사이 짬에 줍는다)
         {
@@ -178,10 +180,10 @@ public class DevTools : MonoBehaviour
         }
         // 병을 든 채 선반이 가득이면(힌트는 카운터에서 기다리라고 함) 그 사이 계산대 돈을 걷는다 — 사람은 이렇게 하므로 봇도.
         // 힌트가 물통을 전기분해기로 보내는 중이면 끼어들지 않는다(돈이 쌓일 때마다 계산대와 북쪽 사이를 오가며 멈춤)
-        else if (G.CarryTop == "bottle" && key == "counter" && G.S.shelf + G.shelfPend >= G.ShelfCap && G.S.cash > 0 && !G.collectingCash)
+        else if (G.Holds("bottle") && key == "counter" && G.S.shelf + G.shelfPend >= G.ShelfCap && G.S.cash > 0 && !G.collectingCash)
         { var r = WorldMap.STN["register"]; target = new Vector2(r.x, r.y - r.h / 2 - 14); key = "register"; }
         // 정화기·배합기 틈에서 넣어 둔 묶음(흙 → 비료)을 기다리는 중이면 발판 쇼핑으로 끊지 않는다
-        else if (G.Carry == 0 && G.pend == 0 && PadManager.I != null && !((key == "purif" || key == "mixer") && SettleStations.I != null && SettleStations.I.Near(SettleStations.Index(key), pl.pos)))
+        else if (idleHands && PadManager.I != null && !((key == "purif" || key == "mixer") && SettleStations.I != null && SettleStations.I.Near(SettleStations.Index(key), pl.pos)))
         {
             // ORDER 순서(visOrder)에서 첫 번째로 살 수 있는 발판 → 진행 순서대로 밟는다
             foreach (var id in PadManager.I.visOrder)
@@ -263,13 +265,14 @@ public class DevTools : MonoBehaviour
     float jamT; int jamN = -1, dumped;
     void JamGuard(string key, float dist, float stop)
     {
-        string top = G.CarryTop;
-        if ((top != "o2" && top != "food") || key != "counter" || dist > stop + 20f) { jamT = 0; jamN = -1; return; }
+        if ((!G.Holds("o2") && !G.Holds("food")) || key != "counter" || dist > stop + 20f) { jamT = 0; jamN = -1; return; }
         if (G.Carry != jamN) { jamN = G.Carry; jamT = 0; return; }
         jamT += Time.deltaTime;
         if (jamT < 8f || G.pend > 0) return;
-        Debug.Log("bot: 카운터가 " + GameState.KindName(top) + " ×" + G.Carry + "을 받지 않아 등짐을 비움");
-        dumped += G.Carry; G.S.p.carry.Clear(); jamT = 0; jamN = -1;
+        int before = G.Carry;
+        G.S.p.carry.RemoveAll(k => k == "o2" || k == "food");   // 섞어 싣기: 카운터가 안 받는 산소통·식량만 비운다
+        Debug.Log("bot: 카운터가 산소통·식량 ×" + (before - G.Carry) + "을 받지 않아 등짐에서 비움 [" + G.CarrySummary() + "]");
+        dumped += before - G.Carry; jamT = 0; jamN = -1;
     }
 
     void OnDestroy()

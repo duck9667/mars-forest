@@ -381,9 +381,9 @@ public class MarsEvents : MonoBehaviour
             }
             else if (pl != null && G.CanCarry(k))
             {
-                G.pend++; G.pendK = k;
-                var go = Items.CarryBlock(ArcFlyer.I.transform, k); go.transform.localScale = Vector3.one * 0.85f;
-                ArcFlyer.I.Fly(go, from, pl.StackTop, GameConfig.FLY_T * 1.4f, 50f, () => ArriveItem(k));
+                G.PendAdd(k);
+                var go = Items.CarryBlock(ArcFlyer.I.transform, k); go.transform.localScale = Vector3.one * Player.FLY_S;
+                ArcFlyer.I.Fly(go, from, () => pl.InsertWorld(k), GameConfig.FLY_T * 1.4f, 50f, () => ArriveItem(k));
             }
             else leftover++;
             yield return new WaitForSeconds(0.06f);
@@ -509,8 +509,8 @@ public class MarsEvents : MonoBehaviour
     // ---- 공통 ----
     void ArriveItem(string kind)
     {
-        G.pend = Mathf.Max(0, G.pend - 1); if (G.pend == 0) G.pendK = "";
-        S.p.carry.Add(kind);
+        G.PendDone(kind);
+        G.AddCarry(kind);   // 섞어 싣기: 같은 종류 묶음 끝에
         AudioManager.I?.PlayHz("pick", 520 + 380 * (S.p.carry.Count / (float)G.CarryMax), 520);
     }
 

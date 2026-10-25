@@ -10,11 +10,12 @@ public static class GameConfig
     public const float Y_MIN = -640f;          // 북쪽 확장: 생존 기지(채굴장·산소동·토양 공장·온실, y −380~10) + 2장 개척지(거주 구역·태양광 단지, y −620~−410). 세계 y = Y_MIN..H
     public const float DT_MAX = 0.05f;
 
-    public static readonly int[] CARRY = { 20, 24, 28, 32, 36, 40, 48 };   // jake 요청(10/24): 처음부터 20개
+    public static readonly int[] CARRY = { 100, 110, 120, 130, 140, 150, 160 };   // jake 요청(10/25): 섞어 싣기 + "한 100개 정도". 이전 20~48
+    public const int BILL_LAYERS = 12;         // 등짐 맨 아래 지폐 묶음 최대 층(보유 벨 비례, 용량 밖)
     public const int BOTTLE_CAP = 24;
     public const int MELT_VIS_MAX = 10;        // 제빙 큐 시각화 상한(2열)
     public const int BILL_MAX = 24;
-    public const int STACK_MAX = 60;
+    public const int STACK_LAYERS = 30;        // 등짐 탑 최대 층(한 층 2×2, 용량 120 넘으면 3×2): 폰 화면 안에 들어오는 높이
 
     // 근접 반경·쿨다운 (§1.1)
     public const float R_ICE = 40f, CD_ICE = 0.09f;
@@ -46,6 +47,7 @@ public static class GameConfig
     public const float RUNNER_LOAD_T = 0.18f, RUNNER_UNLOAD_T = 0.15f, RUNNER_DEPART_T = 1.5f;
     public const float DRILL_PERIOD = 2.0f, DRILL_GAP = 0.15f, DRILL_FLY_T = 0.9f, DRILL_LIFT = 140f;
     public const int WATER_FULL = 400;   // 물탱크가 이만큼(물통 40개분) 차 있으면 플레이어는 얼음을 더 줍지 않는다
+    public const int ICE_BATCH = 20;   // 힌트·튜토리얼: 얼음을 이만큼 모으면(또는 밭이 비면) 해빙기로. 등짐 100개를 다 채울 때까지 얼음밭에 붙잡아 두지 않는다(10/25)
     public const int MELT_CAP = 40;   // 해빙기 큐 상한: 드릴은 이 아래일 때만 쏘고, 플레이어도 이 이상이면 지나가다 얼음을 줍지 않는다(페이싱 점검 10/25)
 
     // 발판 납입 (§3.2)
