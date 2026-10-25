@@ -142,8 +142,9 @@ public class SettleStations : MonoBehaviour
         for (int i = 0; i < 4; i++)
         {
             int q = Q(i), o = Out(i);
-            if (q != lastIn[i]) { lastIn[i] = q; Items.SyncStack(inA[i], IN_K[i], q, 3, 2, 15, 11, IN_VIS); }
-            if (o != lastOut[i]) { lastOut[i] = o; Items.SyncStack(outA[i], OUT_K[i], o, 3, 2, 16, 12, GameConfig.SETTLE_OUT_CAP); }
+            // 간격은 모형 크기(Items.Gap)에 맞춘다: 쟁반 44×24·48×28 안에 3×2
+            if (q != lastIn[i]) { lastIn[i] = q; var gi = Items.Gap(IN_K[i]); Items.SyncStack(inA[i], IN_K[i], q, 3, 2, gi.x + 1f, gi.y + 0.5f, IN_VIS); }
+            if (o != lastOut[i]) { lastOut[i] = o; var go = Items.Gap(OUT_K[i]); Items.SyncStack(outA[i], OUT_K[i], o, 3, 2, go.x + 1.5f, go.y + 1f, GameConfig.SETTLE_OUT_CAP); }
         }
     }
 
@@ -180,20 +181,19 @@ public class SettleStations : MonoBehaviour
     static Vector3 L(float dx, float dy, float h) => new Vector3(dx, h, -dy) * GameConfig.K;   // 시설 중심 기준 논리 오프셋(dy+ = 남쪽) → 로컬
     static readonly Color STEEL = ModelLib.C(ModelLib.COL.steel), STEEL_D = ModelLib.C(ModelLib.COL.steelD), WHITE = ModelLib.C(ModelLib.COL.white),
         DARK = ModelLib.C(ModelLib.COL.dark), WATER = GameConfig.Hex("6fc3f0"), PIPE = GameConfig.Hex("4fb0f0");
-    const float PLATE = 4f;
+    const float PLATE = 4f, TRAY = 1.8f;
 
     void Build()
     {
-        // 레골리스 더미: 받침 없이 각진 돌덩이 3개만 (얼음 더미와 같은 규칙: 주우면 사라졌다 GameConfig.SpotRespawn() 뒤 다시 솟음)
+        // 레골리스 더미(fb2 "돌 디자인이 엉성하다"): 둥글고 덩어리감 있는 저폴리 붉은 돌무더기(큰 돌 + 중간 돌 + 작은 돌, 3톤) 메시 하나.
+        //  얼음 더미와 같은 규칙: 주우면 사라졌다 GameConfig.SpotRespawn() 뒤 다시 솟음. 목표 그림 docs/art/target_north_v1.png
         for (int i = 0; i < GameConfig.REGO_SPOTS; i++)
         {
             var g = new GameObject("rego" + i).transform; g.SetParent(transform, false); g.position = WorldMap.W2U(WorldMap.REGO_SPOTS[i]);
             rRoots[i] = g;
             var pile = new GameObject("pile").transform; pile.SetParent(g, false);
-            float ry = i * 47f;
-            Prim.Box(pile, "a", L(0, 0, 3.5f), new Vector3(18, 7, 14), GameConfig.REGO).transform.localRotation = Quaternion.Euler(0, ry, 0);
-            Prim.Box(pile, "b", L(5, -2, 9f), new Vector3(11, 6, 10), GameConfig.Hex("8f3d20")).transform.localRotation = Quaternion.Euler(10, ry + 45, 8);
-            Prim.Box(pile, "c", L(-6, 3, 7.5f), new Vector3(9, 5, 8), GameConfig.Hex("d4703f")).transform.localRotation = Quaternion.Euler(-8, ry + 70, 12);
+            pile.localRotation = Quaternion.Euler(0, i * 47f, 0);
+            ToyMesh.Put(pile, "rego", RegoPileMesh(i % 3), ToyMesh.Mat(0.08f), Vector3.zero);
             rViews[i] = pile; rShown[i] = true;
             g.gameObject.SetActive(false);
         }
@@ -203,6 +203,16 @@ public class SettleStations : MonoBehaviour
         Grow(3, new Vector3(1.2f, 1.2f, 1.2f));
         for (int i = 0; i < 4; i++) views[i].gameObject.SetActive(false);
     }
+
+    static Mesh RegoPileMesh(int v) => ToyMesh.Cached("regoPile" + v, m =>
+    {
+        Color T = Items.REGO_T, M = Items.REGO_M, A = Items.REGO_A, D = Items.REGO_D;
+        m.At(new Vector3(0, 3.4f, 0), new Vector3(0, v * 50, 0)).Blob(new Vector3(11f, 6.4f, 9f), 1, 81 + v, 0.24f, T, M, D, A, 0.5f);
+        m.At(new Vector3(10.5f, 2.6f, -5.5f), new Vector3(0, 20 + v * 30, 8)).Blob(new Vector3(5.6f, 4.2f, 5f), 0, 91 + v, 0.22f, T, A, D, M, 0.45f);
+        m.At(new Vector3(-10f, 1.6f, -6.5f), new Vector3(0, -30, 0)).Blob(new Vector3(3.8f, 2.8f, 3.4f), 0, 97 + v, 0.22f, T, M, D);
+        m.At(new Vector3(-2f, 8.4f, 1.5f), new Vector3(10, 40 + v * 20, 0)).Blob(new Vector3(4.6f, 3f, 4f), 0, 103 + v, 0.2f, T, A, D);
+        return m;
+    });
 
     void Grow(int i, Vector3 s)
     {
@@ -219,12 +229,12 @@ public class SettleStations : MonoBehaviour
         // 받침(다듬기 3차): 둥근 모서리 콘크리트 판 + 한 단 밝은 윗판(목표 그림 docs/art/target_north_v1.png). 예전 직각 판·어두운 입력 쟁반은 네모 블록으로 읽혔다
         MachineKit.RoundSlab(v, "plate", 0, 0, 0, s.w / gs, s.h / gs, PLATE, 12, MachineKit.PAD);
         MachineKit.RoundSlab(v, "plateTop", 0, 0, PLATE, s.w / gs - 6, s.h / gs - 6, 0.6f, 9, MachineKit.PAD_TOP);
-        inA[i] = new GameObject("in").transform; inA[i].SetParent(v, false); inA[i].localPosition = L(inAt.x, inAt.y, PLATE);
-        outA[i] = new GameObject("out").transform; outA[i].SetParent(v, false); outA[i].localPosition = L(outAt.x, outAt.y, PLATE);
-        // 받침 쟁반(둥근 판): 입력은 옅은 회색, 출력은 금색 테두리
-        MachineKit.RoundSlab(v, "inTray", inAt.x, inAt.y, PLATE + 0.1f, 44, 24, 0.8f, 7, GameConfig.Hex("c4bcb0"));
-        MachineKit.RoundSlab(v, "outTray", outAt.x, outAt.y, PLATE + 0.1f, 48, 28, 0.6f, 9, GameConfig.GOLD);
-        MachineKit.RoundSlab(v, "outTrayIn", outAt.x, outAt.y, PLATE + 0.1f, 42, 22, 0.9f, 7, GameConfig.Hex("fff4d6"));
+        inA[i] = new GameObject("in").transform; inA[i].SetParent(v, false); inA[i].localPosition = L(inAt.x, inAt.y, PLATE + TRAY);
+        outA[i] = new GameObject("out").transform; outA[i].SetParent(v, false); outA[i].localPosition = L(outAt.x, outAt.y, PLATE + TRAY);
+        // 받침 쟁반(둥근 판, 두께 TRAY): 입력은 옅은 회색, 출력은 금색 테 + 크림 안쪽(안쪽을 살짝 높여 테가 턱으로 보이게)
+        MachineKit.RoundSlab(v, "inTray", inAt.x, inAt.y, PLATE, 44, 24, TRAY, 7, GameConfig.Hex("c4bcb0"));
+        MachineKit.RoundSlab(v, "outTray", outAt.x, outAt.y, PLATE, 48, 28, TRAY - 0.3f, 9, GameConfig.GOLD);
+        MachineKit.RoundSlab(v, "outTrayIn", outAt.x, outAt.y, PLATE, 42, 22, TRAY, 7, GameConfig.Hex("fff4d6"));
         views[i] = v;
         return v;
     }
