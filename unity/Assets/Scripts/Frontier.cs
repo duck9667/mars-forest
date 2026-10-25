@@ -4,7 +4,7 @@ using UnityEngine;
 
 // 2장 개척지(docs/chapter2-design.md "D 개척지"): 개척 길(y −410~−380) 너머 두 구역.
 //  · 거주 구역(hab, x 16~236): 작은 둥근 돔 주택 8채가 크림 타일 길 두 줄을 따라 선다. 결제를 마친 정착민 3명 중 1명이 가운데 통로를 걸어 올라와
-//    집에 들어가 산다(S.pop, 상한 = 집 수×4). 사람이 찰수록 창에 하나씩 불이 켜지고(밤엔 문 앞 바닥빛까지), 인구는 정착민 도착 간격을 조금 줄이고(GapMul)
+//    집에 들어가 산다(S.pop, 상한 = 집 수×(4 + 주택 증축 Lv)). 사람이 찰수록 창에 하나씩 불이 켜지고(밤엔 문 앞 바닥빛까지), 인구는 정착민 도착 간격을 조금 줄이고(GapMul)
 //    하루가 바뀔 때 인구×작은 세금 벨을 낸다.
 //  · 태양광 단지(solar, x 256~380): 패널 줄 3 + 짧은 줄 3이 낮엔 해 쪽으로 기울고 밤엔 눕는다. 배터리 탑 막대 5칸이 충전량.
 //    전력: 햇빛만큼 + 밤엔 배터리가 남은 동안 모든 기계 속도 +20%(PowerMul → GameState.MachineSpeedMul).
@@ -26,7 +26,9 @@ public class Frontier : MonoBehaviour
         new Vector2(48, -556), new Vector2(92, -556), new Vector2(160, -556), new Vector2(204, -556),
         new Vector2(48, -474), new Vector2(92, -474), new Vector2(160, -474), new Vector2(204, -474),
     };
-    public int Cap => HOUSES.Length * PER_HOUSE;
+    // 주택 증축(시트 habx, 밸런스 10/25): 레벨마다 집마다 +1명
+    public int PerHouse => PER_HOUSE + (G != null ? G.PadLv("habx") : 0);
+    public int Cap => HOUSES.Length * PerHouse;
 
     // 구역 바닥에 그릴 크림 타일 길(논리 사각형 x, y, w, h). 거주: 길 A(동쪽 게이트 y −515)·척추(남쪽 게이트 x 126)·길 B(앞줄 문 앞)
     // 태양광: 서쪽 게이트 길·남쪽 게이트 길(배터리·짧은 패널 사이)
@@ -49,7 +51,8 @@ public class Frontier : MonoBehaviour
     public float batt = 0.5f;                // 배터리 0~1(저장 안 함: 켤 때 반쯤)
     public static float PowerMul => I != null ? I.power : 1f;
     // 인구가 늘면 정착민 도착 간격이 조금 줄어든다(최대 −20%)
-    public float GapMul => 1f - Mathf.Min(0.2f, (G != null ? S.pop : 0) * 0.0065f);
+    // 인구가 늘면 정착민 도착 간격이 조금 줄어든다(최대 −20%, 주택 증축 레벨마다 상한 +5%)
+    public float GapMul => 1f - Mathf.Min(0.2f + 0.05f * (G != null ? G.PadLv("habx") : 0), (G != null ? S.pop : 0) * 0.0065f);
     public const float MOVE_CHANCE = 1f / 3f, CHARGE = 1f / 60f, DRAIN = 1f / 50f, BOOST = 0.2f;
 
     class Mover { public Customer c; public int house; }
@@ -73,6 +76,7 @@ public class Frontier : MonoBehaviour
         }
         S.pop = Mathf.Clamp(S.pop, 0, Cap);
         habRoot.gameObject.SetActive(HabOpen); solarRoot.gameObject.SetActive(SolarOpen);
+        ApplyHouseLift();
         habShown = HabOpen; solarShown = SolarOpen;
         G.OnPadLevel += OnPad;
     }
@@ -82,6 +86,29 @@ public class Frontier : MonoBehaviour
     {
         if (id == "hab" && lv >= 1 && !habShown) { habShown = true; StartCoroutine(Reveal(habRoot, houseViews)); }
         if (id == "solar" && lv >= 1 && !solarShown) { solarShown = true; StartCoroutine(Reveal(solarRoot, solarParts)); }
+        if (id == "habx" && lv >= 1) StartCoroutine(Extend(lv));
+    }
+
+    // 주택 증축: 기존 돔 주택이 층을 올리듯 조금 높아진다(새 모형 없이 세로 배율만, 레벨마다 +8%). 산 순간엔 집마다 차례로 팝
+    static float HouseLift(int lv) => 1f + 0.08f * lv;
+    void ApplyHouseLift()
+    {
+        float sy = HouseLift(G.PadLv("habx"));
+        for (int i = 0; i < HOUSES.Length && i < houseViews.Count; i++) houseViews[i].localScale = new Vector3(1f, sy, 1f);
+    }
+    IEnumerator Extend(int lv)
+    {
+        ApplyHouseLift();
+        for (int i = 0; i < HOUSES.Length && i < houseViews.Count; i++)
+        {
+            JuiceFX.I.Squash(houseViews[i], 0.8f);
+            JuiceFX.I.Dust(houseViews[i].position + Vector3.up * 0.2f, 2);
+            AudioManager.I.Play("pop", 1.2f + i * 0.04f, 0.3f);
+            yield return new WaitForSeconds(0.08f);
+        }
+        if (Player.I != null) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2.2f, "주택 증축 · 정원 " + Cap + "명", true, false);
+        yield return new WaitForSeconds(0.6f);
+        ApplyHouseLift();   // 입주 찌그러짐과 겹쳐 옛 배율로 되돌아간 집이 있으면 다시 맞춘다
     }
 
     // 구역 해제 연출(ZoneManager 바닥 팝) 뒤에 모형이 하나씩 솟는다
@@ -105,7 +132,7 @@ public class Frontier : MonoBehaviour
     public bool TryMoveIn(Customer c)
     {
         if (!HabOpen || S.pop + movers.Count >= Cap || Random.value > MOVE_CHANCE) return false;
-        int h = Mathf.Min(HOUSES.Length - 1, (S.pop + movers.Count) / PER_HOUSE);
+        int h = Mathf.Min(HOUSES.Length - 1, (S.pop + movers.Count) / PerHouse);
         c.wp = PathTo(h, c.pos); c.st = Customer.St.Leave;
         movers.Add(new Mover { c = c, house = h });
         return true;
@@ -136,7 +163,7 @@ public class Frontier : MonoBehaviour
     }
 
     // ================= 세금: 하루가 바뀌면 인구 × 작은 세금 =================
-    public int TaxEach => Mathf.Max(1, Mathf.FloorToInt(G.BottlePrice * 0.25f + 0.5f));
+    public int TaxEach => Mathf.Max(1, Mathf.FloorToInt(G.BottlePrice * 0.25f * (1f + 0.5f * G.PadLv("habx")) + 0.5f));   // 주택 증축 레벨마다 +50%
     void Tax()
     {
         int n = S.pop * TaxEach; if (n <= 0) return;
@@ -337,7 +364,7 @@ public class Frontier : MonoBehaviour
     void Animate(float dt, float night)
     {
         // 창: 첫 입주자가 들어온 집부터 하나씩(집 순서대로 4명씩 찬다). 낮엔 은은하게, 밤엔 환하게
-        int lit = Mathf.Min(windows.Count, (S.pop + PER_HOUSE - 1) / PER_HOUSE);
+        int lit = Mathf.Min(windows.Count, (S.pop + PerHouse - 1) / PerHouse);
         if (lit != lastLit)
         {
             for (int i = 0; i < windows.Count; i++) windows[i].sharedMaterial = i < lit ? winOn : winOff;

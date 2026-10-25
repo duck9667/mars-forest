@@ -24,11 +24,11 @@
 | `RunnerSystem` · `DrillStation` · `AdsSign` | 뽀삐 상태기계(적재→하역), 드릴 2초마다 얼음 2장, 간판 입간판 (§5.1) |
 | `QuestManager` | 목표 12개 순차, 업그레이드 시트 목표 탭에서만 표시(상단 칩 없음), 달성 즉시 보상·저장, qskip (§6.1) |
 | `SettleStations` · `MachineKit` | 생존 기지 생산 체인(레골리스 더미·전기분해기·토양 정화기·비료 배합기·온실, docs/settlement-design.md), 기계 공통 문법(받침판→투입부→움직이는 가공부→산출 받침대, MachineAnim) |
-| `Frontier` | 2장 개척지(docs/chapter2-design.md D): 거주 구역 돔 주택 8채(정착민 3명 중 1명 입주 → S.pop, 상한 32, 창 불·도착 간격 −최대 20%·하루 세금), 태양광 단지(패널 낱장 기울기·배터리 막대, 낮·배터리 동안 기계 속도 ×1.2 → `GameState.MachineSpeedMul`). 검증 인자 `-pop N`·`-batt f` |
-| `SettlementManager` · `MapScreen` | 정착 목표 10단계 두 장: 1장 생존(물 확보→숨 쉴 공기→흙 살리기→첫 수확→생존 완료), 2장 마을(전력 확보→첫 이웃→기지 정비→자급 마을→화성 마을 선포, 엔딩 무전)·보상, 지도 화면(구역 상태·시설·플레이어·지금 장 5단계 진행 막대·지난 장 요약), HUD "1장 n/5"→"2장 n/5" 알약. 검증 인자 `-stage N`(0~10)·`-power 초`·`-mall` |
+| `Frontier` | 2장 개척지(docs/chapter2-design.md D): 거주 구역 돔 주택 8채(정착민 3명 중 1명 입주 → S.pop, 상한 32, 시트 "주택 증축" habx 레벨마다 +8·세금 +50%, 창 불·도착 간격 −최대 20%·하루 세금), 태양광 단지(패널 낱장 기울기·배터리 막대, 낮·배터리 동안 기계 속도 ×1.2 → `GameState.MachineSpeedMul`). 검증 인자 `-pop N`·`-batt f` |
+| `SettlementManager` · `MapScreen` | 정착 목표 10단계 두 장: 1장 생존(물 확보→숨 쉴 공기→흙 살리기→첫 수확→생존 완료), 2장 마을(전력 확보→첫 이웃→기지 정비→자급 마을→화성 마을 선포, 엔딩 무전)·보상, 지도 화면(구역 상태·시설·플레이어·지금 장 5단계 진행 막대·지난 장 요약), HUD "1장 n/5"→"2장 n/5" 알약. 9단계 하루 미션은 8단계 뒤 누계 5개(`MISSION_GOAL`). 검증 인자 `-stage N`(0~10)·`-power 초`·`-mall` |
 | `PenSystem` · `DomeSystem` | 먼지 토끼 우리(토끼·소품·팁 적립·수거), 휴게 돔(조립·좌석 예약·경로·팁·수거) (§5.1·§5.2) |
 | `DecoManager` · `ShopDecor` | 장식 6종 구매·매장 시각물(차양·네온·선인장·줄전구·깃발·체크 바닥) (§3.4) |
-| `PrestigeManager` · `TerraformManager` · `OfflineEarnings` | 이주(초기화·보너스·로켓 연출·Bootstrap.Restart), 테라포밍(terra·45 슬롯·점등), 부재 수익 모달 (§5.4·§6.3·§6.4) |
+| `PrestigeManager` · `TerraformManager` · `OfflineEarnings` | 이주(초기화·보너스·로켓 연출·Bootstrap.Restart, 시트 "이주 준비금" fund Lv × 1,500벨을 들고 시작), 테라포밍(terra·45 슬롯·점등), 부재 수익 모달 (§5.4·§6.3·§6.4) |
 | `StationDress` · `WorldDress` · `ModelLib` | Kenney GLB 모델 배치·팔레트 교체, 자체 GLB 파서 (§9). 해빙기·병입기 모형(StationDress), 포인트 바위(WorldDress)는 ToyMesh |
 | `LevelLook` | 시설 레벨 외형 3단계(기본 Lv0~1 → 개량 Lv2~3 → 고급 Lv4~): 해빙기·병입기·카운터(선반 칸)·계산대(프리미엄 라벨)·북쪽 4시설(시트 전용 속도 발판 `elecspd`·`purspd`·`mixspd`·`grnspd`, 레벨마다 처리 시간 ÷(1+0.3×Lv))·본부(터·띠). 시설마다 본체 + 단계 부품 ToyMesh 두 덩어리를 단계마다 바꿔 끼우고(`TierLook`), 레벨이 올라 단계가 바뀌는 순간만 바뀐 부품이 솟아오른다(`JuiceFX.Rise`). 저장된 레벨로 Start 때 바로 짓는다. 시트엔 다음 외형 레벨 한 줄("Lv4: 외형 변화"). 비교 [docs/art/compare_levels_v1.png](../docs/art/compare_levels_v1.png) |
 | `ToyMesh` · `Resources/Shaders/MarsVColor` | 저폴리 장난감 메시 빌더(깎은 상자·원뿔대·고리·울퉁불퉁 덩어리를 정점 색으로 한 메시에): 물건 미니 모형(`Items`)·얼음 더미·나무·돌. 셰이더는 Standard 조명 + 정점 색(리니어 변환)·가장자리 밝기·제 색 발광·밤 채도 덜기(`_MarsNight`), 인스턴싱 |
