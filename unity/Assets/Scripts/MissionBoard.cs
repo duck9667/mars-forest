@@ -132,6 +132,7 @@ public class MissionBoard : MonoBehaviour
     void Complete(MissionSave m)
     {
         m.done = true; m.prog = m.goal;
+        SettlementManager.I?.MissionDone();   // 9단계 자급 마을: 하루 미션 누계
         var b = Bonus;
         if (b != null && !b.done) { b.prog = Mathf.Min(b.goal, DoneCount()); if (b.prog >= b.goal) b.done = true; }
         Toast("미션 완료 · " + NameOf(m) + " +" + m.reward.ToString("N0"));

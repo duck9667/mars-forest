@@ -57,8 +57,8 @@ public class StoryManager : MonoBehaviour
         { "ch2_start", "지구에서 이주 희망자가 몰려온대요. 이제 사람이 사는 마을을 만들어요!" },
         { "stage_6", "전력 확보! 해 뜬 동안 기계들이 쌩쌩 돌아가요." },
         { "stage_7", "첫 이웃 입주! 돔 주택 창에 불이 하나둘 켜지네요." },
-        { "stage_8", "기지 정비 끝! 본부가 제법 관제 기지 티가 나요." },
-        { "stage_9", "자급 마을 달성! 지구 보급 없이도 버틸 수 있어요." },
+        { "stage_8", "기지 정비 끝! 이제 하루 미션을 꾸준히 해내면 자급 마을이에요." },
+        { "stage_9", "자급 마을 달성! 이제 주택을 증축하고 본부를 완성하면 마을 선포예요." },
         // 처음 일어난 일
         { "first_o2",    "첫 산소통 완성! 다들 크게 한 번 숨 쉬어 봐요." },
         { "first_fert",  "첫 비료 완성. 냄새는… 헬멧 덕에 괜찮죠?" },
@@ -208,7 +208,7 @@ public class StoryManager : MonoBehaviour
         }
         bool busy = Busy();
         // 엔딩 컷: 카드가 없고 화면이 한가할 때 맨 먼저
-        if (endingPending && !busy && card == null && Time.unscaledTime >= endingAt && HUD.I.transform.Find("chest") == null) { endingPending = false; ShowEnding(); return; }   // 목표 상자 팝(QuestManager)과도 겹치지 않게
+        if (endingPending && !busy && card == null && Time.unscaledTime >= endingAt && SafeArea.Find(HUD.I.transform, "chest") == null) { endingPending = false; ShowEnding(); return; }   // 목표 상자 팝(QuestManager)과도 겹치지 않게
         if (card != null)
         {
             cardT += Time.unscaledDeltaTime;

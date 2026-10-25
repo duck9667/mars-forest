@@ -44,6 +44,7 @@ public class HUD : MonoBehaviour
         }
         canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 10;
         var sc = gameObject.AddComponent<CanvasScaler>(); sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; sc.referenceResolution = new Vector2(540, 1170); sc.matchWidthOrHeight = 0.5f;
+        gameObject.AddComponent<SafeArea>();   // 노치·홈 인디케이터 피하기(요소는 생기는 대로 safe 루트로 옮겨짐)
         gameObject.AddComponent<GraphicRaycaster>();
 
         // 1행 좌: 벨 필 [벨 아이콘] 숫자(금색, 남색 외곽선). 내용 크기에 맞춰 늘어남

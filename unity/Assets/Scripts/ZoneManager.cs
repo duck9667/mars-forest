@@ -44,6 +44,7 @@ public class ZoneManager : MonoBehaviour
     // 가로등(단순화): 상점은 네 모서리, 그 밖의 구역은 북서 모서리 하나만. 이미 있는 등과 30 안이면 건너뛴다
     void AddLamps(WorldMap.Zone z)
     {
+        z = GroundPainter.Vis(z);   // 넓힌 길 가장자리(보이는 바닥 모서리)에 선다
         var corners = z.key == "shop"
             ? new[] { new Vector2(z.x0, z.y0), new Vector2(z.x1, z.y0), new Vector2(z.x0, z.y1), new Vector2(z.x1, z.y1) }
             : new[] { new Vector2(z.x0, z.y0) };
@@ -168,7 +169,7 @@ public class ZoneManager : MonoBehaviour
     // ice2는 자기 게이트(E·N) 대신 ice의 N게이트를 공유하므로 그 자리에.
     Transform BuildArch(ZView v)
     {
-        var z = v.z; float gx = (z.x0 + z.x1) / 2, gy = z.y1, gw = 70; char side = 'S';
+        var z = GroundPainter.Vis(v.z); float gx = (z.x0 + z.x1) / 2, gy = z.y1, gw = 70; char side = 'S';   // 아치는 보이는 바닥 변(넓힌 길 가장자리)에 선다
         var pad = z.pad != null ? Pads.Get(z.pad) : null; float best = float.MaxValue;
         foreach (var g in WorldMap.GATES)
         {
@@ -178,7 +179,7 @@ public class ZoneManager : MonoBehaviour
             float d = pad != null ? (pad.pos - new Vector2(x, y)).sqrMagnitude : 0f;   // 발판 정보가 없으면 예전처럼 마지막 게이트
             if (d <= best) { best = d; gx = x; gy = y; gw = g.w; side = g.side; }
         }
-        if (z.key == "ice2") { gx = 126; gy = z.y1; gw = 70; side = 'S'; }
+        if (z.key == "ice2") { gx = 126; gy = v.z.y1; gw = 70; side = 'S'; }
         // 피벗은 게이트 중심(팝이 제자리에서), 자식은 로컬 오프셋
         var arch = new GameObject("arch").transform; arch.SetParent(v.root, false); arch.position = WorldMap.W2U(gx, gy, 0);
         float w = gw + 10, h = 38, k = GameConfig.K; bool horiz = side == 'N' || side == 'S';
@@ -238,7 +239,8 @@ public class ZoneManager : MonoBehaviour
         JuiceFX.I.Shake(5); JuiceFX.I.Vibrate(40);
         AudioManager.I.Play("up", 1f); AudioManager.I.Play("pad", 0.8f);
         JuiceFX.I.Confetti(center + Vector3.up * 1.5f, 32);
-        foreach (var corner in new[] { new Vector2(z.x0, z.y0), new Vector2(z.x1, z.y0), new Vector2(z.x0, z.y1), new Vector2(z.x1, z.y1) }) JuiceFX.I.Dust(WorldMap.W2U(corner, 2), 5);
+        var vz = GroundPainter.Vis(z);   // 먼지는 보이는 바닥 모서리에서
+        foreach (var corner in new[] { new Vector2(vz.x0, vz.y0), new Vector2(vz.x1, vz.y0), new Vector2(vz.x0, vz.y1), new Vector2(vz.x1, vz.y1) }) JuiceFX.I.Dust(WorldMap.W2U(corner, 2), 5);
         Stations.I?.RefreshZoneGated();
         AddLamps(z);
         float el = 0; int n = v.parts.Count; float total = 0.5f + n * 0.03f;

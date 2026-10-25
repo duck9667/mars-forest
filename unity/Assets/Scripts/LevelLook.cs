@@ -31,6 +31,19 @@ public static class LevelLook
     // 유리 덮개(휴게 돔과 같은 MarsGlass: 가운데는 비치고 가장자리 테만)
     static Material _glass;
     public static Material GlassMat => _glass != null ? _glass : (_glass = Mats.Glass(new Color(0.94f, 0.98f, 1f, 0.05f), new Color(0.8f, 0.9f, 0.98f, 0.6f), 3f, 0.7f, 160f));
+    // 하이라이트를 메시에 구운 유리(정점 알파 = 테·반사 줄 양, MarsGlass _VHi). 위에서 거의 안 보이던 해빙기 유리 돔(10/26)
+    static Material _glassHi;
+    public static Material GlassHiMat
+    {
+        get
+        {
+            if (_glassHi != null) return _glassHi;
+            // 밝은 호퍼 위에선 흰 유리가 묻혀 몸통을 옅은 하늘빛으로(가운데 알파 0.05 → 0.26), 흰 테·반사 줄이 그 위에서 읽힌다
+            _glassHi = Mats.Glass(new Color(0.66f, 0.85f, 1f, 0.26f), new Color(0.74f, 0.89f, 1f, 0.7f), 2.4f, 0.7f, 160f);
+            _glassHi.SetFloat("_VHi", 1f); _glassHi.SetColor("_HiColor", new Color(1f, 1f, 1f, 0.92f));
+            return _glassHi;
+        }
+    }
     // 단계별 재질: 고급은 조금 더 매끈하게(해 반짝임이 맺힘)
     public static Material Mat(int tier) => ToyMesh.Mat(tier >= 2 ? 0.55f : tier == 1 ? 0.3f : 0.12f);
 

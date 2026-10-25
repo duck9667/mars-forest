@@ -131,7 +131,7 @@ public class HintSystem : MonoBehaviour
             bool foodReady = S.grnOut >= 4 && Room("food") >= 4, o2Ready = S.elecOut >= 4 && Room("o2") >= 4;
             bool o2Feed = S.bottles > 0 && ElecWantsBottles(ss);
             // 산소 공급 누계가 식량보다 적으면 산소 쪽 일을 먼저(정착 목표는 산소·식량 누계를 같이 요구): 나르기가 한 체인에만 쏠리지 않게.
-            // 오늘 미션에 산소·식량 공급이 남아 있으면 그쪽을, 레골리스·비료가 남아 있으면 흙 체인(레골리스 → 흙 → 비료)을 먼저(9단계 "하루 미션 3개"가 운에만 걸리지 않게)
+            // 오늘 미션에 산소·식량 공급이 남아 있으면 그쪽을, 레골리스·비료가 남아 있으면 흙 체인(레골리스 → 흙 → 비료)을 먼저(9단계 "하루 미션 누적 완료"가 늘어지지 않게)
             bool mO2 = MissionWants("o2"), mFood = MissionWants("food"), mChain = MissionWants("rego") || MissionWants("fert");
             bool o2First = ss.Open(0) && (mO2 || (!mFood && (!G.KindOpen("food") || S.supO < S.supF)));
             if (mChain && Batch(S.mixOut, S.mixQ) && ss.CanPut(3) && S.grnOut < OUTC && S.grnQ + ss.qPend[3] < FEED) north = 2;

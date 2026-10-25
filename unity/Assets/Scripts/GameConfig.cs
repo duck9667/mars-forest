@@ -141,7 +141,13 @@ public static class Pads
         new PadDef{ id="purspd",  name="토양 정화기 속도", icon="🪴", pos=Vector2.zero, cost=l=>450f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", menu=true, active=true },
         new PadDef{ id="mixspd",  name="비료 배합기 속도", icon="🌱", pos=Vector2.zero, cost=l=>450f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("soil")>=1, reqText="토양 공장", menu=true, active=true },
         new PadDef{ id="grnspd",  name="온실 속도",      icon="🥔", pos=Vector2.zero, cost=l=>600f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("farm")>=1, reqText="온실", menu=true, active=true },
+        // ---- 2장 후반 벨 소비처(시트 전용, 밸런스 10/25: 본부 Lv5 뒤 엔딩 무렵 14~16만이 남던 것) ----
+        //  주택 증축: 레벨마다 집마다 +1명(인구 상한 32 → 40 → 48 → 56)·세금 +50%·도착 간격 단축 상한 +5%(Frontier). 기존 집 모형이 조금 높아진다
+        //  이주 준비금: 레벨마다 다음 정착지를 벨 FUND_STEP씩 들고 시작(PrestigeManager가 이주 때 넣는다). 이주하면 레벨은 다른 발판처럼 0
+        new PadDef{ id="habx",    name="주택 증축",      icon="🏠", pos=Vector2.zero, cost=l=>6000f*Mathf.Pow(2f,l), max=3, req=g=>g.PadLv("hab")>=1 && g.S.stage>=8, reqText="기지 정비", menu=true, active=true },
+        new PadDef{ id="fund",    name="이주 준비금",    icon="🚀", pos=Vector2.zero, cost=l=>10000f*Mathf.Pow(1.5f,l), max=5, req=g=>g.PadLv("hq")>=5, reqText="본부 Lv5", menu=true, active=true },
     };
+    public const int FUND_STEP = 1500;   // 이주 준비금 한 레벨 = 새 정착지 시작 벨(Lv5 7,500: 1장 초반 발판 몇 개를 바로 살 만큼)
     // 시트 전용 시설 속도 발판(SettleStations 시설 순서: 전기분해기·정화기·배합기·온실)
     public static readonly string[] FAC_SPD = { "elecspd", "purspd", "mixspd", "grnspd" };
     public static bool IsFacSpd(string id) => System.Array.IndexOf(FAC_SPD, id) >= 0;
