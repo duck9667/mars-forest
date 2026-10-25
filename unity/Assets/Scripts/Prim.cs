@@ -184,9 +184,11 @@ public static class Items
     // 얼음(목표 그림: 반투명 하늘색 각진 덩어리 + 흰 모서리 + 안쪽이 진한 코어). 불투명 정점 색 그라데이션이라 정렬 깜빡임이 없고,
     // 햇빛을 받아도 블룸 문턱(2.4)에 안 닿게 가장 밝은 모서리도 흰색 1.0 이하
     //  (햇빛·ACES 가 밝은 하늘색을 회백색으로 바래게 해서 몸통은 한 톤 진하게, 흰빛은 깎은 모서리에만)
-    public static readonly Color ICE_FACE = GameConfig.Hex("74c8f0"), ICE_CORE = GameConfig.Hex("3f9fdc"), ICE_EDGE = GameConfig.Hex("e2f6ff"),
+    //  알파 = 비침 양(Shaders/MarsIce, r6): 몸통은 비치고 깎은 위 모서리는 조금만·반사 줄은 안 비쳐 흰빛이 남는다
+    public static readonly Color ICE_FACE = GameConfig.Hex("74c8f0"), ICE_CORE = GameConfig.Hex("3f9fdc"), ICE_EDGE = WithA(GameConfig.Hex("e2f6ff"), 0.3f),
         ICE_TOP = GameConfig.Hex("98d8f6"), ICE_TOP_CORE = GameConfig.Hex("5db7e8"),
-        ICE_GLINT = GameConfig.Hex("f2fbff");   // 윗면 사선 반사 줄(ToyMesh.Glint)
+        ICE_GLINT = WithA(GameConfig.Hex("f2fbff"), 0f);   // 윗면 사선 반사 줄(ToyMesh.Glint)
+    static Color WithA(Color c, float a) { c.a = a; return c; }
     static readonly Color BOT_D = GameConfig.Hex("4fb0e6"), BOT = GameConfig.Hex("6fc3f0"), BOT_L = GameConfig.Hex("9ad7f6"), LABEL = GameConfig.Hex("f4f1ea"), BOT_CAP = GameConfig.Hex("2f6fb3");
     static readonly Color O2_D = GameConfig.Hex("d5e2ee"), O2_BAND = GameConfig.Hex("4fb0f0"), O2_VALVE = GameConfig.Hex("7d8894");
     static readonly Color CRATE = GameConfig.Hex("e08a45"), CRATE_D = GameConfig.Hex("b9682f"), CRATE_L = GameConfig.Hex("f0a865"), CRATE_IN = GameConfig.Hex("8a4a22");
@@ -198,7 +200,17 @@ public static class Items
     static readonly Color FERT_L = GameConfig.Hex("a8c45e"), FERT_D = GameConfig.Hex("6f8a34"), FERT_TIE = GameConfig.Hex("f6e6d2");
 
     public static Material MatOf(string kind) => kind == "ice" ? IceMat : kind == "bottle" || kind == "o2" ? ToyMesh.Mat(0.45f) : ToyMesh.Mat(0.1f);
-    public static Material IceMat => ToyMesh.Mat(0.55f, 0.22f, 0.16f);
+    // 얼음 재질(r6): 뒤가 비치는 불투명 얼음(Shaders/MarsIce: 비침·속 깊이·가장자리 밝힘). 셰이더가 없으면 예전 정점 색 재질
+    static Material _ice; static bool iceTried;
+    public static Material IceMat
+    {
+        get
+        {
+            if (_ice != null) return _ice;
+            if (!iceTried) { iceTried = true; var sh = Resources.Load<Shader>("Shaders/MarsIce"); if (sh != null && sh.isSupported) _ice = new Material(sh) { enableInstancing = true }; }
+            return _ice != null ? _ice : ToyMesh.Mat(0.55f, 0.22f, 0.16f);
+        }
+    }
 
     // ---- 미니 모형(피벗 = 높이 가운데) ----
     public static Mesh ItemMesh(string kind) => ToyMesh.Cached("item_" + kind, m =>

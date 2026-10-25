@@ -424,6 +424,7 @@ public static class StationDress
             // 크림 바닥 위에선 흰 유리가 묻혀 몸통을 한 톤 하늘빛으로(가운데 알파 0.2 → 0.42), 흰 테·반사 줄이 그 위에서 읽힌다
             _cGlass = Mats.Glass(new Color(0.66f, 0.85f, 1f, 0.42f), new Color(0.8f, 0.92f, 1f, 0.8f), 2f, 0.8f, 120f);
             _cGlass.SetFloat("_VHi", 1f); _cGlass.SetColor("_HiColor", new Color(1f, 1f, 1f, 0.85f));   // 구운 윗면 테·반사 줄
+            _cGlass.SetFloat("_RimAdd", 0.7f); _cGlass.SetFloat("_RimPow", 1f);   // 가장자리 밝힘(r6): 끝 판·모서리가 흰 하늘빛으로
             return _cGlass;
         }
     }
