@@ -10,6 +10,7 @@ public static class StationDress
 {
     public static void Dress(Stations st)
     {
+        if (KK.On) { KayKitDress.Dress(st); return; }   // KayKit 시범(기본). -kk 0 이면 아래 예전 모형
         st.melterLook = Melter(st);
         st.bottlerLook = Bottler(st);
         st.counterLook = Counter(st);
@@ -287,7 +288,7 @@ public static class StationDress
     });
 
     // 로봇 팔(고급): 둥근 받침 → 흰 기둥 → 금 어깨 → 위팔 → 금 팔꿈치 → 아래팔 → 은빛 집게. 피벗은 받침 중심(일할 때 좌우로 까딱)
-    static Mesh ArmMesh() => ToyMesh.Cached("botArm", m =>
+    internal static Mesh ArmMesh() => ToyMesh.Cached("botArm", m =>
     {
         m.AtM(0, 0, 0).Cyl(4.8f, 4.2f, 4, 18, GLOSS_D, TRIM, true, GLOSS);
         m.AtM(0, 0, 4).Cyl(2.6f, 2.3f, 23, 14, GLOSS_D, GLOSS, true, GLOSS);
@@ -416,6 +417,7 @@ public static class StationDress
     }
     // 진열장 유리판: 평평한 판은 가장자리 테가 잘 안 생겨 가운데를 조금 더 하늘빛으로(휴게 돔 유리보다 진하게)
     static Material _cGlass;
+    internal static Material CounterGlass => CounterGlassMat;
     static Material CounterGlassMat
     {
         get
@@ -459,7 +461,7 @@ public static class StationDress
         }
         return m;
     });
-    static Mesh RegParts(int t) => ToyMesh.Cached("regParts" + t, m =>
+    internal static Mesh RegParts(int t) => ToyMesh.Cached("regParts" + t, m =>
     {
         // 화면 받침 목 + 화면 틀(남쪽 손님 쪽을 본다, 개량부터 살짝 뒤로 기울임)
         float sw = t == 0 ? 24 : 28, sh = t == 0 ? 14 : 16;
@@ -474,7 +476,7 @@ public static class StationDress
         }
         return m;
     });
-    static Mesh RegDisplay(int t) => ToyMesh.Cached("regDisplay" + t, m =>
+    internal static Mesh RegDisplay(int t) => ToyMesh.Cached("regDisplay" + t, m =>
     {
         float sw = t == 0 ? 20 : 24, sh = t == 0 ? 10 : 12;
         Color face = t == 0 ? DISPLAY : SCREEN, faceL = t == 0 ? Color.white : Hex("8fd0ff");
@@ -499,6 +501,7 @@ public static class StationDress
     // 바닥판 80×6×60 + 철골 데릭 2단·발전기·드럼통 묶음 (설치 전엔 view가 꺼져 있어 같이 숨는다)
     public static void DressDrill(Transform drillView)
     {
+        if (KK.On) { KayKitDress.DressDrill(drillView); return; }
         if (drillView == null || drillView.Find("models") != null) return;
         var d = WorldMap.STN["drill"];
         var g = Group(drillView, d, 80, 60, 6);

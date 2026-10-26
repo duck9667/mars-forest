@@ -90,6 +90,24 @@ public class ToyMesh
         }
         return this;
     }
+    // KayKit 모델(KK.Load, 바닥 중심 원점) 한 덩어리를 지금 자리(At·AtM)에 붙인다. sc: KayKit 1단위 = 논리 몇(축별), re: 정점 색 바꾸기(기본 KK.Warm).
+    // 축별 스케일이라 법선은 역스케일로 다시 맞춘다. 감김은 굽는 단계에서 Unity 기준으로 맞춰 두었으므로 Tri 를 거치지 않고 그대로 붙인다
+    public ToyMesh Kk(string name, Vector3 sc, System.Func<Color, Color> re = null)
+    {
+        var md = KK.Load(name); if (md == null) return this;
+        re = re ?? KK.Warm;
+        int b = v.Count; var inv = new Vector3(1f / sc.x, 1f / sc.y, 1f / sc.z);
+        for (int i = 0; i < md.p.Length; i++)
+        {
+            v.Add(xf.MultiplyPoint3x4(Vector3.Scale(md.p[i], sc)));
+            n.Add(xf.MultiplyVector(Vector3.Scale(md.n[i], inv)).normalized);
+            c.Add(re(md.c[i]));
+        }
+        for (int i = 0; i < md.t.Length; i++) t.Add(b + md.t[i]);
+        return this;
+    }
+    public ToyMesh Kk(string name, float sc, System.Func<Color, Color> re = null) => Kk(name, Vector3.one * sc, re);
+
     // 기계 좌표(dx, dy, h) 두 점 사이 관
     public ToyMesh PipeM(float ax, float ay, float ah, float bx, float by, float bh, float r, Color c, bool joints = true)
         => Pipe(new Vector3(ax, ah, -ay), new Vector3(bx, bh, -by), r, c, joints);

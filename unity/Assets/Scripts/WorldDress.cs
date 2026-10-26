@@ -20,7 +20,8 @@ public static class WorldDress
     {
         for (int i = rockRoot.childCount - 1; i >= 0; i--) { var c = rockRoot.GetChild(i); c.SetParent(null, false); Object.Destroy(c.gameObject); }
         Rocks(rockRoot);
-        Lander(worldRoot);
+        if (KK.On) { KayKitDress.Lander(LANDER_X, LANDER_Y); KayKitDress.Props(worldRoot); }   // KayKit 시범(-kk 0 이면 예전 로켓)
+        else Lander(worldRoot);
         // 기지 본부(2장): 착륙장 동쪽 터에 레벨마다 자라는 건물. 배경 레이어(World 아래)가 아니라 기계처럼 외곽선을 받게 따로 둔다
         new GameObject("HQ").AddComponent<HQSystem>();
         // 착륙장 옆 로버 (원본 573행: mdl('rover',64,SK(orange,dark)), rotation.y=-2.3, at(344,990)) → 본부 터 자리라 터 남서쪽 모서리 밖(놀이 경계 밖)으로
