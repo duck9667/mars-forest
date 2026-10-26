@@ -82,6 +82,16 @@ public class HintSystem : MonoBehaviour
         // 출력 더미 옆에서 받는 중이면(근처일 때만: 멀어진 뒤 새로 1개 생겼다고 되돌아오지 않게) 가득 차거나 빌 때까지 그 자리
         //  그 종류를 더 받을 수 없으면(종류별 상한, GameState.WantsMore) 기다리지 않는다: 비료 40을 든 채 배합기 옆에서 영영 서 있던 막힘(10/25 시설 속도 발판 뒤 페이싱 점검)
         bool Taking(int i, int outN) => !full && outN > 0 && ss.Near(i, Player.I.pos) && G.WantsMore(SettleStations.OUT_K[i]);
+        // 뽀삐가 없을 때 판매가 멈추지 않게: 든 물통은 선반 자리가 있으면 먼저 올리고, 병입기에 물통이 쌓였으면 얼음보다 먼저 받으러 간다
+        // (섞어 싣기 뒤 "얼음은 늘 넣을 곳이 있다"며 얼음만 나르고 물통 24개가 병입기에 묶여 판매 10개대로 떨어지던 회귀, 10/26)
+        // 삐걱(계산 로봇)이 없으면 결제는 플레이어가 계산대 옆에 있어야 된다: 손님이 기다리면 무엇을 들었든 계산대 먼저
+        if (!G.HasCashier && CustomerSystem.I != null && CustomerSystem.I.AnyWaitingToPay()) return P("register");
+        int shelfRoom = G.ShelfCap - S.shelf - G.shelfPend;
+        if (G.PadLv("runner") == 0 && shelfRoom > 0)
+        {
+            if (G.HeldAll("bottle") > 0) return Cnt();
+            if (!full && S.bottles >= 4 && G.WantsMore("bottle")) return P("bottler");
+        }
         // 얼음은 ICE_BATCH개 모이거나 밭이 비면 해빙기로(등짐 100개를 다 채울 때까지 얼음밭에 붙잡아 두지 않는다), 아니면 계속 줍기
         if (hk == "ice") return (full || hn >= Mathf.Min(G.CarryMax, GameConfig.ICE_BATCH) || !anyOpen) ? P("melter") : Ice();
         if (ss != null)
