@@ -35,7 +35,7 @@
 | `ToyMesh` · `Resources/Shaders/MarsVColor` | 저폴리 장난감 메시 빌더(깎은 상자·원뿔대·고리·울퉁불퉁 덩어리를 정점 색으로 한 메시에): 물건 미니 모형(`Items`)·얼음 더미·나무·돌. 셰이더는 Standard 조명 + 정점 색(리니어 변환)·가장자리 밝기·제 색 발광·밤 채도 덜기(`_MarsNight`), 인스턴싱. 얼음만 `Shaders/MarsIce`(불투명인데 GrabPass로 뒤가 비침·속 깊이·프레넬 테, 정점 알파 = 비침 양) |
 | `PostFX` · `HullOutline` · `Resources/Shaders` | 포스트 외곽선(깊이 2차 미분)·ACES·비네트·블룸·그림자 품질, VIP용 hull 외곽선 헬퍼 (§7.2) |
 | `GroundPainter` · `DustFX` | 코드로 그린 지면 텍스처(잔무늬 최소·넓은 명암·기지 밖 비네트)·구역 바닥(기지 안은 길과 다른 재질 `PaintPaved`: 얼음밭 하늘빛 회색 타일·해빙/병입 콘크리트 판·상점 나무 널 + 둘레 경계 줄 그림)·잠긴 구역 점선, 가장자리 먼지 36개·약한 돌풍·회오리 1개 (§7.4). 맵 바깥은 `WorldDress`의 지층 메사 16덩어리 |
-| `CharacterKit` | 원본 bPerson/bTraveler/bRobot 치비 조립(플레이어·손님·삐걱·뽀삐+손수레) |
+| `CharacterKit` · `CharacterKitKK` | 원본 bPerson/bTraveler/bRobot 치비 조립(플레이어·손님·삐걱·뽀삐+손수레). 기본은 KayKit 톤(r7-chars, `CharacterKitKK`: 저폴리 공·깎은 상자·원뿔대를 부위마다 ToyMesh 한 메시로, 먼지 토끼 `BuildBunny` 포함), 검증 인자 `-chars 0`이면 예전 프리미티브. 규칙은 docs/art/art-bible.md "캐릭터" |
 | `UIKit` · `Resources/Fonts/Jua-Regular.ttf` | 9-slice 베벨 패널·아이콘 34종·말풍선·버튼·핍, Jua(OFL) 글꼴 |
 | `HUD` · `UpgradeSheet` · `WorldLabels` | 벨·날([해/달] n)·지도 알약([지도][깃발] n/5)·톱니(소리/진동 토글)·콤보/러시 배지·업그레이드 버튼(화살표만)·아이콘 토스트(`IconToast`)·시트, 월드→스크린 라벨(말풍선은 맨 앞 손님만, 플로팅 +n은 큰 금액만 `BigMoney`). 플레이 화면 글자 규칙은 docs/art/art-bible.md |
 | `TutorialManager` · `HintSystem` | 말풍선 3단계·손 포인터, 바닥 화살표·타깃 링 (§6.2) |

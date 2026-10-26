@@ -342,6 +342,75 @@ public class ToyMesh
         return (vs, fs);
     }
 
+    // 저폴리 공·타원체(가운데가 원점, 반지름 radii, 캐릭터 r7): 면마다 평면 셰이딩이라 KayKit 처럼 면이 살짝 각져 보인다.
+    //  색은 높이 따라 아래 low → 위 high(정점 보간이라 면은 각져도 색은 부드럽게 번진다). 앞(+z)에 면 하나가 정면으로 오게 둘레를 돌려 둔다
+    //  facet: 법선을 면 법선 쪽으로 섞는 비율(1 이면 완전 평면 셰이딩 = 구겨진 종이처럼 보였다, 0 이면 매끈한 구). 기본 0.35 = 실루엣은 각지고 면은 살짝만
+    public ToyMesh Gem(Vector3 radii, int sides, int rings, Color low, Color high, float facet = 0.35f) => GemCore(radii, sides, rings, low, high, facet, null, 0f, low);
+
+    // 같은 칸 나눔의 공 위에 덧씌운 껍질 조각(헬멧 바이저 r7): mask(i 둘레 칸, k 위도 칸 0 = 남극)인 칸만 lift 만큼 띄워 그리고,
+    //  가장자리는 아래 공 면까지 벽(wall 색)으로 막는다. 바이저 테두리가 헬멧 면 모서리를 그대로 따라가 깔끔한 각진 창이 된다(따로 만든 타원을 박으면 경계가 톱니로 보였다).
+    //  i 칸 중심 각 = 90° + (i − sides/4)·360°/sides 라 i = sides/4 가 정면(+z)
+    public ToyMesh GemShell(Vector3 radii, int sides, int rings, System.Func<int, int, bool> mask, float lift, Color low, Color high, Color wall, float facet = 0.35f)
+        => GemCore(radii, sides, rings, low, high, facet, mask, lift, wall);
+
+    ToyMesh GemCore(Vector3 radii, int sides, int rings, Color low, Color high, float facet, System.Func<int, int, bool> mask, float lift, Color wall)
+    {
+        var o = Vector3.zero;
+        float rot = 90f - (sides / 4 + 0.5f) * 360f / sides;
+        var ro = radii + Vector3.one * lift;
+        Vector3 Pt(int i, int k, Vector3 r)
+        {
+            float p = -Mathf.PI / 2f + k * Mathf.PI / rings, a = (i * 360f / sides + rot) * Mathf.Deg2Rad;
+            return new Vector3(Mathf.Cos(a) * Mathf.Cos(p) * r.x, Mathf.Sin(p) * r.y, Mathf.Sin(a) * Mathf.Cos(p) * r.z);
+        }
+        Color C(Vector3 p) => Color.Lerp(low, high, p.y / (2f * ro.y) + 0.5f);
+        Vector3 Sm(Vector3 p) => new Vector3(p.x / (ro.x * ro.x), p.y / (ro.y * ro.y), p.z / (ro.z * ro.z)).normalized;
+        bool In(int i, int k) => mask == null || (k >= 0 && k < rings && mask(((i % sides) + sides) % sides, k));
+        for (int k = 0; k < rings; k++)
+            for (int i = 0; i < sides; i++)
+            {
+                if (!In(i, k)) continue;
+                Vector3 a0 = Pt(i, k, ro), a1 = Pt(i + 1, k, ro), b0 = Pt(i, k + 1, ro), b1 = Pt(i + 1, k + 1, ro);
+                // 이 칸(사다리꼴, 한 평면)의 바깥 면 법선
+                var fn = Vector3.Cross(b0 - a0, b1 - a0);              // 북극 칸은 b0 = b1 이라 다른 두 변으로
+                if (fn.sqrMagnitude < 1e-10f) fn = Vector3.Cross(b1 - a0, a1 - a0);
+                if (Vector3.Dot(fn, a0 + a1 + b0 + b1) < 0f) fn = -fn;
+                fn.Normalize();
+                Vector3 N(Vector3 p) => Vector3.Lerp(Sm(p), fn, facet).normalized;
+                Tri(a0, b0, b1, C(a0), C(b0), C(b1), o, N(a0), N(b0), N(b1));
+                Tri(a0, b1, a1, C(a0), C(b1), C(a1), o, N(a0), N(b1), N(a1));
+                if (mask == null || lift <= 0f) continue;
+                // 벽: 이웃 칸이 껍질이 아닌 변마다 바깥 변 → 안쪽(공 면) 변. 칸 가운데를 기준점으로 바깥(칸 밖)을 보게
+                var ctr = (Pt(i, k, radii) + Pt(i + 1, k, radii) + Pt(i, k + 1, radii) + Pt(i + 1, k + 1, radii)) / 4f;
+                void Wall(int i0, int k0, int i1, int k1)
+                {
+                    Vector3 p0 = Pt(i0, k0, ro), p1 = Pt(i1, k1, ro), q0 = Pt(i0, k0, radii), q1 = Pt(i1, k1, radii);
+                    if ((p0 - p1).sqrMagnitude < 1e-8f) return;
+                    Quad(q0, p0, p1, q1, wall, wall, wall, wall, ctr);
+                }
+                if (!In(i, k - 1)) Wall(i, k, i + 1, k);
+                if (!In(i, k + 1)) Wall(i, k + 1, i + 1, k + 1);
+                if (!In(i - 1, k)) Wall(i, k, i, k + 1);
+                if (!In(i + 1, k)) Wall(i + 1, k, i + 1, k + 1);
+            }
+        return this;
+    }
+
+    // 모서리를 깎은 상자에 세로 그라데이션(캐릭터 r7): 아래 low → 위 high, 윗면만 top(없으면 high). KayKit 부품처럼 위가 밝고 아래가 어둡다
+    public ToyMesh Chamfer(Vector3 size, float b, Color low, Color high, Color? top = null)
+    {
+        int s = v.Count;
+        Bevel(size, b, low, low, low, low, low);
+        var inv = xf.inverse; float hy = size.y / 2f;
+        for (int i = s; i < v.Count; i++)
+        {
+            var lp = inv.MultiplyPoint3x4(v[i]);
+            bool up = top.HasValue && lp.y > hy - 0.001f && inv.MultiplyVector(n[i]).y > 0.99f;
+            c[i] = up ? top.Value : Color.Lerp(low, high, lp.y / size.y + 0.5f);
+        }
+        return this;
+    }
+
     public Mesh Build(string name)
     {
         float k = GameConfig.K; var vk = new List<Vector3>(v.Count);

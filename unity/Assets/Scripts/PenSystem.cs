@@ -150,13 +150,17 @@ public partial class PenSystem : MonoBehaviour
         h.shadow = Prim.BlobShadow(h.view, 24).transform; h.shadowBase = h.shadow.localScale;
         h.lift = Group(h.view, "lift", 0, 0, 0);
         h.root = Group(h.lift, "root", 0, 0, 0); h.root.localScale = Vector3.one * 1.25f;
-        h.body = Ell(h.root, "body", 0, 10, 0, 18, 16.2f, 21.6f, TAN).transform;
-        Sph(h.root, "head", 0, 17, 8, 14, TAN);
-        h.earL = Ear(h.root, -3); h.earR = Ear(h.root, 3);
-        Sph(h.root, "eyeL", -3, 18, 14, 2.6f, DARK); Sph(h.root, "eyeR", 3, 18, 14, 2.6f, DARK);
-        h.nose = Sph(h.root, "nose", 0, 15.5f, 15, 2.6f, NOSE).transform; h.noseBase = h.nose.localScale;
-        Ell(h.root, "footL", -5, 2.5f, 4, 7, 3.5f, 11.2f, TAN_D); Ell(h.root, "footR", 5, 2.5f, 4, 7, 3.5f, 11.2f, TAN_D);
-        Sph(h.root, "tail", 0, 10, -11, 6, WHITE);
+        if (CharacterKit.Kk) { CharacterKit.BuildBunny(h.root, out h.body, out h.earL, out h.earR, out h.nose); h.noseBase = h.nose.localScale; }   // KayKit 톤 저폴리(r7)
+        else
+        {
+            h.body = Ell(h.root, "body", 0, 10, 0, 18, 16.2f, 21.6f, TAN).transform;
+            Sph(h.root, "head", 0, 17, 8, 14, TAN);
+            h.earL = Ear(h.root, -3); h.earR = Ear(h.root, 3);
+            Sph(h.root, "eyeL", -3, 18, 14, 2.6f, DARK); Sph(h.root, "eyeR", 3, 18, 14, 2.6f, DARK);
+            h.nose = Sph(h.root, "nose", 0, 15.5f, 15, 2.6f, NOSE).transform; h.noseBase = h.nose.localScale;
+            Ell(h.root, "footL", -5, 2.5f, 4, 7, 3.5f, 11.2f, TAN_D); Ell(h.root, "footR", 5, 2.5f, 4, 7, 3.5f, 11.2f, TAN_D);
+            Sph(h.root, "tail", 0, 10, -11, 6, WHITE);
+        }
         hoppers.Add(h);
         return h;
     }

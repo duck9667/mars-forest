@@ -9,6 +9,7 @@ Shader "Mars/VColor"
         _Rim ("가장자리 밝기", Range(0,1)) = 0
         _RimColor ("가장자리 색", Color) = (0.85, 0.95, 1, 1)
         _Self ("제 색 발광", Range(0,1)) = 0
+        _NightSat ("밤 채도 덜기 몫", Range(0,1)) = 1   // 캐릭터(r7)는 0.3: 밤에도 플레이어·정착민 색이 눈에 띄게
     }
     SubShader
     {
@@ -17,7 +18,7 @@ Shader "Mars/VColor"
         #pragma surface surf Standard fullforwardshadows addshadow
         #pragma multi_compile_instancing
         #pragma target 3.0
-        half _Glossiness, _Rim, _Self; fixed4 _RimColor;
+        half _Glossiness, _Rim, _Self, _NightSat; fixed4 _RimColor;
         float _MarsNight;   // DayNight 가 넣는 전역 밤 정도(0 낮 ~ 1 밤)
         struct Input { float4 color : COLOR; float3 viewDir; };
         void surf(Input IN, inout SurfaceOutputStandard o)
@@ -30,7 +31,7 @@ Shader "Mars/VColor"
             #endif
             // 밤: 하늘색 물건이 진한 파랑으로 튀지 않게 채도를 덜어 낸다(DayNight SOFT_* 와 같은 몫)
             half lum = dot(o.Albedo, half3(0.299, 0.587, 0.114));
-            o.Albedo = lerp(o.Albedo, lum.xxx * 1.05, _MarsNight * 0.45);
+            o.Albedo = lerp(o.Albedo, lum.xxx * 1.05, _MarsNight * 0.45 * _NightSat);
             o.Metallic = 0;
             o.Smoothness = _Glossiness;
             half f = 1 - saturate(dot(normalize(IN.viewDir), o.Normal));
