@@ -118,7 +118,7 @@ public class Stations : MonoBehaviour
         {
             // 칸 받침판: 더미보다 조금 넓은 얇은 판(물 파랑·산소 흰빛·식량 노랑을 한 톤 어둡게), 칸 사이는 상판이 보이게 띄운다
             string kind = GameState.SUPPLY_KINDS[i];
-            var mk = Prim.Box(counterView, "mark_" + kind, Local(counterView, SectionX(i), c.y, SHELF_H + MARK_T / 2), new Vector3(c.w / 3f - 8, MARK_T, c.h - 10), SHELF_MARK[i]);
+            var mk = Prim.Box(counterView, "mark_" + kind, Local(counterView, SectionX(i), c.y, ShelfH + MARK_T / 2), new Vector3(c.w / 3f - 8, MARK_T, c.h - 10), SHELF_MARK[i]);
             Prim.NoShadow(mk);
             shelfMarks[i] = mk.transform;
         }
@@ -147,7 +147,9 @@ public class Stations : MonoBehaviour
     }
 
     // 카운터 3구역 중심 x(논리): 물 왼쪽·산소 가운데·식량 오른쪽
-    const float SHELF_H = 42f, MARK_T = 0.7f;   // 상판 윗면 높이·받침판 두께
+    const float MARK_T = 0.7f;   // 받침판 두께
+    // 상판 윗면 높이: 예전 모형 42, KayKit 주방 카운터 32(KayKitDress.KH)
+    public static float ShelfH => KK.On ? KayKitDress.KH : 42f;
     static float SectionX(int i) { var c = WorldMap.STN["counter"]; return c.x + (i - 1) * c.w / 3f; }
     Transform AnchorOf(string kind) => kind == "o2" ? shelfO2Anchor : kind == "food" ? shelfFoodAnchor : shelfAnchor;
     // 칸 배치(모형 크기에 맞춘 간격): 나뉘기 전 물 18×3(한 층 54, 상판 가득 한 층) / 나뉜 뒤 칸마다 병·산소통 6×3, 감자 상자 5×3
@@ -162,7 +164,7 @@ public class Stations : MonoBehaviour
         if (split == shelfSplit && !force) return;
         shelfSplit = split;
         var c = WorldMap.STN["counter"];
-        float h = split ? SHELF_H + MARK_T : SHELF_H;   // 나뉘면 받침판 위에 쌓는다
+        float h = split ? ShelfH + MARK_T : ShelfH;   // 나뉘면 받침판 위에 쌓는다
         shelfAnchor.position = WorldMap.W2U(split ? SectionX(0) : c.x, c.y, h);
         shelfO2Anchor.position = WorldMap.W2U(SectionX(1), c.y, h);
         shelfFoodAnchor.position = WorldMap.W2U(SectionX(2), c.y, h);

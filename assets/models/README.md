@@ -16,3 +16,26 @@ Kenney(https://kenney.nl)의 에셋은 CC0라 표기 의무가 없지만 고마�
 ## Space Kit
 
 Kenney Space Kit(https://kenney.nl/assets/space-kit) zip은 `Models/GLB format/`이 없고 `Models/GLTF format/` 안에 `.glb`가 들어 있다. 게임 쪽 색은 `app/index.html`의 `SK(포인트색, 어두운색)` 색교체맵으로 팔레트 4색(흰·밝은 회색·어두운 회색·주황)을 게임 `COL`에 맞추고, `put(그룹, 이름, sx, sy, sz, x, y, z, 회전, 색교체맵)`으로 비균등 스케일을 걸어 배치한다.
+
+## KayKit (Kay Lousberg, CC0)
+
+KayKit 팩(Space Base Bits 1.0·Restaurant Bits 1.0, https://kaylousberg.itch.io · GitHub KayKit-Game-Assets)은 `.gltf + .bin + 팔레트 아틀라스 png`로 온다. 원본은 레포에 넣지 않고, 쓸 모델만 `tools/kaykit_bake.py`로 아틀라스 색을 정점 색으로 구워 `unity/Assets/Resources/Models/kk_<이름>.bytes`(자체 바이너리, Unity 좌표)에 둔다. Unity는 `KK.Load` → `ToyMesh.Kk`로 다른 조각과 한 메시에 합쳐 정점 색 셰이더(MarsVColor)로 그린다.
+
+```
+python3 -I tools/kaykit_bake.py sheet <팩>/Assets/gltf 미리보기.png [이름 ...]   # 고를 때 보는 접촉 인화
+python3 -I tools/kaykit_bake.py bake  <팩>/Assets/gltf unity/Assets/Resources/Models 이름 [이름 ...]
+```
+
+| 파일(kk_) | 게임에서 | 팩 |
+|---|---|---|
+| `basemodule_B` | 해빙기 화로(문이 서쪽 얼음밭을 봄, 지붕 위 얼음 호퍼) | Space Base Bits |
+| `basemodule_C` | 병입기 충전실(문 앞 컨베이어) | Space Base Bits |
+| `roofmodule_base` | 기계·드릴 팔각 받침(눌러 편 판) | Space Base Bits |
+| `containers_C` `solarpanel` | 해빙기·병입기 개량·고급 부품(파란 물통 묶음·태양판) | Space Base Bits |
+| `drill_structure` `cargo_B_stacked` | 얼음 드릴 | Space Base Bits |
+| `landingpad_large` `lander_A` | 착륙장·착륙선 | Space Base Bits |
+| `cargo_A_stacked` `cargo_B_stacked` `rocks_A` `rock_B` | 소품(화물 더미 둘·돌 둘) | Space Base Bits |
+| `kitchencounter_straight_A` `kitchencounter_straight_B` | 카운터 6칸·계산대 몸통 | Restaurant Bits |
+| `crate` | 병입기 병 상자(금색 윗테를 덧댐) | Restaurant Bits |
+
+CC0라 표기 의무는 없지만 Kay Lousberg(www.kaylousberg.com)에게 고마움을 적어 둔다.
