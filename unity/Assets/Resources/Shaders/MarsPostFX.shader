@@ -17,6 +17,7 @@ Shader "Hidden/Mars/PostFX"
     sampler2D _CameraDepthNormalsTexture;
     sampler2D _BloomTex;
     sampler2D_float _MaskDepth;   // 배경 레이어를 뺀 물체만의 선형 깊이(MarsMaskDepth). 비어 있는 곳 = 1
+    float _MarsMaskRef;          // 모바일 RHalf 마스크가 빼 둔 기준 깊이(PostFX.SyncMask). RFloat 는 0
     float4 _MaskParams;          // x 1이면 마스크 깊이로 외곽선(배경엔 선 없음)  y 가림 허용 오차
     float4 _OutlineColor;   // 선형 공간 색, a = 세기
     float4 _EdgeParams;     // x 샘플 오프셋(px)  y 깊이 문턱(near~far 를 0~1 로 본 단위)  z 노멀 문턱(1-dot)  w 노멀 선 세기(0이면 노멀 텍스처 안 읽음)
@@ -69,7 +70,7 @@ Shader "Hidden/Mars/PostFX"
 
     // 마스크 깊이 엣지: 배경을 뺀 물체만의 깊이로 같은 2차 미분. 실루엣 바깥 픽셀(배경 위)에 선이 생기므로
     // 그 물체가 다른 물체(메사·건물) 뒤에 가려져 있으면(마스크 최솟값이 장면 깊이보다 멀면) 선을 지운다.
-    float MaskD(float2 uv) { return tex2D(_MaskDepth, uv).r; }
+    float MaskD(float2 uv) { return tex2D(_MaskDepth, uv).r + _MarsMaskRef; }
     float EdgeMask(float2 uv, float2 o, float t)
     {
         float d0 = MaskD(uv);

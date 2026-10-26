@@ -210,7 +210,13 @@ public static class Items
         get
         {
             if (_ice != null) return _ice;
-            if (!iceTried) { iceTried = true; var sh = Resources.Load<Shader>("Shaders/MarsIce"); if (sh != null && sh.isSupported) _ice = new Material(sh) { enableInstancing = true }; }
+            if (!iceTried)
+            {
+                iceTried = true; var sh = Resources.Load<Shader>("Shaders/MarsIce");
+                // 모바일 경량(r9): GrabPass 없는 LOD 200 서브셰이더(바닥색으로 비침)만 쓰게. 이 셰이더 하나에만 걸린다
+                if (sh != null && PostFX.IceCheap) sh.maximumLOD = 200;
+                if (sh != null && sh.isSupported) _ice = new Material(sh) { enableInstancing = true };
+            }
             return _ice != null ? _ice : ToyMesh.Mat(0.55f, 0.22f, 0.16f);
         }
     }
