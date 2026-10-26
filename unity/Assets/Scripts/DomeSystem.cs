@@ -8,7 +8,7 @@ using UnityEngine;
 // 좌석: 예약(freeSeat, 335~336행)·경로 seatPath/leavePath(850~851행)·팁 round(price*0.5)(868행)·
 // 팁 수거(872행: 플레이어가 좌석 r34 안이면 즉시, 쿨다운 없음 → 동전 비행·벨·플로팅 텍스트·소리).
 // 충돌(좌석 r16·분수·화단·에어록)은 WorldMap.Blocked가 domeOpen으로 처리한다. 좌석 팁은 저장하지 않는다(원본과 같음).
-public class DomeSystem : MonoBehaviour
+public partial class DomeSystem : MonoBehaviour
 {
     public static DomeSystem I;
     GameState G => GameState.I;
@@ -164,11 +164,14 @@ public class DomeSystem : MonoBehaviour
         root = new GameObject("dome").transform; root.SetParent(transform, false); root.position = WorldMap.W2U(D);
 
         // 바닥 발판: platform_large r84×1.04, 높이 18(=1.8), 흰→모래·밝은 회색→황갈. 윗면이 PAD_TOP에 오게 내린다(접지 그림자 안 가리게)
-        var re = ModelLib.SK(ModelLib.COL.orange); re[0xedf0f5] = 0xefe3cf; re[0xd6dbe4] = 0xdcc8aa;   // 크림 바닥(다듬기 3차, target_south_v1): 예전 살구색 발판이 유리 너머로 분홍 판처럼 보였다
-        pad = ModelLib.Put(root, "pad", R * 1.04f, 18f, R * 1.04f, 0, PAD_TOP - 1.8f, 0, 0f, re).transform;
-        pad.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        // 발판 모델은 SK(orange) 팔레트라 살구색으로 칠해져 유리 너머가 분홍 판처럼 보였다(다듬기 3차) → 모델은 숨기고 크림 원판 + 옅은 테로 바닥을 깐다(target_south_v1)
-        pad.GetComponent<Renderer>().enabled = false;
+        // 발판 모델(Kenney platform_large)은 SK(orange) 팔레트라 살구색으로 칠해져 유리 너머가 분홍 판처럼 보였다(다듬기 3차) → 숨기고 크림 원판 + 옅은 테로 바닥을 깐다(target_south_v1).
+        // KayKit 통일(r7)에선 숨긴 모델을 아예 만들지 않는다(GLB 도 빌드에서 뺐다)
+        if (!KK.On)
+        {
+            var re = ModelLib.SK(ModelLib.COL.orange); re[0xedf0f5] = 0xefe3cf; re[0xd6dbe4] = 0xdcc8aa;
+            pad = ModelLib.Put(root, "pad", R * 1.04f, 18f, R * 1.04f, 0, PAD_TOP - 1.8f, 0, 0f, re).transform;
+            var pr = pad.GetComponent<Renderer>(); if (pr != null) pr.enabled = false;
+        }
         padFloor = Prim.Cyl(root, "padFloor", L(0, 0, PAD_TOP), R * 2.02f, 0.04f, GameConfig.Hex("efe4d2")).transform;
         Prim.NoShadow(padFloor.gameObject); padFloor.GetComponent<Renderer>().receiveShadows = true;
         var rimIn = Prim.Cyl(padFloor, "padRim", new Vector3(0, -0.2f, 0), 1.03f / GameConfig.K, 0.0f, GameConfig.Hex("d8c6aa"));   // 부모 스케일 기준
@@ -183,12 +186,16 @@ public class DomeSystem : MonoBehaviour
         {
             var s = seats[i]; float dx = s.p.x - D.x, dy = s.p.y - D.y;
             var b = Group(root, "bench" + i, L(dx, dy, 0)); s.bench = b;
+            if (KK.On) KkSeat(b, i, s.p.x < D.x);   // KayKit 통일(r7): Restaurant 의자 + 작은 둥근 탁자(DomeSystemKK.cs)
+            else
+            {
             Prim.Box(b, "legL", L(-10, 0, 4), new Vector3(3, 8, 10), WOOD_D);
             Prim.Box(b, "legR", L(10, 0, 4), new Vector3(3, 8, 10), WOOD_D);
             Prim.Box(b, "seat", L(0, 0, 9), new Vector3(24, 4, 11), WOOD);
             Prim.Box(b, "cushion", L(0, 1, 11.7f), new Vector3(20, 1.4f, 8), CUSHION[s.p.x < D.x ? 0 : 1]);
             Prim.Box(b, "back", L(0, -6.5f, 17f), new Vector3(24, 10, 3), WOOD);
             Prim.Box(b, "backTop", L(0, -6.5f, 22.6f), new Vector3(26, 1.6f, 4), WOOD_D);
+            }
             props.Add(b);
             // 팁 동전 더미(원본: 좌석 오른쪽 앞 (s.x+14, s.y+8), 금화 3장 발광 .5) — 팁이 쌓이면 6장까지
             var pile = Group(root, "tip" + i, L(dx + 14, dy + 8, PAD_TOP)); s.pile = pile;
@@ -211,8 +218,12 @@ public class DomeSystem : MonoBehaviour
         foreach (int sx in new[] { -58, 58 })
         {
             var bed = Group(root, sx < 0 ? "bedW" : "bedE", L(sx, 22, 0));
-            Prim.Box(bed, "box", L(0, 0, 3), new Vector3(38, 6, 38), WOOD);
-            ModelLib.Put(bed, sx < 0 ? "treesTall" : "trees", 34, 34, 34, 0, 6, 0, sx < 0 ? 0f : Mathf.PI / 2, gardenRe);
+            if (KK.On) KkBed(bed, sx < 0);   // KayKit 나무 상자 화분 + 우리 통통한 나무(DomeSystemKK.cs)
+            else
+            {
+                Prim.Box(bed, "box", L(0, 0, 3), new Vector3(38, 6, 38), WOOD);
+                ModelLib.Put(bed, sx < 0 ? "treesTall" : "trees", 34, 34, 34, 0, 6, 0, sx < 0 ? 0f : Mathf.PI / 2, gardenRe);
+            }
             props.Add(bed);
         }
 
@@ -220,7 +231,8 @@ public class DomeSystem : MonoBehaviour
         // 원본 fountRe보다 한 단계 밝게(유리 아래에서 검은 통처럼 보여서): 수반 강철·물은 밝은 하늘색
         var fountRe = new Dictionary<int, int> { { 0x8f95b3, ModelLib.COL.steel }, { 0x989fbe, 0xe4e9ee }, { 0x7d829c, ModelLib.COL.steel }, { 0x5a6078, ModelLib.COL.steelD }, { 0x81869c, ModelLib.COL.steel }, { 0x89afe5, 0x6fc3f0 }, { 0xbcd8f8, 0xd6efff }, { 0xc5dffb, 0xd6efff } };
         var fo = Group(root, "fountain", L(0, 30, 0));
-        ModelLib.Put(fo, "fountain", 30, 30, 30, 0, PAD_TOP - 1.45f, 0, 0f, fountRe);   // 바닥 포장 판(두께 1.5)을 발판과 맞춰 묻는다: 얇은 단차에 외곽선 줄무늬가 생겼다
+        if (KK.On) KkFountain(fo);   // KayKit 그릇 수반(DomeSystemKK.cs)
+        else ModelLib.Put(fo, "fountain", 30, 30, 30, 0, PAD_TOP - 1.45f, 0, 0f, fountRe);   // 바닥 포장 판(두께 1.5)을 발판과 맞춰 묻는다: 얇은 단차에 외곽선 줄무늬가 생겼다
         var water = new Color(0.8f, 0.95f, 1f, 0.85f);
         var sGo = Prim.Cyl(fo, "spout", L(0, 0, 19), 4f, 8, Color.white); sGo.GetComponent<Renderer>().sharedMaterial = Mats.TransShared(water); Prim.NoShadow(sGo); spout = sGo.transform;
         drops = new Transform[8];
@@ -236,9 +248,10 @@ public class DomeSystem : MonoBehaviour
 
         // 에어록 (corridor_end 30×34×30, 게이트 서쪽 옆, ry=π) + 지붕 신호등(손님이 게이트를 지나면 깜빡)
         var al = Group(root, "airlock", L(-55, -R - 4, 0));
-        ModelLib.Put(al, "airlock", 30, 34, 30, 0, 0, 0, Mathf.PI, ModelLib.SK(ModelLib.COL.orange));
+        if (KK.On) KkAirlock(al);   // KayKit 통로(tunnel_straight_A)를 남북으로(DomeSystemKK.cs)
+        else ModelLib.Put(al, "airlock", 30, 34, 30, 0, 0, 0, Mathf.PI, ModelLib.SK(ModelLib.COL.orange));
         beaconMat = Emissive(GameConfig.Hex("7df0a0"), GameConfig.Hex("3cf07a") * 0.3f);
-        var bc = Prim.Sphere(al, "beacon", L(0, 0, 36), 5, GameConfig.Hex("7df0a0")); bc.GetComponent<Renderer>().sharedMaterial = beaconMat; Prim.NoShadow(bc); beacon = bc.transform;
+        var bc = Prim.Sphere(al, "beacon", L(0, 0, KK.On ? 16 : 36), 5, GameConfig.Hex("7df0a0")); bc.GetComponent<Renderer>().sharedMaterial = beaconMat; Prim.NoShadow(bc); beacon = bc.transform;
         props.Add(al);
 
         // 유리 반구(아래 반은 지면이 가린다) + 바닥 테 + 유리 반사 줄 2

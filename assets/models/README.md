@@ -37,5 +37,17 @@ python3 -I tools/kaykit_bake.py bake  <팩>/Assets/gltf unity/Assets/Resources/M
 | `cargo_A_stacked` `cargo_B_stacked` `rocks_A` `rock_B` | 소품(화물 더미 둘·돌 둘) | Space Base Bits |
 | `kitchencounter_straight_A` `kitchencounter_straight_B` | 카운터 6칸·계산대 몸통 | Restaurant Bits |
 | `crate` | 병입기 병 상자(금색 윗테를 덧댐) | Restaurant Bits |
+| `basemodule_A` `basemodule_D` | 전기분해기·비료 배합기 / 토양 정화기 몸통 | Space Base Bits |
+| `basemodule_C` `basemodule_E` `roofmodule_cargo_A` `roofmodule_solarpanels` `structure_tall` | 본부 Lv1~5(지휘 모듈·유리 돔 모듈·화물 지붕·태양 돛·통신탑·관제탑 철골) | Space Base Bits |
+| `basemodule_E` `solarpanel` `structure_low` `cargo_B` | 개척지 거주 돔·태양광 판·배터리 받침·변환기 | Space Base Bits |
+| `tunnel_straight_A` `containers_A` | 온실 → 물탱크 통로·휴게 돔 에어록 / 배합기 비료 통 | Space Base Bits |
+| `basemodule_B` | 토끼집(작게) | Space Base Bits |
+| `rocks_B` `rock_A` `terrain_tall_curved` `spacetruck` | 가장자리 바위·앞 메사 지형 조각·로버 | Space Base Bits |
+| `chair_A` `table_round_A_small` `bowl` | 휴게 돔 좌석·탁자·분수 수반, 우리 물그릇 | Restaurant Bits |
+| `crate_potatoes` `crate_lettuce` `crate_carrots` `food_ingredient_lettuce` | 식량 물건(감자 상자)·우리 상추·당근 상자·온실 작물 | Restaurant Bits |
 
 CC0라 표기 의무는 없지만 Kay Lousberg(www.kaylousberg.com)에게 고마움을 적어 둔다.
+
+## Unity 빌드에 남긴 Kenney GLB(r7)
+
+KayKit 통일(r7)로 Unity `Resources/Models`에는 로켓 4단(`rocket_finsA` `rocket_fuelA` `rocket_sidesA` `rocket_topA`: 이주 연출 PrestigeManager·`-kk 0` 착륙선)만 남겼다. 나머지 Kenney GLB 와 `Textures/colormap.png` 는 빌드에서 뺐고, `-kk 0` 에서 그 모델을 찾으면 `ModelLib.Mdl` 이 빈 자리를 둔다. 웹판(`app/`)은 이 폴더 원본을 그대로 쓴다.

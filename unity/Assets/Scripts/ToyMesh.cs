@@ -107,6 +107,33 @@ public class ToyMesh
         return this;
     }
     public ToyMesh Kk(string name, float sc, System.Func<Color, Color> re = null) => Kk(name, Vector3.one * sc, re);
+    // 자리에 따라 색 바꾸기(KayKit 원래 좌표 p 기준: 같은 색이라도 높이로 지붕·띠를 가를 때). keep 이 있으면 그 정점만 든 삼각형만 붙인다(태양판에서 판만 떼기 등)
+    //  recenter: 남긴 정점들의 경계 중심을 원점으로 옮긴 뒤 놓는다(떼어 낸 판을 제자리 회전시킬 때)
+    public ToyMesh KkP(string name, Vector3 sc, System.Func<Vector3, Color, Color> re, System.Func<Vector3, Color, bool> keep = null, bool recenter = false)
+    {
+        var md = KK.Load(name); if (md == null) return this;
+        var ctr = Vector3.zero;
+        if (recenter)
+        {
+            Vector3 lo = Vector3.one * 1e9f, hi = -lo;
+            for (int i = 0; i < md.p.Length; i++) if (keep == null || keep(md.p[i], md.c[i])) { lo = Vector3.Min(lo, md.p[i]); hi = Vector3.Max(hi, md.p[i]); }
+            ctr = (lo + hi) / 2f;
+        }
+        int b = v.Count; var inv = new Vector3(1f / sc.x, 1f / sc.y, 1f / sc.z);
+        for (int i = 0; i < md.p.Length; i++)
+        {
+            v.Add(xf.MultiplyPoint3x4(Vector3.Scale(md.p[i] - ctr, sc)));
+            n.Add(xf.MultiplyVector(Vector3.Scale(md.n[i], inv)).normalized);
+            c.Add(re != null ? re(md.p[i], md.c[i]) : KK.Warm(md.c[i]));
+        }
+        for (int i = 0; i < md.t.Length; i += 3)
+        {
+            int a = md.t[i], d = md.t[i + 1], e = md.t[i + 2];
+            if (keep != null && !(keep(md.p[a], md.c[a]) && keep(md.p[d], md.c[d]) && keep(md.p[e], md.c[e]))) continue;
+            t.Add(b + a); t.Add(b + d); t.Add(b + e);
+        }
+        return this;
+    }
 
     // 기계 좌표(dx, dy, h) 두 점 사이 관
     public ToyMesh PipeM(float ax, float ay, float ah, float bx, float by, float bh, float r, Color c, bool joints = true)

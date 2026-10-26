@@ -233,7 +233,8 @@ public static class Items
                 m.At(0, y0 + 7.1f, 0).Cyl(0.8f, 0.8f, 0.6f, 8, O2_VALVE, O2_VALVE);
                 m.At(0, y0 + 7.9f, 0).Box(new Vector3(2.6f, 0.9f, 0.9f), O2_VALVE);
                 return m;
-            case "food":     // 감자 상자: 깎은 노란 상자(안은 진하게) + 감자 4알
+            case "food":     // 감자 상자: 깎은 노란 상자(안은 진하게) + 감자 4알. KayKit 통일(r7)에선 Restaurant 감자 상자(crate_potatoes)
+                if (KK.On) { m.At(0, y0, 0).Kk("crate_potatoes", new Vector3(5f, h / 0.97f, 4f)); return m; }
                 m.At(0, y0 + 1.7f, 0).Bevel(new Vector3(10, 3.4f, 8), 0.6f, FOOD_D, GameConfig.FOOD, FOOD_L, FOOD_IN, FOOD_IN);
                 for (int i = 0; i < 4; i++)
                     m.At((i % 2 - 0.5f) * 4.6f, y0 + 4.0f, (i / 2 - 0.5f) * 3.6f).Blob(new Vector3(2.3f, 1.5f, 1.9f), 0, 31 + i, 0.15f, POTATO_T, POTATO, POTATO_D);
@@ -308,7 +309,8 @@ public static class Items
                 }
                 m.At(0, -0.2f, 0).Box(new Vector3(3.2f, h - 0.2f, 13.6f), O2_BAND);
                 return m;
-            case "food":     // 노란 나무 상자 + 감자 6알
+            case "food":     // 노란 나무 상자 + 감자 6알. KayKit 통일(r7)에선 Restaurant 감자 상자(crate_potatoes)를 등짐 블록 크기로
+                if (KK.On) { m.At(0, y0, 0).Kk("crate_potatoes", new Vector3(8.5f, h / 0.97f, 6.25f)); return m; }
                 m.At(0, y0 + 1.6f, 0).Bevel(new Vector3(17, 3.2f, 12.5f), 0.6f, FOOD_D, GameConfig.FOOD, FOOD_L, FOOD_IN, FOOD_IN);
                 for (int r = 0; r < 2; r++)
                     for (int c = 0; c < 3; c++)

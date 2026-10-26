@@ -12,7 +12,7 @@ using UnityEngine;
 //  레벨 업은 GameState.OnPadLevel("hq")를 듣는다(서사 쪽도 같은 이벤트를 쓴다, 따로 이벤트를 만들지 않음).
 //  충돌: 레벨별 건물 발자국만 WorldMap.Blocked에 더한다(빈 터는 걸을 수 있음). 착륙장 원·손님 길(x 186~246)·입구와 떨어져 있다.
 //  WorldDress.Dress(착륙선 주변)가 만든다. 검증: -pads hq=N(레벨 강제, 이벤트로 모형까지 반영) · -hqup 초(그 초에 발판 완료 경로로 한 레벨 올림, 솟아오름 확인용)
-public class HQSystem : MonoBehaviour
+public partial class HQSystem : MonoBehaviour
 {
     public static HQSystem I;
     GameState G => GameState.I;
@@ -82,7 +82,9 @@ public class HQSystem : MonoBehaviour
         root = new GameObject("hqModel").transform; root.SetParent(transform, false);
         root.position = WorldMap.W2U(POS); root.localScale = Vector3.one * SCALE;
         for (int i = 0; i <= MAX; i++) parts[i] = new List<Transform>();
-        BuildSlab(); BuildModule(); BuildAntenna(); BuildDome(); BuildSailFlag(); BuildTower();
+        BuildSlab();
+        if (KK.On) KkBuild();   // KayKit 통일(r7, HQSystemKK.cs). -kk 0 이면 아래 예전 모형
+        else { BuildModule(); BuildAntenna(); BuildDome(); BuildSailFlag(); BuildTower(); }
         BuildLook();
         Show(Mathf.Clamp(G.PadLv("hq"), 0, MAX), false);
         G.OnPadLevel += OnPadLevel;

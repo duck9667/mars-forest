@@ -62,6 +62,12 @@ public static class ModelLib
     // 원본 mdl(name, sc, re): 균등 스케일 sc(논리 단위 → ×K). 그림자 캐스트·리시브, 콜라이더 없음.
     public static GameObject Mdl(string name, float sc = 1f, Dictionary<int, int> re = null)
     {
+        // KayKit 통일(r7)로 KayKit 모드에서 안 쓰는 Kenney GLB 는 빌드에서 뺐다. -kk 0(예전 모형 비교)에서 그 모델을 찾으면 빈 오브젝트만 둔다
+        if (DEFS.TryGetValue(name, out var d0) && Resources.Load<TextAsset>("Models/" + d0.file) == null)
+        {
+            if (missing.Add(name)) Debug.Log("ModelLib: " + d0.file + " 는 빌드에서 뺐다(KayKit 통일) → 빈 자리");
+            var e = new GameObject(name); e.transform.localScale = Vector3.one * sc * GameConfig.K; return e;
+        }
         var b = Build(name, re);
         var go = new GameObject(name);
         go.transform.localScale = Vector3.one * sc * GameConfig.K;
@@ -76,6 +82,7 @@ public static class ModelLib
     static readonly Dictionary<string, Built> cache = new Dictionary<string, Built>();
     static readonly Dictionary<string, Glb> glbCache = new Dictionary<string, Glb>();
     static readonly Dictionary<string, Material> texMatCache = new Dictionary<string, Material>();
+    static readonly HashSet<string> missing = new HashSet<string>();
 
     static string ReKey(Dictionary<int, int> re)
     {

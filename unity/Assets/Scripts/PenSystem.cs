@@ -7,7 +7,7 @@ using UnityEngine;
 // 원본 app/index.html: bHopper(699), bPenProps(637), onPad·spawnHoppers(836~838), tickMachines 팁 누적(846), tickHoppers(881), 수거(810), 팁 더미(1047)
 // 원본과 다르게 둔 것(연출만, 수치는 그대로): 해제 직후 토끼가 게이트에서 하나씩 팝, 팁이 쌓일 때 가까운 토끼가 동전을 던져 올림,
 // 대기 중 두리번·코 씰룩·가끔 빙키, 건초·물그릇·당근에 들러 오물거림, 플레이어가 다가오면 비켜 깡충, 수거하면 다 같이 깡충.
-public class PenSystem : MonoBehaviour
+public partial class PenSystem : MonoBehaviour
 {
     public static PenSystem I;
     void Awake() { I = this; }
@@ -92,7 +92,9 @@ public class PenSystem : MonoBehaviour
     {
         if (built) return; built = true;
         propsRoot = new GameObject("penProps").transform; propsRoot.SetParent(transform, false);
-        BuildTipPlate(); BuildHay(); BuildCarrots(); BuildBowl(); BuildHutch();
+        BuildTipPlate();
+        if (KK.On) { KkHay(); KkCarrots(); KkBowl(); KkHutch(); }   // KayKit 통일(r7, PenSystemKK.cs). -kk 0 이면 예전 소품
+        else { BuildHay(); BuildCarrots(); BuildBowl(); BuildHutch(); }
         // 팁 금액 라벨은 두지 않는다: 동전 더미로 보인다 (jake 피드백 10/24)
         shown = S.penTip; SyncPile(false);
         if (fx) StartCoroutine(CoUnlock());
