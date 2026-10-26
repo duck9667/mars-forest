@@ -5,7 +5,7 @@ using UnityEngine;
 // 화성 이벤트: 가끔 일어나는 작은 사건 3종으로 하루에 변화를 준다.
 //  · 조건: 튜토리얼이 끝나고(S.tut ≥ 3) 판매 20 이후. 220~380초마다 한 번 판정해 75%로 발생(화성 하루 300초에 대략 0~1번), 같은 이벤트 연속 금지, 한 번에 하나.
 //  · 먼지 폭풍(40~60초): 화면이 살짝 탁해지고(PostFX 채도·대비·비네트 소폭, 해 조금 흐리게, 번쩍임 없음) 지면 가까이 옅은 먼지 띠 몇 줄이 화면 위·아래 가장자리로 흐른다.
-//    태양광 발전·충전 정지(Frontier 전력 배율 1), 플레이어 이동 −15%(GameState.Speed). 시작 4초·끝 6초에 걸쳐 서서히. 시작·끝에 관제사 무전 한 줄.
+//    태양광 발전·충전 정지(Frontier 전력 배율 1), 플레이어 이동 −15%(GameState.Speed). 시작 4초·끝 6초에 걸쳐 서서히. 시작에 아이콘 알약(글자 없음).
 //  · 보급선: 착륙장 북서쪽에 작은 보급 캡슐이 낙하산으로 내려앉는다. 닿으면 벨 + 물통 8개가 등짐으로(못 담는 몫은 벨로),
 //    토양 공장이 있으면 반은 레골리스 묶음 8개가 토양 정화기로 바로 날아간다(등짐에 실으면 북쪽 생산 체인으로 끌려가 가게가 빈다). 60초 지나면 사라짐.
 //  · 운석: 채굴장·개척지 등 열린 북쪽 구역(없으면 기지 근처) 빈 땅에 작은 운석이 떨어져(약한 흔들림) 얼음 박힌 덩어리가 남는다.
@@ -128,13 +128,14 @@ public class MarsEvents : MonoBehaviour
         Debug.Log("event: " + kind + " 시작 (sold=" + S.sold + " day=" + S.day + ")");
     }
 
-    static void Radio(string id, float delay) => StoryManager.I?.Push(id, delay, true);   // 이벤트마다 반복되는 무전(S.story에 안 남김)
+    // 이벤트 알림: 무전 카드 대신 글자 없는 아이콘 알약(HUD.IconToast). 끝날 땐 알리지 않는다(화면이 맑아지는 것으로 충분)
+    static void Ping(string icon) => HUD.I?.IconToast(icon);
 
     // ================= 먼지 폭풍 =================
     void StartStorm()
     {
         storming = true; stormEndSaid = false; stormT = 0; stormLen = Random.Range(STORM_MIN, STORM_MAX);
-        Radio("ev_storm", 0.3f);
+        Ping("storm");
         AudioManager.I?.Play("whoosh", 0.55f, 0.5f);
     }
 
@@ -143,7 +144,7 @@ public class MarsEvents : MonoBehaviour
         if (!storming && stormK <= 0f) { if (bands.Count > 0) UpdateBands(dt, 0f); return; }
         stormT += dt;
         bool on = storming && stormT < stormLen;
-        if (storming && !on && !stormEndSaid) { stormEndSaid = true; Radio("ev_storm_end", 1.5f); }
+        if (storming && !on && !stormEndSaid) stormEndSaid = true;
         stormK = Mathf.MoveTowards(stormK, on ? 1f : 0f, dt / (on ? STORM_IN : STORM_OUT));
         if (!on && stormK <= 0f) { storming = false; if (qaLog) Debug.Log("event: storm 끝"); }
         UpdateBands(dt, Mathf.SmoothStep(0f, 1f, stormK));
@@ -301,7 +302,7 @@ public class MarsEvents : MonoBehaviour
         bool rego = SettleStations.I != null && SettleStations.I.Open(1) && Random.value < 0.5f;   // 토양 공장이 있으면 반은 레골리스 묶음(정화기로)
         p.reward = rego ? "rego" : "bottle";
         cur = p;
-        Radio("ev_supply", 0.2f);
+        Ping("capsule");
         var root = new GameObject("supplyPod").transform; root.SetParent(transform, false); root.position = WorldMap.W2U(p.pos);
         p.root = root;
         var shadow = Prim.BlobShadow(root, 18); shadow.transform.localScale = Vector3.zero;
@@ -444,7 +445,7 @@ public class MarsEvents : MonoBehaviour
         JuiceFX.I.Pop(chunk, 0.3f, 0.4f);
         p.ready = true;
         if (qaLog) Debug.Log("event: meteor 착지 " + p.pos);
-        Radio("ev_meteor", 0.4f);
+        Ping("meteor");
     }
 
     IEnumerator CoSmoke(Vector3 at)
@@ -520,7 +521,7 @@ public class MarsEvents : MonoBehaviour
         JuiceFX.I.CoinPop(from, 6);
         var cam = Camera.main;
         if (cam != null && HUD.I != null) HUD.I.Coins(cam.WorldToScreenPoint(from), () => HUD.I.BellsScreen(), 5);
-        if (Player.I != null) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2f, "+" + n, true, false);
+        if (Player.I != null && WorldLabels.BigMoney(n)) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2f, "+" + n, true, false);
         AudioManager.I?.Play("coin", 1.1f, 0.6f);
     }
 

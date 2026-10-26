@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // §6.1 목표 QUESTS 순차 12개(qv=2): 0.3초마다 판정, 걷는 중·아이템 비행 중·발판 완료 0.6s 이내면 최대 3s 보류.
-// 완료: 비차단 상자 팝 1.5s(chestT=1.6 동안 다음 목표 보류), 0.4s 후 동전 14개 HUD + 보상, 플래시 0.3, 흔들림 4.
+// 완료: 비차단 상자 팝 1.5s(글자 없이 상자·벨 아이콘 + 보상 숫자)(chestT=1.6 동안 다음 목표 보류), 0.4s 후 동전 14개 HUD + 보상, 플래시 0.3, 흔들림 4.
 // 상단 HUD 칩은 두지 않는다(jake 피드백 10/24: 화면 요소 줄이기). 목표는 업그레이드 시트의 "목표" 탭에서 본다.
 public class QuestManager : MonoBehaviour
 {
@@ -64,13 +64,11 @@ public class QuestManager : MonoBehaviour
         chestT = 1.6f;
         S.quest++;
         G.AddBells(q.reward, "quest"); G.Save();   // 원본 completeQuest: 진행·보상·저장을 한 번에(연출 중 종료돼도 보상 유지)
-        // 비차단 상자 팝 (UI 중앙, 원본 #chestPop): 남색 패널에 "목표 달성! · 목표명" + [상자][벨] +보상(큰 금색 숫자)
+        // 비차단 상자 팝 (UI 중앙, 원본 #chestPop): 글자 없이 [상자][벨] +보상(큰 금색 숫자)만. 목표 이름은 시트 목표 탭에서(텍스트 다이어트 10/26)
         var box = UIKit.Panel(HUD.I.transform, "chest", UIKit.Navy);
-        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 120), new Vector2(340, 136));
-        var t1 = UIKit.Text(box.transform, "목표 달성! · " + q.text, 24, Color.white); UIKit.Stroke(t1, UIKit.EDGE, 1.6f);
-        UIKit.Anchor(t1.rectTransform, new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(320, 36));
-        var row = UIKit.Row(box.transform, "row", 8); var rrt = row.GetComponent<RectTransform>(); UIKit.Anchor(rrt, new Vector2(0.5f, 0), new Vector2(0, 14), new Vector2(320, 64));
-        UIKit.IconImg(row.transform, "chest", 48); UIKit.IconImg(row.transform, "bell", 36);
+        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 120), new Vector2(230, 92));
+        var row = UIKit.Row(box.transform, "row", 8); var rrt = row.GetComponent<RectTransform>(); UIKit.Anchor(rrt, new Vector2(0.5f, 0.5f), new Vector2(0, 3), new Vector2(220, 70));
+        UIKit.IconImg(row.transform, "chest", 56); UIKit.IconImg(row.transform, "bell", 34);
         var t2 = UIKit.Text(row.transform, "+" + q.reward, 44, UIKit.Hex("ffe58a")); UIKit.Stroke(t2, UIKit.Hex("7a3a00"), 3f); UIKit.DropShadow(t2, 3f, 0.35f);
         AudioManager.I.Play("up", 1.1f); JuiceFX.I.Vibrate(30);   // 팝 시작: 소리·진동만
         float el = 0; bool opened = false;

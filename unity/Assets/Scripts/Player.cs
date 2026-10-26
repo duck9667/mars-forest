@@ -373,7 +373,7 @@ public class Player : MonoBehaviour
             yield return new WaitForSeconds(0.04f);
         }
         yield return new WaitForSeconds(0.22f);
-        WorldLabels.I.Float(body.position + Vector3.up * 2f, "+" + amount, true, amount >= G.BottlePrice * 4);
+        if (WorldLabels.BigMoney(amount)) WorldLabels.I.Float(body.position + Vector3.up * 2f, "+" + amount, true, amount >= G.BottlePrice * 8);   // 작은 수거는 지폐 비행만
         if (big) { JuiceFX.I.CoinPop(body.position + Vector3.up * 1f, 12); JuiceFX.I.Shake(3); }
         G.collectingCash = false;
     }

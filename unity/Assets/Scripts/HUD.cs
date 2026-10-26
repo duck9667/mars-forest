@@ -4,8 +4,9 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-// HUD: 벨 필(아이콘+숫자, 펀치), 설정 버튼(톱니, 소리·진동 토글 패널), 며칠째 필, 업그레이드 버튼(금색·점·바운스), 콤보/러시 배지, 화면 플래시, 동전 비행(coinsToHud)
-// 상단 배치: 1행 벨(좌)·지도 알약 "기지 Lv.n · 1장 n/5"(톱니 왼쪽, 1장을 끝내면 "2장 n/5", 다 끝나면 "화성 마을")·설정(우) / 2행 며칠째(좌)·러시(중앙)·콤보(우)
+// HUD: 벨 필(아이콘+숫자, 펀치), 설정 버튼(톱니, 소리·진동 토글 패널), 날 필(해/달 + 숫자), 업그레이드 버튼(금색 화살표만·점·바운스), 콤보/러시 배지, 화면 플래시, 동전 비행(coinsToHud)
+// 상단 배치: 1행 벨(좌)·지도 알약 [지도][깃발] n/5(톱니 왼쪽, 지금 장 안 단계. 다 끝나면 [지도][왕관])·설정(우) / 2행 날(좌)·러시(중앙)·콤보(우)
+// 플레이 화면 글자 규칙(docs/art/art-bible.md): 글자 대신 아이콘 + 짧은 숫자. 설명 글은 시트·지도에서만
 public class HUD : MonoBehaviour
 {
     public static HUD I;
@@ -13,9 +14,9 @@ public class HUD : MonoBehaviour
     public Canvas canvas; public RectTransform bellsRt; Text bellsText; Image bellIcon; Image flash; Button upBtn; Image upDot; RectTransform upRt;
     float lastBells = -1; Coroutine punch;
     Text comboText, rushText; RectTransform comboRt, rushRt; int lastCombo;
-    Text dayText; int lastDay = -1;
+    Text dayText; Image dayIcon; int lastDay = -1; bool lastNight;
     GameObject settings; Button sndBtn, vibBtn;
-    Image mapBg; Text mapText; RectTransform mapRt; int lastStage = -1, lastHq = -1; Coroutine mapPulse;
+    Image mapBg, mapFlag; Text mapText; RectTransform mapRt; int lastStage = -1, lastHq = -1; Coroutine mapPulse;
 
     // 예전 호출부 호환용 얇은 래퍼(UIKit로 위임)
     public static class UI
@@ -55,21 +56,21 @@ public class HUD : MonoBehaviour
         // 1행 우: 설정 버튼(둥근 남색 버튼 52, 톱니) → 소리·진동 토글 패널
         var gear = UIKit.RoundButton(transform, "settingsBtn", UIKit.Pill, 52, "gear", 30, ToggleSettings, out _);
         var mrt = gear.GetComponent<RectTransform>(); mrt.anchorMin = mrt.anchorMax = new Vector2(1, 1); mrt.pivot = new Vector2(1, 1); mrt.anchoredPosition = new Vector2(-16, -26);
-        // 1행 우(톱니 왼쪽): 지도 알약 [지도] 기지 Lv.n · 1장 n/5 → 지도 화면(MapScreen). 단계·본부 레벨이 바뀌면 잠깐 금색으로 반짝
-        mapBg = UIKit.Chip(transform, "mapBtn", UIKit.Pill, null, 0, "1장 0/5", 22, out mapText, out _, 5);
-        mapText.supportRichText = true;   // "기지 Lv.n" 부분만 조금 작게(<size>)
+        // 1행 우(톱니 왼쪽): 지도 알약 [지도][깃발] n/5 → 지도 화면(MapScreen). 단계·본부 레벨이 바뀌면 잠깐 금색으로 반짝(본부 레벨·장 이름은 지도에서)
+        mapBg = UIKit.Chip(transform, "mapBtn", UIKit.Pill, "flag", 26, "0/5", 24, out mapText, out mapFlag, 4);
         var mic = UIKit.RT(mapBg.transform, "ic_map").gameObject.AddComponent<Image>(); mic.sprite = MapScreen.MapIcon(); mic.preserveAspect = true; mic.raycastTarget = false;
         var mle = mic.gameObject.AddComponent<LayoutElement>(); mle.preferredWidth = mle.minWidth = mle.preferredHeight = mle.minHeight = 30; mic.transform.SetSiblingIndex(0);
         mapRt = mapBg.rectTransform; mapRt.anchorMin = mapRt.anchorMax = new Vector2(1, 1); mapRt.pivot = new Vector2(1, 1); mapRt.anchoredPosition = new Vector2(-78, -26);
         mapBg.gameObject.AddComponent<LayoutElement>().minHeight = 55;
         mapBg.raycastTarget = true; var mb = mapBg.gameObject.AddComponent<Button>(); mb.targetGraphic = mapBg; mb.transition = Selectable.Transition.None;
         mapBg.gameObject.AddComponent<UIPress>(); mb.onClick.AddListener(() => { AudioManager.I?.Play("pop", 1.3f, 0.4f); MapScreen.I?.Toggle(); });
-        // 2행 좌: 며칠째 필(S.day, DayNight가 갱신). 2행 가운데는 목표·정착 칩 자리라 비워 둔다
-        var day = UIKit.Chip(transform, "day", UIKit.Pill, "sun", 24, "1일째", 22, out dayText, out _, 5);
+        // 2행 좌: 날 필 [해/달] n(S.day, 밤이면 달). 2행 가운데는 러시 자리
+        var day = UIKit.Chip(transform, "day", UIKit.Pill, "sun", 24, "1", 22, out dayText, out dayIcon, 4);
         var dyrt = day.rectTransform; dyrt.anchorMin = dyrt.anchorMax = new Vector2(0, 1); dyrt.pivot = new Vector2(0, 1); dyrt.anchoredPosition = new Vector2(18, -96);
-        // 업그레이드 버튼(하단 중앙, 금색 베벨 + 위 화살표)
-        upBtn = UIKit.Button(transform, "upBtn", UIKit.Gold, new Vector2(270, 76), "업그레이드", 32, () => UpgradeSheet.I?.Toggle(), "up", 36);
-        upRt = upBtn.GetComponent<RectTransform>(); UIKit.Anchor(upRt, new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(270, 76));
+        // 업그레이드 버튼(하단 중앙, 금색 베벨 + 큰 위 화살표만. 글자 없음)
+        upBtn = UIKit.Button(transform, "upBtn", UIKit.Gold, new Vector2(150, 76), "", 32, () => UpgradeSheet.I?.Toggle(), "up", 50);
+        foreach (var ut in upBtn.GetComponentsInChildren<Text>(true)) ut.gameObject.SetActive(false);   // 빈 글자가 화살표를 옆으로 밀지 않게
+        upRt = upBtn.GetComponent<RectTransform>(); UIKit.Anchor(upRt, new Vector2(0.5f, 0), new Vector2(0, 36), new Vector2(150, 76));
         upDot = UIKit.IconImg(upBtn.transform, "dot", 26); var drt = upDot.rectTransform; drt.anchorMin = drt.anchorMax = new Vector2(1, 1); drt.pivot = new Vector2(0.5f, 0.5f); drt.anchoredPosition = new Vector2(-4, -6);
         Destroy(upDot.GetComponent<LayoutElement>());
         // 3행: 콤보 배지(좌, 금색) · 러시 배지(중앙, 빨강)
@@ -155,17 +156,19 @@ public class HUD : MonoBehaviour
         // 튜토리얼 후 첫 시트 구매 전까지, 메뉴 스탯을 살 수 있을 때만 바운스(원본 970행)
         bool bounce = menuBuyable && G.S.tut >= 3 && G.PadLv("hand") == 0 && G.PadLv("spd") == 0 && G.PadLv("price") == 0;
         upRt.anchoredPosition = new Vector2(0, 36 + (bounce ? Mathf.Abs(Mathf.Sin(Time.time * 4f)) * 10f : 0));
-        if (G.S.day != lastDay) { lastDay = G.S.day; dayText.text = Mathf.Max(1, lastDay) + "일째"; }
+        if (G.S.day != lastDay) { lastDay = G.S.day; dayText.text = Mathf.Max(1, lastDay).ToString(); }
+        bool night = DayNight.I != null && DayNight.I.night > 0.5f;
+        if (night != lastNight) { lastNight = night; UIKit.SetIcon(dayIcon, night ? "moon" : "sun"); }
         int stg = SettlementManager.I != null ? SettlementManager.I.Stage : 0, hq = G.PadLv("hq");
         if (stg != lastStage || hq != lastHq)
         {
             bool hqUp = lastHq >= 0 && hq > lastHq;
             lastStage = stg; lastHq = hq; bool done = stg >= SettlementManager.COUNT;
-            // 본부 레벨은 한 알약 앞쪽에 조금 작게(벨 알약과 겹치지 않게 폭을 아낀다)
-            // 정착 단계는 장 안 번호로("1장 3/5" → 1장을 끝내면 "2장 0/5"), 10단계까지 끝나면 "화성 마을"
+            // 정착 단계는 지금 장 안 번호만(3/5 → 1장을 끝내면 0/5), 10단계까지 끝나면 왕관만. 장 이름·본부 레벨은 지도 화면에서
             var sm = SettlementManager.I;
-            string stTxt = done ? "화성 마을" : sm != null ? (sm.Chapter + 1) + "장 " + sm.ChapterDone + "/" + SettlementManager.PER_CHAPTER : "1장 0/5";
-            mapText.text = "<size=18>기지 Lv." + hq + "</size> · " + stTxt;
+            mapText.text = done ? "" : (sm != null ? sm.ChapterDone : 0) + "/" + SettlementManager.PER_CHAPTER;
+            mapText.gameObject.SetActive(!done);
+            UIKit.SetIcon(mapFlag, done ? "crown" : "flag");
             if (mapPulse == null) { mapBg.sprite = UIKit.Panel9(done ? UIKit.SignOk : UIKit.Pill); mapText.color = done ? UIKit.SignOk.text : Color.white; MapStroke(!done); }
             if (hqUp) PulseMap();
         }
@@ -202,14 +205,34 @@ public class HUD : MonoBehaviour
     {
         bool show = n >= 3;
         comboRt.gameObject.SetActive(show);
-        if (show) { comboText.text = "콤보 ×" + Mathf.Min(n, 5); if (n != lastCombo) { StartCoroutine(Punch(comboRt)); AudioManager.I.PlayHz("coin", 900 * Mathf.Pow(1.12f, Mathf.Min(n, 5)), 1100, 0.6f); } }
+        if (show) { comboText.text = "×" + Mathf.Min(n, 5); if (n != lastCombo) { StartCoroutine(Punch(comboRt)); AudioManager.I.PlayHz("coin", 900 * Mathf.Pow(1.12f, Mathf.Min(n, 5)), 1100, 0.6f); } }
         lastCombo = n;
     }
     // §5.3 러시 카운트다운
     public void SetRush(float sec)
     {
         rushRt.gameObject.SetActive(sec > 0);
-        if (sec > 0) { rushText.text = "러시! " + Mathf.CeilToInt(sec); rushRt.localScale = Vector3.one * (1 + Mathf.Sin(Time.time * 12f) * 0.04f); }
+        if (sec > 0) { rushText.text = Mathf.CeilToInt(sec).ToString(); rushRt.localScale = Vector3.one * (1 + Mathf.Sin(Time.time * 12f) * 0.04f); }
+    }
+
+    // 아이콘 토스트: 글자 없이 아이콘(+짧은 숫자) 알약 하나가 2행 아래에 잠깐(화성 이벤트 시작 등, 무전 카드 대신)
+    public void IconToast(string icon, string num = null, float life = 1.8f) { StartCoroutine(CoIconToast(icon, num, life)); }
+    IEnumerator CoIconToast(string icon, string num, float life)
+    {
+        var chip = UIKit.Chip(transform, "iconToast", UIKit.Pill, icon, 50, num ?? "", 26, out var label, out _, 4);
+        if (string.IsNullOrEmpty(num)) label.gameObject.SetActive(false);
+        var rt = chip.rectTransform; rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1); rt.pivot = new Vector2(0.5f, 1); rt.anchoredPosition = new Vector2(0, -160);
+        var cg = chip.gameObject.AddComponent<CanvasGroup>(); cg.blocksRaycasts = false; cg.interactable = false;
+        AudioManager.I?.Play("tick", 1.6f, 0.4f);
+        float el = 0;
+        while (el < life && rt != null)
+        {
+            el += Time.unscaledDeltaTime;
+            rt.localScale = Vector3.one * Mathf.Max(0.001f, JuiceFX.EaseOutBack(Mathf.Clamp01(el / 0.3f)));
+            cg.alpha = el > life - 0.3f ? Mathf.Clamp01((life - el) / 0.3f) : 1f;
+            yield return null;
+        }
+        if (rt != null) Destroy(rt.gameObject);
     }
 
     public void Flash(float a) { StartCoroutine(CoFlash(a)); }

@@ -382,7 +382,7 @@ public class DomeSystem : MonoBehaviour
         StartCoroutine(CoFlyCoins(from, 3));
         var cam = Camera.main;
         if (cam != null && HUD.I != null) HUD.I.Coins(cam.WorldToScreenPoint(from), () => HUD.I.BellsScreen(), 5);
-        WorldLabels.I.Float(WorldMap.W2U(s.p.x, s.p.y - 10f, 30f), "+" + n, true, false);
+        if (WorldLabels.BigMoney(n)) WorldLabels.I.Float(WorldMap.W2U(s.p.x, s.p.y - 10f, 30f), "+" + n, true, false);   // 작은 팁은 동전만
         JuiceFX.I.Ring(from, GameConfig.GOLD, 16);
         AudioManager.I.Play("coin", 1.25f, 0.7f); AudioManager.I.Play("pick", 1.5f, 0.4f);
         JuiceFX.I.Vibrate(10);

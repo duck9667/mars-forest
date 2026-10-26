@@ -528,7 +528,8 @@ public class UpgradeSheet : MonoBehaviour
             else if (st == 1) SetBtn(r.buy, UIKit.Gold, "+" + q.reward, "chest", 24, 30);
             else SetBtn(r.buy, UIKit.Gray, "+" + q.reward, "lock", 22, 22);
         }
-        string s = st == 2 ? "달성!" : st == 1 ? v + " / " + q.goal + " · 보상 " + q.reward + "벨" : "보상 " + q.reward + "벨";
+        // 보상은 오른쪽 버튼에 이미 있으니 아래 줄은 진행만(설명 줄이기 10/26)
+        string s = st == 2 ? "달성!" : st == 1 ? v + " / " + q.goal : "";
         if (r.sub.text != s) r.sub.text = s;
         r.sub.color = st == 2 ? UIKit.Hex("8fe08a") : st == 1 ? UIKit.GOLD : UIKit.SUB;
         if (st == 1) UIKit.SetBar(r.barFill, (float)v / q.goal, 190);
@@ -598,8 +599,8 @@ public class UpgradeSheet : MonoBehaviour
             r.buy.interactable = st == 1;
         }
         string rw = m.reward.ToString("N0");
-        string s = st == 2 ? "받음" : st == 1 ? "완료! · 보상 " + rw + "벨"
-                 : bonus ? "미션 " + m.prog + " / " + m.goal + " · 보상 " + rw + "벨" : m.prog.ToString("N0") + " / " + m.goal.ToString("N0") + " · 보상 " + rw + "벨";
+        // 보상은 버튼에(진행 중 회색 +n, 끝나면 금색 [받기] 위에 +n), 아래 줄은 진행 숫자만
+        string s = st == 2 ? "받음" : st == 1 ? "+" + rw + "벨" : m.prog.ToString("N0") + " / " + m.goal.ToString("N0");
         if (r.sub.text != s) r.sub.text = s;
         r.sub.color = st == 2 ? UIKit.Hex("8fe08a") : st == 1 ? UIKit.GOLD : UIKit.SUB;
         if (st == 0) UIKit.SetBar(r.barFill, m.goal > 0 ? (float)m.prog / m.goal : 0, 190);

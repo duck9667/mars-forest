@@ -106,7 +106,7 @@ public class Frontier : MonoBehaviour
             AudioManager.I.Play("pop", 1.2f + i * 0.04f, 0.3f);
             yield return new WaitForSeconds(0.08f);
         }
-        if (Player.I != null) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2.2f, "주택 증축 · 정원 " + Cap + "명", true, false);
+        if (Player.I != null) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2.2f, Cap.ToString(), true, false, "home");   // [집] 정원 숫자만
         yield return new WaitForSeconds(0.6f);
         ApplyHouseLift();   // 입주 찌그러짐과 겹쳐 옛 배율로 되돌아간 집이 있으면 다시 맞춘다
     }
@@ -182,7 +182,7 @@ public class Frontier : MonoBehaviour
     IEnumerator CoTaxLabel(int n)
     {
         yield return new WaitForSeconds(0.9f);   // "n일째" 글자와 겹치지 않게 조금 뒤에
-        if (Player.I != null) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2.2f, "세금 +" + n, true, false);
+        if (Player.I != null) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2.2f, "+" + n, true, false, "home");   // [집] +세금
         AudioManager.I.Play("coin", 1.2f, 0.6f);
     }
 

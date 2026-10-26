@@ -44,7 +44,7 @@ public class DayNight : MonoBehaviour
         int day = Mathf.FloorToInt(S.clock / DAY_LEN) + 1;
         if (day != S.day || lastDay < 0)
         {
-            if (lastDay >= 0 && day > S.day && Player.I != null) { WorldLabels.I.Float(Player.I.view.position + Vector3.up * 3f, "☀ " + day + "일째", true, true); AudioManager.I.Play("ding", 0.9f, 0.5f); }
+            if (lastDay >= 0 && day > S.day && Player.I != null) { WorldLabels.I.Float(Player.I.view.position + Vector3.up * 3f, "☀ " + day, true, true); AudioManager.I.Play("ding", 0.9f, 0.5f); }
             S.day = day; lastDay = day;
         }
         float p = (S.clock % DAY_LEN) / DAY_LEN;

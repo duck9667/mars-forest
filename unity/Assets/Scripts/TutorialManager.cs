@@ -2,7 +2,8 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
-// §6.2 튜토리얼 S.tut 0→3: 머리 위 말풍선 3단계 + 시작 시 손 포인터 "드래그" + 튜토리얼 후 첫 발판 위 손 포인터 탭
+// §6.2 튜토리얼 S.tut 0→3: 머리 위 말풍선 3단계(글자 없이 아이콘 [무엇] → [어디]) + 시작 시 손 포인터 드래그 + 튜토리얼 후 첫 발판 위 손 포인터 탭
+// 플레이 화면 글자 규칙(docs/art/art-bible.md): 말풍선·손 포인터에 글자를 쓰지 않는다(GameConfig.TUT 문장은 참고용으로만 남김)
 public class TutorialManager : MonoBehaviour
 {
     public static TutorialManager I;
@@ -10,6 +11,8 @@ public class TutorialManager : MonoBehaviour
     SaveData S => G.S;
     WorldLabels.Label bubble; Image hand; Text handText; bool moved; float handT, bobT;
     WorldLabels.Label padHand; float padHandT = -1;
+    // 단계별 말풍선 아이콘: 얼음 줍기(손 → 얼음) · 해빙기에 넣기(얼음 → 해빙기) · 카운터에 올리기(병 → 선반)
+    static readonly string[,] TUT_ICONS = { { "hand", "ice" }, { "ice", "snow" }, { "bottle", "shelf" } };
 
     void Awake() { I = this; }
 
@@ -21,7 +24,7 @@ public class TutorialManager : MonoBehaviour
         // 드래그 손 포인터(원본 #hand SVG: 흰 손·남색 외곽선·금색 손끝)
         hand = UIKit.IconImg(HUD.I.transform, "hand", 72); Destroy(hand.GetComponent<LayoutElement>());
         UIKit.Anchor(hand.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, -220), new Vector2(72, 72));
-        handText = UIKit.Text(HUD.I.transform, "드래그해서 이동", 28, Color.white); UIKit.Stroke(handText, UIKit.EDGE, 2.4f); UIKit.DropShadow(handText);
+        handText = UIKit.Text(HUD.I.transform, "", 28, Color.white);   // 글자 없음(손 움직임만으로 드래그를 알린다). 자리만 남겨 둔다
         UIKit.Anchor(handText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, -296), new Vector2(400, 40));
         bool show = S.tut < 3;
         hand.gameObject.SetActive(show); handText.gameObject.SetActive(show);
@@ -43,7 +46,7 @@ public class TutorialManager : MonoBehaviour
         bool held = StoryManager.I != null && StoryManager.I.IntroActive;
         hand.enabled = handText.enabled = !held;
         if (held) { bubble.Show(false); return; }
-        if (S.tut < 3) { bubble.Set(GameConfig.TUT[S.tut]); bobT += Time.deltaTime; bubble.offset = new Vector2(0, 8 + Mathf.Sin(bobT * 4.8f) * 5f * WorldLabels.Scale); }
+        if (S.tut < 3) { bubble.SetIconPair(TUT_ICONS[S.tut, 0], TUT_ICONS[S.tut, 1]); bobT += Time.deltaTime; bubble.offset = new Vector2(0, 8 + Mathf.Sin(bobT * 4.8f) * 5f * WorldLabels.Scale); }
         bubble.Show(S.tut < 3);
         // 단계 조건 (3은 Player에서 선반 올릴 때)
         if (S.tut == 0)
@@ -75,7 +78,7 @@ public class TutorialManager : MonoBehaviour
             var v = PadManager.I.NearestVisible(pl.pos);
             if (v != null)
             {
-                if (padHand == null) { padHand = WorldLabels.I.Add(() => v.root.position, "여기서 멈추면 납입", 24, Color.white, new Vector2(0, 110), true, new Color(0.13f, 0.12f, 0.22f, 0.9f)); padHand.SetIcon("hand"); }
+                if (padHand == null) { padHand = WorldLabels.I.Add(() => v.root.position, "", 24, Color.white, new Vector2(0, 110), true, new Color(0.13f, 0.12f, 0.22f, 0.9f)); padHand.SetIconPair("hand", "bell"); }   // [손] → [벨]: 여기 서면 벨을 낸다
                 padHandT += Time.deltaTime; padHand.offset = new Vector2(0, 110 + Mathf.Abs(Mathf.Sin(padHandT * 5f)) * 14f);
                 if (padHandT > 3.6f) { S.handShown = 1; WorldLabels.I.Remove(padHand); padHand = null; padHandT = -1; }
             }

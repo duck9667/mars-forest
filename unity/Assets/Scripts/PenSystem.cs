@@ -294,7 +294,6 @@ public class PenSystem : MonoBehaviour
         JuiceFX.I.Squash(pile, 0.8f);
         JuiceFX.I.Ring(pile.position, GameConfig.GOLD, 12);
         AudioManager.I.PlayHz("coin", 1250, 1100, 0.45f);
-        WorldLabels.I.Float(WorldMap.W2U(WorldMap.PEN_TIP.x, WorldMap.PEN_TIP.y - 4, 18), "+" + add, true);
     }
 
     // ───────── §1.1 6번째 행동: 토끼 벨 수거 ─────────
@@ -313,7 +312,7 @@ public class PenSystem : MonoBehaviour
         var fly = new List<Transform>(coins); coins.Clear();
         var cam = Camera.main;
         if (cam != null && HUD.I != null) HUD.I.Coins(cam.WorldToScreenPoint(TipWorld), () => HUD.I.BellsScreen(), 8);
-        WorldLabels.I.Float(WorldMap.W2U(WorldMap.PEN_TIP.x, WorldMap.PEN_TIP.y - 8, 10), "+" + n, true, n >= G.BottlePrice * 4);
+        if (WorldLabels.BigMoney(n)) WorldLabels.I.Float(WorldMap.W2U(WorldMap.PEN_TIP.x, WorldMap.PEN_TIP.y - 8, 10), "+" + n, true, true);   // 작은 수거는 동전만
         AudioManager.I.Play("pick", 0.62f, 0.7f); AudioManager.I.Play("whoosh", 1.3f, 0.3f);
         JuiceFX.I.Ring(pile.position, Color.white, 16);
         // 토끼들: 플레이어 쪽을 보고 차례로 깡충

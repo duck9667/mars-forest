@@ -208,18 +208,18 @@ public class PrestigeManager : MonoBehaviour
         Arrived = false;
     }
 
-    // 배너: 금색 판 [깃발] "새 정착지 n번째" + 아래 작은 줄 [병] ×병값 배율. 팝 0.45s → 1.8s 유지 → 위로 떠오르며 사라짐
+    // 배너: 금색 판 한 줄 [깃발] n · [병] ×병값 배율(글자 없이). 팝 0.45s → 1.8s 유지 → 위로 떠오르며 사라짐
     IEnumerator CoBanner(int n)
     {
         if (HUD.I == null) yield break;
         var box = UIKit.Panel(HUD.I.transform, "baseBanner", UIKit.SignOk);
-        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 210), new Vector2(330, 118));
-        var row = UIKit.Row(box.transform, "row", 8); UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(310, 54));
-        UIKit.IconImg(row.transform, "flag", 40);
-        var t1 = UIKit.Text(row.transform, "새 정착지 " + n + "번째", 36, UIKit.SignOk.text); UIKit.Stroke(t1, Color.white, 1.2f);
-        var row2 = UIKit.Row(box.transform, "row2", 6); UIKit.Anchor(row2.GetComponent<RectTransform>(), new Vector2(0.5f, 0), new Vector2(0, 16), new Vector2(310, 36));
-        UIKit.IconImg(row2.transform, "bottle", 28);
-        UIKit.Text(row2.transform, "×" + Multiplier.ToString("0.##"), 26, UIKit.GOLD_INK);
+        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 210), new Vector2(280, 80));
+        var row = UIKit.Row(box.transform, "row", 8); UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0, 3), new Vector2(270, 58));
+        UIKit.IconImg(row.transform, "flag", 42);
+        var t1 = UIKit.Text(row.transform, n.ToString(), 36, UIKit.SignOk.text); UIKit.Stroke(t1, Color.white, 1.2f);
+        UIKit.RT(row.transform, "gap").gameObject.AddComponent<LayoutElement>().minWidth = 12;
+        UIKit.IconImg(row.transform, "bottle", 32);
+        UIKit.Text(row.transform, "×" + Multiplier.ToString("0.##"), 30, UIKit.GOLD_INK);
         var cg = box.gameObject.AddComponent<CanvasGroup>(); cg.blocksRaycasts = false; cg.interactable = false;
         float el = 0f;
         while (el < 0.45f) { el += Time.unscaledDeltaTime; brt.localScale = Vector3.one * Mathf.Max(0.001f, JuiceFX.EaseOutBack(Mathf.Clamp01(el / 0.45f))); yield return null; }

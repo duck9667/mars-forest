@@ -193,7 +193,7 @@ public class HQSystem : MonoBehaviour
         G.AddBells(n, "subsidy");
         Debug.Log("hq subsidy +" + n + " day=" + G.S.day);
         var pl = Player.I; if (pl == null) yield break;
-        WorldLabels.I.Float(pl.view.position + Vector3.up * 2.2f, "본부 보조금 +" + n.ToString("N0"), true, true);
+        WorldLabels.I.Float(pl.view.position + Vector3.up * 2.2f, "+" + n.ToString("N0"), true, true);   // [벨] +n(글자 없이)
         var cam = Camera.main;
         if (HUD.I != null && cam != null) HUD.I.Coins(cam.WorldToScreenPoint(pl.body.position + Vector3.up * 1.2f), () => HUD.I.BellsScreen(), 8);
     }

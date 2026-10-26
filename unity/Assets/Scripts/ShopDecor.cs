@@ -369,7 +369,7 @@ public class ShopDecor : MonoBehaviour
         var focus = Focus(id);
         JuiceFX.I.Confetti(focus, 20);
         JuiceFX.I.Ring(new Vector3(focus.x, 0.05f, focus.z), GameConfig.GOLD, 40);
-        if (d != null) WorldLabels.I.Float(focus + Vector3.up * 0.6f, d.name + "!", true, false);
+        if (d != null) WorldLabels.I.Float(focus + Vector3.up * 0.6f, "", true, false, d.icon);   // 이름 대신 장식 아이콘
         switch (id)
         {
             case "awning": yield return CoAwning(); break;

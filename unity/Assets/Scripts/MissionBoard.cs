@@ -10,7 +10,7 @@ using UnityEngine.UI;
 //  · 목표 수치는 진행도(열린 발판 수/3 + 정착 단계, 0~8)에 맞춰 하루 안에 할 만큼(QA 봇 기준 하루의 1/3~2/3), 보상 벨 = 목표 × 종류별 무게 × 병값(벨 벌기는 목표 × 0.12).
 //  · S.missions[3]은 보너스 상자(id "bonus", goal 3, prog = 끝낸 미션 수, reward = 세 미션 보상 합의 절반).
 //  · 진행 집계: GameState 이벤트(OnSupplied·OnPadLevel·OnBellsChanged) + 프레임마다 S 값 변화량(fertMade·custs) + Player 줍기·손님 VIP 결제 한 줄 호출(Count).
-//  · 완료 순간에만 화면 아래 작은 토스트 1.5초("미션 완료 · 산소 20 공급 +120"). 상단 칩·말풍선 없음. 보상은 시트 목표 탭의 [받기]로.
+//  · 완료 순간에만 화면 아래 작은 토스트 1.5초([체크][미션 아이콘] +120, 글자 없음). 상단 칩·말풍선 없음. 보상은 시트 목표 탭의 [받기]로.
 //  · 하루가 바뀌면 못 끝낸 미션은 사라지고, 끝냈지만 안 받은 보상(보너스 포함)은 자동 지급한 뒤 새로 발급한다.
 //  · 튜토리얼(S.tut < 3) 동안은 발급하지 않는다.
 // 검증 인자: -missions(튜토리얼과 무관하게 지금 새로 발급), -missionDone i[,j…][@초](i번 미션 완료 처리, 기본 1.5초 뒤)
@@ -62,7 +62,7 @@ public class MissionBoard : MonoBehaviour
     bool forced;                 // -missions: 튜토리얼과 무관하게 발급
     float lastBells, bellAcc; int lastFert, lastCusts;
     bool granting;               // 미션 보상 지급 중(벨 벌기 집계에서 뺀다)
-    readonly Queue<string> toasts = new Queue<string>(); Coroutine toastCo;
+    readonly Queue<(string icon, string num)> toasts = new Queue<(string, string)>(); Coroutine toastCo;
 
     public bool Ready => G != null && (S.tut >= 3 || forced);
     /// 오늘 미션(보너스 제외). 아직 없으면 빈 목록
@@ -135,8 +135,8 @@ public class MissionBoard : MonoBehaviour
         SettlementManager.I?.MissionDone();   // 9단계 자급 마을: 하루 미션 누계
         var b = Bonus;
         if (b != null && !b.done) { b.prog = Mathf.Min(b.goal, DoneCount()); if (b.prog >= b.goal) b.done = true; }
-        Toast("미션 완료 · " + NameOf(m) + " +" + m.reward.ToString("N0"));
-        if (b != null && b.done && !b.claimed) Toast("미션 3개 완료 · 보너스 상자 +" + b.reward.ToString("N0"));
+        Toast(IconOf(m), "+" + m.reward.ToString("N0"));
+        if (b != null && b.done && !b.claimed) Toast("chest", "+" + b.reward.ToString("N0"));
         AudioManager.I?.Play("ding", 1.25f, 0.6f); JuiceFX.I?.Vibrate(20);
         Debug.Log("mission done: " + m.id + " " + m.prog + "/" + m.goal + " reward=" + m.reward);
         Changed(); G.Save();
@@ -212,16 +212,19 @@ public class MissionBoard : MonoBehaviour
     }
 
     // ───────────────────────── 토스트 ─────────────────────────
-    // 화면 아래(업그레이드 버튼 위) 작은 남색 알약 한 줄, 1.5초. 여러 개면 차례로
-    void Toast(string s) { toasts.Enqueue(s); if (toastCo == null) toastCo = StartCoroutine(CoToasts()); }
+    // 화면 아래(업그레이드 버튼 위) 작은 남색 알약 [체크][미션 아이콘] +보상, 1.5초. 여러 개면 차례로
+    void Toast(string icon, string num) { toasts.Enqueue((icon, num)); if (toastCo == null) toastCo = StartCoroutine(CoToasts()); }
     IEnumerator CoToasts()
     {
         while (toasts.Count > 0)
         {
-            var s = toasts.Dequeue();
+            var (ic, num) = toasts.Dequeue();
             if (HUD.I == null) continue;
-            var chip = UIKit.Chip(HUD.I.transform, "missionToast", UIKit.Pill, "check", 26, s, 21, out var label, out _, 6);
-            var rt = chip.rectTransform; UIKit.Anchor(rt, new Vector2(0.5f, 0), new Vector2(0, 128), new Vector2(300, 46));
+            var chip = UIKit.Chip(HUD.I.transform, "missionToast", UIKit.Pill, "check", 30, num, 24, out var label, out _, 6);
+            var mi = UIKit.RT(chip.transform, "ic_kind").gameObject.AddComponent<Image>(); mi.sprite = Icon(ic); mi.preserveAspect = true; mi.raycastTarget = false;
+            var mle = mi.gameObject.AddComponent<LayoutElement>(); mle.preferredWidth = mle.minWidth = mle.preferredHeight = mle.minHeight = 30; mi.transform.SetSiblingIndex(1);
+            label.color = UIKit.GOLD;
+            var rt = chip.rectTransform; UIKit.Anchor(rt, new Vector2(0.5f, 0), new Vector2(0, 128), new Vector2(200, 46));
             var cg = chip.gameObject.AddComponent<CanvasGroup>(); cg.blocksRaycasts = false; cg.interactable = false;
             float el = 0;
             while (el < 1.5f)

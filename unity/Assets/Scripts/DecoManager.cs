@@ -56,7 +56,7 @@ public class DecoManager : MonoBehaviour
     {
         if (lastSold >= 0 && lastSold < UNLOCK_SOLD && G.S.sold >= UNLOCK_SOLD && Player.I != null)
         {
-            WorldLabels.I.Float(Player.I.view.position + Vector3.up * 3.4f, "장식 상점 열림!", true, true);
+            WorldLabels.I.Float(Player.I.view.position + Vector3.up * 3.4f, "", true, true, "sign");   // 글자 없이 간판 아이콘만(장식 탭은 시트에서)
             AudioManager.I.Play("ding", 1.1f, 0.7f);
         }
         lastSold = G.S.sold;

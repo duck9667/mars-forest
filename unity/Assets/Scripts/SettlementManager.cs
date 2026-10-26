@@ -187,20 +187,21 @@ public class SettlementManager : MonoBehaviour
         StartCoroutine(final ? CoFinal() : CoBanner(idx));
     }
 
-    // ---- 단계 달성: 금색 배너(화면 위쪽, 입력 막지 않음. 목표 상자 팝(중앙 +120)과 겹치지 않는 높이) 팝 0.4s → 1.1s → 떠오르며 사라짐 ----
+    // ---- 단계 달성: 금색 배너 [깃발] n/5 · [벨] +보상(화면 위쪽, 입력 막지 않음. 목표 상자 팝(중앙 +120)과 겹치지 않는 높이) 팝 0.4s → 1.1s → 떠오르며 사라짐 ----
     IEnumerator CoBanner(int idx)
     {
         if (HUD.I == null) yield break;
         var def = STAGES[idx];
         var box = UIKit.Panel(HUD.I.transform, "stageBanner", UIKit.SignOk);
-        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 330), new Vector2(340, 108));
+        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 330), new Vector2(280, 76));
         var cg = box.gameObject.AddComponent<CanvasGroup>(); cg.blocksRaycasts = false; cg.interactable = false;
-        var row = UIKit.Row(box.transform, "row", 8); UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(320, 48));
-        UIKit.IconImg(row.transform, "flag", 36);
-        var t1 = UIKit.Text(row.transform, StageTag(idx) + " · " + def.name, 28, UIKit.SignOk.text); UIKit.Stroke(t1, Color.white, 1.2f);
-        var row2 = UIKit.Row(box.transform, "row2", 6); UIKit.Anchor(row2.GetComponent<RectTransform>(), new Vector2(0.5f, 0), new Vector2(0, 14), new Vector2(320, 38));
-        UIKit.IconImg(row2.transform, "bell", 28);
-        var t2 = UIKit.Text(row2.transform, "+" + def.reward.ToString("N0"), 30, UIKit.GOLD_INK); UIKit.Stroke(t2, Color.white, 1.2f);
+        // 한 줄: [깃발] 3/5 · [벨] +600. 단계 이름은 지도에서(텍스트 다이어트 10/26)
+        var row = UIKit.Row(box.transform, "row", 8); UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0, 3), new Vector2(300, 56));
+        UIKit.IconImg(row.transform, "flag", 40);
+        var t1 = UIKit.Text(row.transform, (idx % PER_CHAPTER + 1) + "/" + PER_CHAPTER, 32, UIKit.SignOk.text); UIKit.Stroke(t1, Color.white, 1.2f);
+        UIKit.RT(row.transform, "gap").gameObject.AddComponent<LayoutElement>().minWidth = 10;
+        UIKit.IconImg(row.transform, "bell", 30);
+        var t2 = UIKit.Text(row.transform, "+" + def.reward.ToString("N0"), 32, UIKit.GOLD_INK); UIKit.Stroke(t2, Color.white, 1.2f);
         AudioManager.I?.Play("up", 1.1f); AudioManager.I?.Play("ding", 1.3f, 0.6f); JuiceFX.I?.Vibrate(30);
         float el = 0; bool burst = false;
         while (el < 0.4f)
@@ -219,18 +220,18 @@ public class SettlementManager : MonoBehaviour
         yield return FadeUp(brt, cg, 0.35f);
     }
 
-    // ---- 화성 마을 선포(10단계, 게임 하나의 끝): 큰 금색 판(왕관 · 화성 마을 선포!) + 색종이·링 + 약한 번쩍임, 2.2s ----
+    // ---- 화성 마을 선포(10단계, 게임 하나의 끝): 큰 금색 판(왕관 · 깃발 5/5) + 색종이·링 + 약한 번쩍임, 2.2s ----
     IEnumerator CoFinal()
     {
         if (HUD.I == null) yield break;
         var box = UIKit.Panel(HUD.I.transform, "settledBanner", UIKit.SignOk);
-        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 320), new Vector2(400, 150));
+        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 320), new Vector2(320, 120));
         var cg = box.gameObject.AddComponent<CanvasGroup>(); cg.blocksRaycasts = false; cg.interactable = false;
-        var row = UIKit.Row(box.transform, "row", 10); UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(380, 70));
-        UIKit.IconImg(row.transform, "crown", 56);
-        var t1 = UIKit.Text(row.transform, "화성 마을 선포!", 44, UIKit.SignOk.text); UIKit.Stroke(t1, Color.white, 1.6f); UIKit.DropShadow(t1, 2f, 0.25f);
-        var t2 = UIKit.Text(box.transform, "새 정착지로 떠날 수 있어요", 22, UIKit.GOLD_INK);
-        UIKit.Anchor(t2.rectTransform, new Vector2(0.5f, 0), new Vector2(0, 22), new Vector2(380, 34));
+        // 왕관 + [깃발] 5/5만(글자 설명은 엔딩 컷이 맡는다)
+        var row = UIKit.Row(box.transform, "row", 10); UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0, 4), new Vector2(300, 96));
+        UIKit.IconImg(row.transform, "crown", 84);
+        UIKit.IconImg(row.transform, "flag", 44);
+        var t1 = UIKit.Text(row.transform, PER_CHAPTER + "/" + PER_CHAPTER, 44, UIKit.SignOk.text); UIKit.Stroke(t1, Color.white, 1.6f); UIKit.DropShadow(t1, 2f, 0.25f);
         AudioManager.I?.Play("up", 1f); AudioManager.I?.Play("ding", 1.2f, 0.8f);
         JuiceFX.I?.Flash(0.18f); JuiceFX.I?.Shake(5); JuiceFX.I?.Vibrate(50);   // 번쩍임은 이 단계에만, 약하게(아트 바이블)
         if (Player.I != null)

@@ -46,7 +46,7 @@ public class PadManager : MonoBehaviour
             v.edgeMat = edge.GetComponent<Renderer>().sharedMaterial;
             var halo = GameConfig.Hex("ffe08a"); halo.a = 0.55f;
             v.ring = Prim.Ring(v.root, new Vector3(0, 0.05f, 0), 35, halo).transform;
-            // 가격표(원본 .sg): 남색 패널, 1줄 [발판 아이콘] 이름 Lv.n / 2줄 [벨] 남은 가격. 살 수 있으면 금색(.sg.ok)
+            // 가격표(원본 .sg): 남색 패널 한 줄 [발판 아이콘] 남은 가격(금색 숫자). 이름·레벨 글자는 시트에서만(텍스트 다이어트 10/26). 살 수 있으면 금색 판(.sg.ok)
             v.label = WorldLabels.I.Add(() => v.root.position + Vector3.up * 0.6f, "", 22, Color.white, new Vector2(0, 52), true, new Color(0.13f, 0.12f, 0.22f, 0.9f));
             v.label.SetIcon(UIKit.PadIcon(d.id));
             v.root.gameObject.SetActive(false); v.label.Show(false);
@@ -132,11 +132,10 @@ public class PadManager : MonoBehaviour
             v.ring.gameObject.SetActive(afford);
             v.edgeMat.color = afford ? PAD_EDGE : PAD_EDGE_DIM;
             if (afford) v.ring.localScale = Vector3.one * 35 * GameConfig.K * (1 + Mathf.Sin(Time.time * 1000f / 250f) * 0.05f);
-            // 가격표: 멀면 [아이콘]+[벨]가격만(옆 발판 가격표와 겹치지 않게 좁게), 플레이어가 가까이(100) 오면 이름·레벨까지
-            bool close = Vector2.Distance(pl.pos, v.def.pos) < 100f;
-            v.label.Set(close ? v.def.name + " Lv." + (G.PadLv(id) + 1) : "");
-            v.label.SetLine2(Mathf.CeilToInt(cost - prog).ToString("N0"), "bell");
+            // 가격표: [아이콘] 남은 가격 한 줄만(가까이 와도 이름을 붙이지 않는다)
+            v.label.Set(Mathf.CeilToInt(cost - prog).ToString("N0"));
             v.label.SetStyle(afford ? UIKit.SignOk : UIKit.Sign);
+            if (!afford) v.label.text.color = UIKit.GOLD;
         }
     }
 
@@ -150,7 +149,7 @@ public class PadManager : MonoBehaviour
         {
             JuiceFX.I.Ring(v.root.position, GameConfig.GOLD, 30); JuiceFX.I.Ring(v.root.position, Color.white, 50);
             JuiceFX.I.Pop(v.disc, 1.3f, 0.4f);
-            WorldLabels.I.Float(v.root.position + Vector3.up * 1f, d.name + " Lv." + lv, true, true);
+            WorldLabels.I.Float(v.root.position + Vector3.up * 1f, "Lv." + lv, true, true, UIKit.PadIcon(id));   // [발판 아이콘] Lv.n(이름 없이)
         }
         JuiceFX.I.Shake(d.zone ? 7 : 3); JuiceFX.I.Vibrate(20);
         AudioManager.I.Play("pad"); AudioManager.I.Play("up", 1f, 0.6f);
