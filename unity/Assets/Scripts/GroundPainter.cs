@@ -21,9 +21,9 @@ public class GroundPainter
         if (clear.HasValue) { var c = clear.Value; for (int i = 0; i < n; i++) { R[i] = c.r; G[i] = c.g; B[i] = c.b; A[i] = 1f; } }
     }
 
-    float Rn() => (float)rnd.NextDouble();
-    float Rn(float a, float b) => a + (b - a) * (float)rnd.NextDouble();
-    static Color C(int r, int g, int b) => new Color(r / 255f, g / 255f, b / 255f, 1f);
+    public float Rn() => (float)rnd.NextDouble();
+    public float Rn(float a, float b) => a + (b - a) * (float)rnd.NextDouble();
+    public static Color C(int r, int g, int b) => new Color(r / 255f, g / 255f, b / 255f, 1f);
 
     // 텍셀 알파 블렌딩 (투명 버퍼는 알파도 누적)
     void Blend(int x, int y, float r, float g, float b, float a)
@@ -232,32 +232,52 @@ public class GroundPainter
         }
     }
 
-    // 기지 비네트: 기지 사각형(x 16~384, y Y_MIN+4~1010, 북쪽 생존 기지 포함) 바깥은 거리에 따라 어둡게·채도 낮게(최대 −38%·−50%).
-    // 안쪽 밝기는 예전 기지(중심 200,525) 기준 그대로라 북쪽 개척지는 밝게도 어둡게도 하지 않은 맨땅 톤이 된다
+    // 밝은 땅 비네트: 기지 사각형(x 16~384, y Y_MIN+4~1010) + 3장부터 동쪽 길·지역 사각형(Regions.LitRects) 바깥은 거리에 따라 어둡게·채도 낮게(최대 −38%·−50%).
+    // 안쪽 밝기는 예전 기지(중심 200,525) 기준 그대로라 북쪽 개척지·동쪽 지역은 밝게도 어둡게도 하지 않은 맨땅 톤이 된다.
+    // 기지 텍스처와 동쪽 텍스처(PaintEast)가 같은 목록·같은 식으로 칠해 x 550 경계에서 이어진다
     public void BaseVignette()
     {
-        const float bx0 = 16f, bx1 = 384f, by0 = GameConfig.Y_MIN + 4f, by1 = 1010f, fall = 200f;
+        const float fall = 200f;
+        var lit = Regions.LitRects();
         for (int py = 0; py < TH; py++)
         {
             float ly = oy + (py + 0.5f) / s;
-            float dy = ly < by0 ? by0 - ly : ly > by1 ? ly - by1 : 0f;
             for (int px = 0; px < TW; px++)
             {
                 float lx = ox + (px + 0.5f) / s;
-                float dx = lx < bx0 ? bx0 - lx : lx > bx1 ? lx - bx1 : 0f;
-                float d = Mathf.Sqrt(dx * dx + dy * dy);
+                float d2 = float.MaxValue;
+                foreach (var r in lit)
+                {
+                    float dx = lx < r.xMin ? r.xMin - lx : lx > r.xMax ? lx - r.xMax : 0f;
+                    float dy = ly < r.yMin ? r.yMin - ly : ly > r.yMax ? ly - r.yMax : 0f;
+                    float q = dx * dx + dy * dy; if (q < d2) d2 = q; if (d2 <= 0f) break;
+                }
                 int i = py * TW + px;
-                if (d <= 0f)
-                {   // 기지 안: 가운데로 갈수록 아주 살짝 밝게(최대 +6%)
+                if (d2 <= 0f)
+                {   // 밝은 땅 안: 기지 가운데로 갈수록 아주 살짝 밝게(최대 +6%)
                     float cx = Mathf.Abs(lx - 200f) / 200f, cy = Mathf.Abs(ly - 525f) / 500f;
                     float b = 0.06f * (1f - Mathf.Clamp01(Mathf.Max(cx, cy) * 0.9f));
                     R[i] = Mathf.Min(1f, R[i] + (1f - R[i]) * b); G[i] = Mathf.Min(1f, G[i] + (1f - G[i]) * b); B[i] = Mathf.Min(1f, B[i] + (1f - B[i]) * b);
                     continue;
                 }
+                float d = Mathf.Sqrt(d2);
                 float t = Mathf.Clamp01(d / fall); t = t * t * (3f - 2f * t);
                 float lum = R[i] * 0.3f + G[i] * 0.55f + B[i] * 0.15f, sat = 1f - 0.5f * t, dark = 1f - 0.38f * t;
                 R[i] = (lum + (R[i] - lum) * sat) * dark; G[i] = (lum + (G[i] - lum) * sat) * dark; B[i] = (lum + (B[i] - lum) * sat) * dark;
             }
+        }
+    }
+
+    // 세계 좌표에 고정된 셀 명암(셀 값 = 셀 번호의 해시): 기지·동쪽 두 텍스처가 경계에서 같은 셀 값을 쓴다
+    public void CellsWorld(float ts, float amp, Color light, Color dark)
+    {
+        int gx0 = Mathf.FloorToInt(ox / ts), gy0 = Mathf.FloorToInt(oy / ts);
+        int gx1 = Mathf.CeilToInt((ox + TW / s) / ts), gy1 = Mathf.CeilToInt((oy + TH / s) / ts);
+        for (int gy = gy0; gy < gy1; gy++) for (int gx = gx0; gx < gx1; gx++)
+        {
+            uint h = (uint)(gx * 73856093) ^ (uint)(gy * 19349663) ^ 0x5bd1e995u; h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
+            float a = ((h & 0xffff) / 65535f - 0.5f) * amp;
+            Rect(gx * ts, gy * ts, ts, ts, a > 0 ? light : dark, Mathf.Abs(a));
         }
     }
 
@@ -289,6 +309,42 @@ public class GroundPainter
     public const float GX0 = -150f, GY0 = GameConfig.Y_MIN - 210f;
     public const float GW = GameConfig.W + 300f, GH = GameConfig.H + 200f - GY0;
     public const float TPU = 1.6f;   // 텍셀/논리. 1120×2944 RGB24 ≈ 9.9MB(+밉맵)
+    public const float SEAM_X = GX0 + GameConfig.W + 300f;   // 550: 기지 텍스처 동쪽 끝 = 동쪽 텍스처 시작
+
+    // =====================================================================
+    // 동쪽 지면(3·4장, docs/chapter3-design.md): x 550~1720, y −200~1080. 기지 텍스처와 같은 바탕·셀·비네트로 칠해 경계가 이어진다.
+    // 길·지역 바닥은 열릴 때 나타나야 해서 여기 그리지 않고 RegionWorld가 따로 깐다. 해상도는 조금 낮게(1.25, 1463×1600)
+    // =====================================================================
+    public const float EX0 = SEAM_X, EY0 = -200f, EW = Regions.GROUND_X1 - SEAM_X, EH = 1280f, ETPU = 1.25f;
+    public static Texture2D PaintEast()
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var p = new GroundPainter(EX0, EY0, EW, EH, ETPU, 23, GameConfig.Hex("c97754"));
+        Color light = C(255, 220, 190), dark = C(60, 20, 10);
+        for (int i = 0; i < 9; i++)
+        {
+            bool lt = p.Rn() < 0.5f;
+            float rx = 160f + p.Rn() * 220f, ry = 120f + p.Rn() * 160f, rr = Mathf.Max(rx, ry);
+            p.Ellipse(p.Rn(EX0 + rr, EX0 + EW), p.Rn(EY0, EY0 + EH), rx, ry, p.Rn() * 3f, lt ? C(255, 215, 180) : C(90, 30, 10), 0.05f + p.Rn() * 0.04f);
+        }
+        p.CellsWorld(80f, 0.04f, light, dark);
+        p.Grain(0.03f);
+        p.BaseVignette();
+        var tex = p.ToTexture(false, true);
+        Debug.Log("GroundPainter: 동쪽 지면 " + p.TW + "×" + p.TH + " " + sw.ElapsedMilliseconds + "ms");
+        return tex;
+    }
+    public static GameObject EastQuad(Transform parent)
+    {
+        var m = TexMat(PaintEast(), false);
+        if (GroundMaterial != null) m.color = GroundMaterial.color;
+        EastMaterial = m;
+        return Quad(parent, "groundEast", WorldMap.W2U(EX0 + EW / 2f, EY0 + EH / 2f, 0f), EW, EH, m);
+    }
+    public static Material EastMaterial;
+    /// 코드로 그린 텍스처 판 하나(지역 바닥·길 등, 위를 보는 Quad)
+    public static GameObject TexQuad(Transform parent, string name, Vector3 pos, float wL, float hL, Texture2D tex, bool trans)
+        => Quad(parent, name, pos, wL, hL, TexMat(tex, trans));
 
     public static Texture2D PaintGround()
     {
@@ -300,12 +356,14 @@ public class GroundPainter
         // jake 피드백("배경이 어설프다"): 잔무늬(균열·얼룩·자갈)는 원본의 절반 이하로 줄이고, 넓은 명암 그라데이션 + 비네트(기지 밝게·바깥 어둡고 채도 낮게)로 시선을 기지에 모은다
         // 1) 넓은 명암: 큰 부드러운 얼룩 몇 개 + 80 단위 셀 명암(약하게)
         // 개수는 범위가 바뀌어도 보이는 밀도가 예전과 같게(보이는 면적/전체 면적 비율로 환산)
+        // 큰 얼룩은 동쪽 텍스처와의 경계(x SEAM_X)를 넘지 않게(경계에 직선 자국이 생기지 않게), 셀 명암은 세계 좌표 해시(CellsWorld)
         for (int i = 0; i < 12; i++)
         {
             bool lt = p.Rn() < 0.5f;
-            p.Ellipse(p.Rn(X0, X1), p.Rn(Y0, Y1), 160f + p.Rn() * 220f, 120f + p.Rn() * 160f, p.Rn() * 3f, lt ? C(255, 215, 180) : C(90, 30, 10), 0.05f + p.Rn() * 0.04f);
+            float rx = 160f + p.Rn() * 220f, ry = 120f + p.Rn() * 160f, rr = Mathf.Max(rx, ry);
+            p.Ellipse(p.Rn(X0, Mathf.Max(X0, SEAM_X - rr)), p.Rn(Y0, Y1), rx, ry, p.Rn() * 3f, lt ? C(255, 215, 180) : C(90, 30, 10), 0.05f + p.Rn() * 0.04f);
         }
-        p.Cells(80f, 0.04f, light, dark, X0, Y0, GW, GH);
+        p.CellsWorld(80f, 0.04f, light, dark);
 
         // 2)~5) 균열·얼룩·크레이터·자갈은 없앴다(jake 10/25 "바닥에 낙서처럼 있는 거"). 넓은 명암·그레인·비네트만
         // 6) 미세 그레인(약하게) + 비네트
@@ -345,7 +403,7 @@ public class GroundPainter
     public static readonly Color ZONE_GROUND = GameConfig.Hex("d4916a"), PATH_TILE = GameConfig.Hex("f1dcc0");
 
     // 크림 타일 길(목표 그림의 길): 채움 + 옅은 타일 줄눈 + 가장자리 살짝 어둡게. 축 정렬 사각형
-    void TilePath(float x, float y, float w, float h, float ts = 20f)
+    public void TilePath(float x, float y, float w, float h, float ts = 20f)
     {
         RoundRect(x, y, w, h, 4f, PATH_TILE, 0.96f);
         for (float gx = x + ts; gx < x + w - 1f; gx += ts) Line(gx, y + 1f, gx, y + h - 1f, 1f, C(120, 70, 40), 0.10f);

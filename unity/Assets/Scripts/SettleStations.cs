@@ -59,7 +59,8 @@ public class SettleStations : MonoBehaviour
 
     // 시설이 지금 못 돈다(출력 가득·온실 물 부족): 이때는 큐 상한을 넘겨서라도 받아 준다(등짐이 안 빠져 꼼짝 못 하는 일 방지)
     bool Stalled(int i) => Out(i) >= GameConfig.SETTLE_OUT_CAP || (i == 3 && S.water < GREEN_WATER);
-    public bool CanPut(int i) => Open(i) && (Q(i) + qPend[i] < GameConfig.SETTLE_Q_CAP || Stalled(i));
+    //  단, 온실은 물이 모자라 멈춘 동안 받으면 큐가 끝없이 쌓여(봇 측정 2,000+) 물을 다 가져가 병입기가 굶는다 → 온실은 늘 큐 상한까지만(3장 측정 10/26)
+    public bool CanPut(int i) => Open(i) && (Q(i) + qPend[i] < GameConfig.SETTLE_Q_CAP || (Stalled(i) && i != 3));
     public void Put(int i) { qPend[i] = Mathf.Max(0, qPend[i] - 1); Q(i)++; }
     public bool Near(int i, Vector2 p) => Open(i) && WorldMap.NearStn(p, KEYS[i], R_FAC);
     // 갈 곳이 있는 것만 집는다: 비료는 온실이 열려야(그 전엔 배합기에 쌓이기만 = 비료 생산 누계), 레골리스는 정화기가 있어야

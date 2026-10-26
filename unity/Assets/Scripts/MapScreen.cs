@@ -21,6 +21,11 @@ public class MapScreen : MonoBehaviour
     Canvas canvas; GameObject root; RectTransform panel, mapRt, listRt, meRt, meRing;
     CanvasGroup focusCg; float refreshT, openT; int builtStage = -1, builtHq = -1;
     public bool IsOpen => root != null;
+    // 3·4장(docs/chapter3-design.md): 동쪽 지역을 알게 되면 지도 위에 지역 탭 [기지][우주항][얼음 협곡]. viewRegion null = 기지 지도
+    const float TAB_H = 54;
+    float tabH; string viewRegion;
+    float PanelH => PH + tabH;
+    System.Func<Vector2, Vector2> meMap;   // 지역 지도에서 플레이어 위치 → 지도 좌표(그 지역 밖이면 숨김)
 
     const float S = 0.6f;                       // 논리 1 → UI 0.6
     const float PW = 520, TITLE_H = 74, PAD = 16, GAP_X = 14;
@@ -81,7 +86,10 @@ public class MapScreen : MonoBehaviour
         var sb = scrim.gameObject.AddComponent<Button>(); sb.transition = Selectable.Transition.None; sb.onClick.AddListener(Close);
         var p = UIKit.Panel(scrim.transform, "panel", UIKit.Navy); p.raycastTarget = true;
         var pb = p.gameObject.AddComponent<Button>(); pb.transition = Selectable.Transition.None;   // 판 안쪽 누름이 막(닫기)으로 번지지 않게
-        panel = p.rectTransform; UIKit.Anchor(panel, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(PW, PH));
+        tabH = Regions.Known ? TAB_H : 0f;
+        var here = Player.I != null ? Regions.At(Player.I.pos.x) : null;
+        viewRegion = here != null && RegionKnown(here) ? here.key : null;
+        panel = p.rectTransform; UIKit.Anchor(panel, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(PW, PanelH));
         Build();
         if (FloatingJoystick.I) FloatingJoystick.I.suppressed = true;
         openT = 0f;
@@ -101,7 +109,10 @@ public class MapScreen : MonoBehaviour
         items.Clear();
         builtStage = SM != null ? SM.Stage : 0; builtHq = G.PadLv("hq");
         BuildTitle();
-        BuildMap();
+        if (tabH > 0) BuildTabs();
+        meMap = null;
+        var reg = viewRegion != null ? Regions.Get(viewRegion) : null;
+        if (reg != null) BuildRegionMap(reg); else BuildMap();
         BuildList();
     }
 
@@ -135,7 +146,7 @@ public class MapScreen : MonoBehaviour
     {
         var bg = UIKit.Panel(panel, "mapbg", MapBg);
         mapRt = bg.rectTransform; mapRt.anchorMin = mapRt.anchorMax = new Vector2(0, 1); mapRt.pivot = new Vector2(0, 1);
-        mapRt.anchoredPosition = new Vector2(PAD, -TITLE_H); mapRt.sizeDelta = new Vector2(MW, MH + MapBg.shadowH);
+        mapRt.anchoredPosition = new Vector2(PAD, -TITLE_H - tabH); mapRt.sizeDelta = new Vector2(MW, MH + MapBg.shadowH);
         var focus = new HashSet<string>(SM != null ? SM.FocusZones : new string[0]);
         bool settled = SM != null && SM.Settled;
 
@@ -256,6 +267,15 @@ public class MapScreen : MonoBehaviour
     {
         if (meRt == null) return;
         Vector2 p = Player.I != null ? Player.I.pos : new Vector2(G.S.p.x, G.S.p.y);
+        if (meMap != null)
+        {   // 지역 지도: 그 지역(길 포함) 안에 있을 때만
+            var reg = Regions.Get(viewRegion); bool inside = reg != null && Regions.At(p.x) == reg;
+            meRt.gameObject.SetActive(inside); meRing.gameObject.SetActive(inside);
+            if (inside) { var a = meMap(p); meRt.anchoredPosition = a; meRing.anchoredPosition = a; }
+            return;
+        }
+        bool inBase = p.x <= Regions.EAST_X + 2f;
+        meRt.gameObject.SetActive(inBase); meRing.gameObject.SetActive(inBase);
         var at = M(Mathf.Clamp(p.x, 0, GameConfig.W), Mathf.Clamp(p.y, GameConfig.Y_MIN, GameConfig.H));
         meRt.anchoredPosition = at; meRing.anchoredPosition = at;
     }
@@ -264,7 +284,7 @@ public class MapScreen : MonoBehaviour
     void BuildList()
     {
         listRt = UIKit.RT(panel, "list"); listRt.anchorMin = listRt.anchorMax = new Vector2(0, 1); listRt.pivot = new Vector2(0, 1);
-        listRt.anchoredPosition = new Vector2(LX, -TITLE_H); listRt.sizeDelta = new Vector2(LW, MH);
+        listRt.anchoredPosition = new Vector2(LX, -TITLE_H - tabH); listRt.sizeDelta = new Vector2(LW, MH);
         int st = builtStage; float y = 0;
         int ch = Mathf.Min(st / SettlementManager.PER_CHAPTER, SettlementManager.CHAPTERS.Length - 1);
         // 지난 장은 한 줄 요약(✓ 1장 생존 완료)
@@ -357,20 +377,145 @@ public class MapScreen : MonoBehaviour
         return h;
     }
 
-    // 화성 마을 선포 카드: 왕관 + "화성 마을 선포!" + [새 정착지로] (업그레이드 시트의 이주 카드로 안내)
+    // 지금 이어진 지역을 다 개척(20단계): 왕관 + 한 줄. 이주(처음부터 다시)는 없다 — 다음 지역은 표(Regions.ALL)에 붙으면 이어진다
     void Done(float y)
     {
-        var c = Card(y, 132, UIKit.SignOk, "settled");
+        var c = Card(y, 64, UIKit.SignOk, "settled");
         var row = UIKit.Row(c.transform, "row", 6);
-        At(row, new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(LW - 20, 40));
+        At(row, new Vector2(0.5f, 0.5f), new Vector2(0, 2), new Vector2(LW - 20, 40));
         UIKit.IconImg(row.transform, "crown", 30);
-        var t = UIKit.Text(row.transform, "화성 마을 선포!", 24, UIKit.SignOk.text); UIKit.Stroke(t, Color.white, 1.2f);
-        var b = UIKit.Button(c.transform, "go", UIKit.Gold, new Vector2(LW - 36, 56), "새 정착지로", 24, () =>
+        var t = UIKit.Text(row.transform, "개척 완료!", 24, UIKit.SignOk.text); UIKit.Stroke(t, Color.white, 1.2f);
+    }
+
+    // ───────────────────────── 지역 탭·지역 지도(3·4장) ─────────────────────────
+    // 알게 된 지역: 열린 지역 + 열린 지역 바로 다음(실루엣)
+    static bool RegionKnown(Regions.Def r)
+    {
+        int i = System.Array.IndexOf(Regions.ALL, r);
+        return i == 0 ? Regions.Known : i > 0 && Regions.ZoneOpen(Regions.ALL[i - 1]);
+    }
+    void BuildTabs()
+    {
+        var row = UIKit.Row(panel, "tabs", 8, TextAnchor.MiddleLeft);
+        UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0, 1), new Vector2(PAD, -TITLE_H + 2), new Vector2(PW - PAD * 2, TAB_H - 8));
+        void Tab(string key, string name, string icon, bool locked)
         {
-            Close();
-            if (UpgradeSheet.I != null) UpgradeSheet.I.Open(UpgradeSheet.UP);
-        }, "up", 26);
-        At(b, new Vector2(0.5f, 0), new Vector2(0, 16), new Vector2(LW - 36, 56));
+            bool cur = viewRegion == key;
+            var b = UIKit.Button(row.transform, "tab_" + (key ?? "base"), cur ? UIKit.Gold : UIKit.Gray, new Vector2(150, 44), name, 18, () => { if (viewRegion != key) { viewRegion = key; AudioManager.I?.Play("tick", 1.3f, 0.5f); Build(); } }, locked ? "lock" : icon, 24);
+            var le = b.gameObject.AddComponent<LayoutElement>(); le.preferredWidth = 150; le.preferredHeight = 44;
+        }
+        Tab(null, "기지", "home", false);
+        foreach (var r in Regions.ALL) if (RegionKnown(r)) Tab(r.key, r.name, UIKit.PadIcon(r.zonePad), !Regions.ZoneOpen(r));
+    }
+
+    // 지역 지도: 위 = 지금 지역(가로 맞춤, 바닥·광장 길·시설 아이콘·플레이어), 가운데 = 지역 길 한 줄(기지 → 우주항 → 협곡), 아래 = 다음 지역 실루엣
+    void BuildRegionMap(Regions.Def reg)
+    {
+        var bg = UIKit.Panel(panel, "mapbg", MapBg);
+        mapRt = bg.rectTransform; mapRt.anchorMin = mapRt.anchorMax = new Vector2(0, 1); mapRt.pivot = new Vector2(0, 1);
+        mapRt.anchoredPosition = new Vector2(PAD, -TITLE_H - tabH); mapRt.sizeDelta = new Vector2(MW, MH + MapBg.shadowH);
+        var focusRoot = UIKit.RT(mapRt, "focus"); focusRoot.anchorMin = Vector2.zero; focusRoot.anchorMax = Vector2.one; focusRoot.offsetMin = focusRoot.offsetMax = Vector2.zero;
+        bool open = Regions.ZoneOpen(reg);
+        const float M0 = 10f;
+        float sc = (MW - M0 * 2f) / reg.W;
+        float top = 14f;
+        Vector2 R(float x, float y) => new Vector2(M0 + (x - reg.x0) * sc, -(top + (y - reg.y0) * sc));
+        var cell = UIKit.Panel(mapRt, "region", Cell);
+        var crt = cell.rectTransform; crt.anchorMin = crt.anchorMax = new Vector2(0, 1); crt.pivot = new Vector2(0, 1);
+        crt.anchoredPosition = R(reg.x0, reg.y0); crt.sizeDelta = new Vector2(reg.W * sc, reg.H * sc);
+        cell.color = open ? reg.floor : Color.Lerp(reg.floor, UIKit.EDGE, 0.72f);
+        var nm = UIKit.Text(cell.transform, reg.name, 16, open ? UIKit.INK : UIKit.SUB, TextAnchor.UpperLeft);
+        var nrt = nm.rectTransform; nrt.anchorMin = nrt.anchorMax = new Vector2(0, 1); nrt.pivot = new Vector2(0, 1); nrt.anchoredPosition = new Vector2(6, -4); nrt.sizeDelta = new Vector2(160, 20);
+        if (open) UIKit.Stroke(nm, new Color(1, 1, 1, 0.55f), 1f);
+        // 광장 길
+        var road = UIKit.Panel(mapRt, "road", Soft); road.color = open ? new Color(1f, 0.93f, 0.82f, 0.85f) : new Color(1f, 0.9f, 0.8f, 0.14f);
+        var rrt = road.rectTransform; rrt.anchorMin = rrt.anchorMax = new Vector2(0, 1); rrt.pivot = new Vector2(0, 1);
+        rrt.anchoredPosition = R(reg.x0, Regions.ROAD_Y0); rrt.sizeDelta = new Vector2(reg.W * sc, (Regions.ROAD_Y1 - Regions.ROAD_Y0) * sc);
+        if (!open) { var lk = UIKit.IconImg(cell.transform, "lock", 26); UIKit.Anchor(lk.rectTransform, new Vector2(1, 1), new Vector2(-6, -6), new Vector2(26, 26)); }
+        // 시설 아이콘(지어진 것만 선명하게)
+        void F(Vector2 p, string icon, bool built, float size = 30)
+        {
+            var img = UIKit.IconImg(mapRt, icon, size); Place(img, R(p.x, p.y), new Vector2(size, size));
+            if (!built || !open) img.color = new Color(1, 1, 1, 0.3f);
+        }
+        if (reg.key == "port")
+        {
+            string[] padIds = { "port", "pad2", "pad3" };
+            for (int i = 0; i < SpacePort.PADS.Length; i++)
+            {
+                bool b = G.PadLv(padIds[i]) >= 1;
+                var d = UIKit.RoundPanel(mapRt, "pad", Dot, 34); d.color = b && open ? UIKit.Hex("5d666b") : new Color(0.36f, 0.4f, 0.42f, 0.35f); Place(d, R(SpacePort.PADS[i].x, SpacePort.PADS[i].y), new Vector2(34, 34));
+                F(SpacePort.PADS[i], "ship", b && G.S.ships.Count > i && G.S.ships[i].state == 2, 24);
+            }
+            F(SpacePort.FUEL, "fuel", G.PadLv("fuel") >= 1);
+            F(SpacePort.LAUNCH, "rocket", G.PadLv("launch") >= 1);
+            F(SpacePort.TOWER, "tower", G.PadLv("tower") >= 1);
+        }
+        else if (reg.key == "canyon")
+        {
+            var v = UIKit.RoundPanel(mapRt, "vein", Soft, 46); v.color = new Color(0.8f, 0.93f, 1f, open ? 0.9f : 0.45f); Place(v, R(IceCanyon.VEIN.x, IceCanyon.VEIN.y), new Vector2(64, 40));
+            F(IceCanyon.VEIN, "ice", true, 30);
+            F(IceCanyon.REFINERY, "fuel", open);
+            F(new Vector2(1470, 470), "rover", G.PadLv("rover") >= 1);
+        }
+        // 지금 단계 금테(이 지역이 지금 장 목표면)
+        var focus = new HashSet<string>(SM != null ? SM.FocusZones : new string[0]);
+        if (SM != null && !SM.Settled && focus.Contains(reg.key))
+        {
+            var f = UIKit.RT(focusRoot, "f_" + reg.key); f.anchorMin = f.anchorMax = new Vector2(0, 1); f.pivot = new Vector2(0, 1);
+            f.anchoredPosition = R(reg.x0, reg.y0) + new Vector2(-4, 4); f.sizeDelta = new Vector2(reg.W * sc + 8, reg.H * sc + 8);
+            const float T = 3.5f;
+            void Bar(Vector2 aMin, Vector2 aMax, Vector2 oMin, Vector2 oMax) { var b = UIKit.RT(f, "bar").gameObject.AddComponent<Image>(); b.color = UIKit.GOLD; b.raycastTarget = false; var rt = b.rectTransform; rt.anchorMin = aMin; rt.anchorMax = aMax; rt.offsetMin = oMin; rt.offsetMax = oMax; }
+            Bar(new Vector2(0, 1), new Vector2(1, 1), new Vector2(0, -T), Vector2.zero); Bar(new Vector2(0, 0), new Vector2(1, 0), Vector2.zero, new Vector2(0, T));
+            Bar(new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(T, 0)); Bar(new Vector2(1, 0), new Vector2(1, 1), new Vector2(-T, 0), Vector2.zero);
+        }
+        focusRoot.SetAsLastSibling();
+        focusCg = focusRoot.gameObject.AddComponent<CanvasGroup>(); focusCg.blocksRaycasts = false;
+        float y = top + reg.H * sc + 26f;
+        // 지역 길 한 줄: [기지] — [우주항] — [협곡] (열림 = 밝게, 다음 = 실루엣, 지금 보는 지역 = 금테)
+        {
+            int n = Regions.ALL.Length + 1; float w = (MW - M0 * 2f - (n - 1) * 18f) / n, h = 40f;
+            for (int i = 0; i < n; i++)
+            {
+                var r = i == 0 ? null : Regions.ALL[i - 1];
+                bool known = i == 0 || RegionKnown(r), ropen = i == 0 || Regions.ZoneOpen(r);
+                float x = M0 + i * (w + 18f);
+                if (i > 0)
+                {
+                    var link = UIKit.Panel(mapRt, "link", Soft); link.color = Regions.RoadOpen(r) ? new Color(1f, 0.93f, 0.82f, 0.85f) : new Color(1f, 0.9f, 0.8f, 0.18f);
+                    var lrt = link.rectTransform; lrt.anchorMin = lrt.anchorMax = new Vector2(0, 1); lrt.pivot = new Vector2(0, 1); lrt.anchoredPosition = new Vector2(x - 18f, -(y + h / 2f - 3f)); lrt.sizeDelta = new Vector2(18f, 6f);
+                }
+                var c = UIKit.Panel(mapRt, "node", Cell);
+                var rt = c.rectTransform; rt.anchorMin = rt.anchorMax = new Vector2(0, 1); rt.pivot = new Vector2(0, 1); rt.anchoredPosition = new Vector2(x, -y); rt.sizeDelta = new Vector2(w, h);
+                c.color = !known ? new Color(0.2f, 0.16f, 0.2f, 0.5f) : ropen ? (i == 0 ? UIKit.Hex("e8cfb3") : r.floor) : Color.Lerp(r.floor, UIKit.EDGE, 0.72f);
+                var ic = UIKit.IconImg(c.transform, !known ? "lock" : i == 0 ? "home" : ropen ? UIKit.PadIcon(r.zonePad) : "lock", 26);
+                UIKit.Anchor(ic.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(26, 26));
+                if ((i == 0 && viewRegion == null) || (r != null && r.key == viewRegion))
+                {
+                    var fr = UIKit.Panel(mapRt, "nodeCur", Cell); fr.color = new Color(1, 0.83f, 0.35f, 0.0f);
+                    var o = UIKit.Panel(fr.transform, "o", Soft); o.color = UIKit.GOLD; var ort = o.rectTransform; ort.anchorMin = new Vector2(0, 0); ort.anchorMax = new Vector2(1, 0); ort.offsetMin = new Vector2(0, -5); ort.offsetMax = new Vector2(0, -2);
+                    var frt = fr.rectTransform; frt.anchorMin = frt.anchorMax = new Vector2(0, 1); frt.pivot = new Vector2(0, 1); frt.anchoredPosition = new Vector2(x, -y); frt.sizeDelta = new Vector2(w, h);
+                }
+            }
+            y += h + 26f;
+        }
+        // 다음 지역 실루엣(열린 지역의 바로 다음이 잠겨 있으면): 어두운 판 + 자물쇠 + 이름
+        int ri = System.Array.IndexOf(Regions.ALL, reg);
+        Regions.Def next = ri >= 0 && ri + 1 < Regions.ALL.Length ? Regions.ALL[ri + 1] : null;
+        if (next != null && !Regions.ZoneOpen(next))
+        {
+            float nh = Mathf.Min(MH - y - 14f, next.H * sc);
+            var sil = UIKit.Panel(mapRt, "next", Cell); sil.color = Color.Lerp(next.floor, UIKit.EDGE, 0.8f);
+            var srt = sil.rectTransform; srt.anchorMin = srt.anchorMax = new Vector2(0, 1); srt.pivot = new Vector2(0, 1); srt.anchoredPosition = new Vector2(M0, -y); srt.sizeDelta = new Vector2(MW - M0 * 2f, nh);
+            var lk = UIKit.IconImg(sil.transform, "lock", 34); UIKit.Anchor(lk.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, 10), new Vector2(34, 34));
+            var t = UIKit.Text(sil.transform, next.name, 18, UIKit.SUB); UIKit.Anchor(t.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0, -22), new Vector2(160, 24));
+        }
+        // 플레이어
+        var ring = UIKit.RoundPanel(mapRt, "meRing", Soft, 24); ring.color = new Color(1f, 0.85f, 0.35f, 0.6f); meRing = Place(ring, Vector2.zero, new Vector2(24, 24));
+        var me = UIKit.RoundPanel(mapRt, "me", Dot, 16); me.color = Color.white; meRt = Place(me, Vector2.zero, new Vector2(16, 16));
+        var core = UIKit.RoundPanel(me.transform, "core", Soft, 8); core.color = UIKit.Hex("2a74e8"); var co = core.rectTransform; co.anchorMin = co.anchorMax = new Vector2(0.5f, 0.5f); co.anchoredPosition = Vector2.zero;
+        meMap = q => R(Mathf.Clamp(q.x, reg.x0, reg.x1), Mathf.Clamp(q.y, reg.y0, reg.y1));
+        UpdateMe();
     }
 
     void RefreshItems()
@@ -402,7 +547,7 @@ public class MapScreen : MonoBehaviour
         float dt = Time.unscaledDeltaTime; openT += dt;
         // 열 때 팝(0.25s), 화면이 낮으면 판 전체를 줄여 맞춘다
         var cr = ((RectTransform)canvas.transform).rect;
-        float fit = Mathf.Min(1f, (cr.height - 24f) / PH, (cr.width - 12f) / PW);
+        float fit = Mathf.Min(1f, (cr.height - 24f) / PanelH, (cr.width - 12f) / PW);
         float pop = openT < 0.25f ? Mathf.Lerp(0.88f, 1f, JuiceFX.EaseOutBack(openT / 0.25f)) : 1f;
         panel.localScale = Vector3.one * fit * pop;
         // 단계가 바뀌었으면 다시 만들고, 아니면 0.25s마다 값만
