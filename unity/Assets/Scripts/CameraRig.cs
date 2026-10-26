@@ -83,9 +83,16 @@ public class CameraRig : MonoBehaviour
             // 세로 제한: 위는 놀이 경계(Y_MIN+6)보다 170 바깥(북쪽 메사 띠 위)까지, 아래는 착륙장 아래 BOTTOM_PAD까지.
             // 2장 개척지(y −620~−410)는 맨 위라 예전 110이면 화면 위 1/3에 몰려 HUD에 가렸다 → 170으로 늘려 개척지가 화면 가운데 가까이 오게
             ty = Mathf.Clamp(ty, GameConfig.Y_MIN - 170f + viewH * 0.5f, GameConfig.H - viewH * 0.5f + BOTTOM_PAD);
+            // 3장부터 동쪽 지역(1번 도로 이후, docs/chapter3-design.md): y는 지역 띠(y 180~680)에 붙이고 x는 지역 끝까지 따라간다
+            bool east = pl.x > Regions.EAST_X;
+            if (east)
+            {
+                float b0 = Regions.BandY0 - 60f + viewH * 0.5f, b1 = Regions.BandY1 + 60f - viewH * 0.5f;
+                ty = b0 <= b1 ? Mathf.Clamp(ty, b0, b1) : (Regions.BandY0 + Regions.BandY1) * 0.5f;
+            }
             camY = snapped ? Mathf.Lerp(camY, ty, dt * 5f) : ty;
-            // x: 기본(zoom 1)은 200 고정, 확대하면 플레이어를 따라가되 맵 가장자리(0~400) 밖은 10만큼만 보이게
-            float minX = halfW - 10f, maxX = 400f - halfW + 10f;
+            // x: 기본(zoom 1)은 200 고정, 확대하면 플레이어를 따라가되 맵 가장자리(0~400) 밖은 10만큼만 보이게. 동쪽에선 지역 끝(CAM_MAX_X)까지
+            float minX = halfW - 10f, maxX = (east ? Regions.CAM_MAX_X : 400f) - halfW + 10f;
             float tx = minX >= maxX ? 200f : Mathf.Clamp(pl.x, minX, maxX);
             camX = snapped ? Mathf.Lerp(camX, tx, dt * 5f) : tx;
             snapped = true;   // 첫 프레임은 플레이어 자리로 바로(저장 위치·-start 검증 인자가 Awake 뒤에 바뀌어도 화면이 미끄러져 오지 않게)

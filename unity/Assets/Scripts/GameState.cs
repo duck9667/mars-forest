@@ -119,6 +119,7 @@ public class GameState : MonoBehaviour
             int room = Mathf.Max(0, ShelfCap - S.shelf - shelfPend);
             var ss = SettleStations.I;
             if (ss != null && ss.Open(0) && S.elecOut < GameConfig.SETTLE_OUT_CAP) room += Mathf.Max(0, GameConfig.SETTLE_Q_CAP / 2 - S.elecQ - ss.qPend[0]);
+            room += SpacePort.Need("bottle");   // 3장: 화물선 주문·연료 공장 큐 몫
             return HeldAll("bottle") < room;
         }
     }
@@ -130,10 +131,11 @@ public class GameState : MonoBehaviour
         var ss = SettleStations.I;
         switch (kind)
         {
-            case "ice": return IceWantedHeld;
+            case "ice": return IceWantedHeld || HeldAll("ice") < SpacePort.Need("ice");   // 3장: 연료 공장 큐 몫
             case "bottle": return BottleHasPlace;
             case "rego": return ss != null && S.purQ + ss.qPend[1] + HeldAll("rego") < GameConfig.SETTLE_Q_CAP;
-            case "o2": case "food": return HeldAll(kind) < ShelfCap;
+            case "o2": case "food": return HeldAll(kind) < ShelfCap + SpacePort.Need(kind);   // 3장: 내려앉은 화물선 주문 몫까지
+            case "fuel": return HeldAll(kind) < SpacePort.Need(kind);                          // 연료통은 발사대가 받을 만큼만
             default: return HeldAll(kind) < GameConfig.SETTLE_Q_CAP;
         }
     }
@@ -150,7 +152,7 @@ public class GameState : MonoBehaviour
 
     // ---- 생존 기지: 정착민 공급 ----
     public static readonly string[] SUPPLY_KINDS = { "bottle", "o2", "food" };
-    public static string KindName(string kind) => kind == "o2" ? "산소" : kind == "food" ? "식량" : kind == "bottle" ? "물" : kind == "rego" ? "레골리스" : kind == "soil" ? "흙" : kind == "fert" ? "비료" : kind == "ice" ? "얼음" : kind;
+    public static string KindName(string kind) => kind == "o2" ? "산소" : kind == "food" ? "식량" : kind == "bottle" ? "물" : kind == "rego" ? "레골리스" : kind == "soil" ? "흙" : kind == "fert" ? "비료" : kind == "ice" ? "얼음" : kind == "fuel" ? "연료" : kind;
     public bool KindOpen(string kind) => kind == "bottle" || (kind == "o2" && PadLv("o2") >= 1) || (kind == "food" && PadLv("farm") >= 1);
     public int PriceOf(string kind) => kind == "o2" ? Mathf.FloorToInt(BottlePrice * 1.6f + 0.5f) : kind == "food" ? Mathf.FloorToInt(BottlePrice * 2.2f + 0.5f) : BottlePrice;
     public int ShelfOf(string kind) => kind == "o2" ? S.shelfO2 : kind == "food" ? S.shelfFood : S.shelf;

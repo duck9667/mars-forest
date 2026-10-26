@@ -36,7 +36,8 @@ public class PrestigeManager : MonoBehaviour
     }
 
     /// 시트 카드 노출 여부
-    public bool ShowCard => GameState.I != null && (GameState.I.S.sold >= 60 || GameState.I.S.prestige > 0);
+    // 이어지는 세계(docs/chapter3-design.md): 이주(처음부터 다시)는 화면에 내보내지 않는다. 코드는 검증 인자(-prestigeAt)용으로 남김
+    public bool ShowCard => false;
     /// 이주 중(연출 진행)
     public bool Busy => busy;
     /// 지금 병값 배율·이주 후 배율 (시트 카드 "새 기지 ×n" 표시용, 원본 prestigeMul()*1.5)

@@ -9,7 +9,8 @@ using UnityEngine.UI;
 //    같은 id는 S.story에 넣어 다시 안 뜬다. 여러 개면 큐로 차례대로, 시트·지도·설정·정착 배너·이주 연출 중이면 기다렸다가.
 //  - 사건: 새 지역·핵심 시설 처음 해제(GameState.OnPadLevel lv 1, ZONE_PADS), 본부 처음 세움(hq Lv1), 2장 시작(ch2_start, SettlementManager.Complete가 Push).
 //    정착 단계 무전은 대본에서 뺐다(Push해도 대본에 없으면 조용히 무시). 이미 2장(S.stage ≥ 5)인데 2장 시작 무전을 못 봤으면 한 번 띄운다.
-//  - 엔딩(10단계 화성 마을 선포): 인트로와 같은 탭으로 넘기는 판에 3컷(ENDING) → 마지막 [출발!]이 업그레이드 시트(이주 카드)를 연다. 본 뒤 S.story "ending".
+//  - 엔딩(10단계 화성 마을 선포): 인트로와 같은 탭으로 넘기는 판에 3컷(ENDING) → 마지막 [출발!] 뒤 3장 시작 무전(동쪽 우주항). 본 뒤 S.story "ending".
+//    4장 끝(20단계)은 ENDING4 3컷("ending4"). 이주(처음부터 다시)는 없다(docs/chapter3-design.md).
 //    SettlementManager가 QueueEnding으로 예약(큰 축하판이 사라진 뒤), 이미 선포한 저장인데 못 봤으면 시작할 때 예약.
 // 대본은 아래 INTRO·ENDING·LINES 표에 모은다. 검증 인자(DevTools): -story id(그 무전 바로, "ending"이면 엔딩 컷) · -intro(인트로 강제).
 public class StoryManager : MonoBehaviour
@@ -36,7 +37,14 @@ public class StoryManager : MonoBehaviour
     {
         "오늘부터 정식 화성 마을!",
         "돔마다 불이 켜졌어요.",
-        "새 착륙지가 기다려요!",
+        "동쪽 우주항이 기다려요!",
+    };
+    // 4장 얼음 협곡 끝(지금 이어진 지역의 끝). 다음 지역은 Regions.ALL에 한 줄 더 붙이면 이어진다
+    public static readonly string[] ENDING4 =
+    {
+        "협곡 얼음이 궤도로 가요!",
+        "화성 개척지가 이어졌어요.",
+        "다음 지역도 곧 열려요!",
     };
     public static readonly Dictionary<string, string> LINES = new Dictionary<string, string>
     {
@@ -48,17 +56,22 @@ public class StoryManager : MonoBehaviour
         { "zone_hab",   "정착민 집이 생겼어요!" },
         // 2장 마을 시작(1장 완료 직후)
         { "ch2_start", "2장: 마을을 만들어요!" },
+        // 3·4장(이어지는 세계): 장 시작·새 지역 해제만
+        { "ch3_start", "동쪽 길 너머 우주항으로!" },
+        { "zone_port", "첫 화물선이 내려와요!" },
+        { "ch4_start", "얼음 협곡을 향해요!" },
+        { "zone_canyon", "거대한 얼음 광맥이에요!" },
         // 기지 본부 처음 세움
         { "hq_1", "기지 본부가 섰어요!" },
     };
     // 처음 해제하면 무전하는 구역 발판
-    static readonly HashSet<string> ZONE_PADS = new HashSet<string> { "o2", "mine", "farm", "solar", "hab" };
+    static readonly HashSet<string> ZONE_PADS = new HashSet<string> { "o2", "mine", "farm", "solar", "hab", "port", "canyon" };
 
     // ---- 상태 ----
     class Msg { public string id, text; public float readyAt; public bool repeat; }
     readonly List<Msg> queue = new List<Msg>();
     bool introPending, introShowing;   // introShowing: 컷 판(인트로·엔딩)이 떠 있음
-    bool endingPending; float endingAt;
+    bool endingPending; float endingAt; string endingId = "ending";
     /// 인트로가 곧 뜨거나 컷 판(인트로·엔딩)이 떠 있음(튜토리얼 말풍선·손 포인터는 이 동안 숨는다)
     public bool IntroActive => introPending || introShowing;
 
@@ -94,7 +107,7 @@ public class StoryManager : MonoBehaviour
     {
         if (string.IsNullOrEmpty(id)) return;
         if (id == "intro") { DevIntro(); return; }
-        if (id == "ending") { S.story.Remove("ending"); QueueEnding(0.6f); return; }
+        if (id == "ending" || id == "ending4") { S.story.Remove(id); QueueEnding(0.6f, id); return; }
         S.story.Remove(id); Push(id, 0.6f);
     }
 
@@ -106,14 +119,17 @@ public class StoryManager : MonoBehaviour
         // 옛 저장·검증 인자(-stage N): 이미 2장인데 2장 시작 무전을 못 봤으면, 이미 마을을 선포했는데 엔딩을 못 봤으면
         var sm = SettlementManager.I;
         if (sm != null && sm.Stage >= SettlementManager.PER_CHAPTER && !Seen("ch2_start")) Push("ch2_start", 1.5f);
-        if (sm != null && sm.Settled && !Seen("ending")) QueueEnding(1.5f);
+        if (sm != null && sm.Stage >= 2 * SettlementManager.PER_CHAPTER && !Seen("ending")) QueueEnding(1.5f, "ending");
+        // 옛 저장: 2장 엔딩을 예전 대본(새 정착지로)으로 이미 봤으면 3장 시작 무전 한 줄로 동쪽 길을 알려 준다
+        else if (sm != null && sm.Stage >= 2 * SettlementManager.PER_CHAPTER && G.PadLv("road1") < 1 && !Seen("ch3_start")) Push("ch3_start", 2f);
+        if (sm != null && sm.Settled && !Seen("ending4")) QueueEnding(1.5f, "ending4");
     }
 
-    /// 엔딩 컷 예약(delay초 뒤부터, 화면이 한가해지면). 한 번 본 뒤엔 무시
-    public void QueueEnding(float delay = 0f)
+    /// 엔딩 컷 예약(delay초 뒤부터, 화면이 한가해지면). id: "ending"(2장 끝) · "ending4"(4장 끝). 한 번 본 뒤엔 무시
+    public void QueueEnding(float delay = 0f, string id = "ending")
     {
-        if (G == null || Seen("ending")) return;
-        endingPending = true; endingAt = Time.unscaledTime + delay;
+        if (G == null || Seen(id)) return;
+        endingPending = true; endingAt = Time.unscaledTime + delay; endingId = id;
     }
 
     // ---- 사건 ----
@@ -236,13 +252,11 @@ public class StoryManager : MonoBehaviour
         ShowCuts(INTRO, "intro", "시작!", null);
     }
 
-    // 엔딩: 마지막 [새 정착지로] → 업그레이드 시트(맨 위 이주 카드)
+    // 엔딩: 2장 끝은 마지막 [출발!] → 3장 시작 무전(동쪽 1번 도로 발판을 힌트가 가리킨다). 처음부터 다시 하지 않는다(이주 없음)
     void ShowEnding()
     {
-        ShowCuts(ENDING, "ending", "출발!", () =>
-        {
-            if (UpgradeSheet.I != null) UpgradeSheet.I.Open(UpgradeSheet.UP);
-        });
+        if (endingId == "ending4") ShowCuts(ENDING4, "ending4", "좋아요!", null);
+        else ShowCuts(ENDING, "ending", "출발!", () => Push("ch3_start", 0.6f));
         AudioManager.I?.Play("ding", 1.1f, 0.5f);
     }
 

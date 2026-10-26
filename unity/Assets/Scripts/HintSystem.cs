@@ -64,6 +64,8 @@ public class HintSystem : MonoBehaviour
             string kid = PadManager.I.visOrder[0]; var kd = Pads.Get(kid);
             if ((kd.zone || kid == "hq") && S.bells >= G.PadRemain(kid)) { targetKey = "pad:" + kid; return kd.pos; }
         }
+        // 3·4장 지역 일(화물선 주문·연료 공장·발사대·정제소·광맥): 있으면 그게 먼저, 없으면 아래 기지 일
+        if (S.stage >= 10 && SpacePort.Hint(Player.I.pos, out var rp, out var rk, out var rd)) { targetKey = rk; delivering = rd; return rp; }
         var ss = SettleStations.I;
         Vector2 F(int i) { targetKey = SettleStations.KEYS[i]; return SettleStations.Approach(i); }
         Vector2 Rego() { int b = ss.NearestRego(Player.I.pos, float.MaxValue); targetKey = "rego:" + b; return WorldMap.REGO_SPOTS[b]; }

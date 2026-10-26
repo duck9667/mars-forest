@@ -338,6 +338,10 @@ public static class UIKit
             case "pen": return "rabbit"; case "dome": return "home"; case "sold": return "bottle";
             case "hab": case "habx": return "home"; case "solar": return "sun"; case "fund": return "chest";
             case "elecspd": return "o2"; case "purspd": return "gear"; case "mixspd": return "bolt"; case "grnspd": return "food";
+            // 3·4장(docs/chapter3-design.md)
+            case "road1": case "road2": return "road"; case "port": case "pad2": case "pad3": return "ship";
+            case "fuel": case "fuelspd": return "fuel"; case "launch": return "rocket"; case "tower": return "tower";
+            case "canyon": return "ice"; case "rover": return "rover"; case "refspd": return "gear"; case "drillspd": return "drill";
             default: return "flag";
         }
     }
@@ -487,6 +491,33 @@ public static class UIKit
                     g.R(7.5f, 15, 9, 7, 1.5f, Hex("eef2f6"), navy); g.Flush();
                     g.R(7.9f, 17.3f, 8.2f, 2, 0, Hex("ff9a3a")); g.Flush(); break;
                 }
+            // ---- 3·4장 아이콘 ----
+            case "ship":   // 화물 우주선: 금빛 돔 + 흰 몸통 + 다리 둘
+                g.Seg(6.5f, 15, 3.5f, 21, 2.2f, Hex("545b5f")); g.Seg(17.5f, 15, 20.5f, 21, 2.2f, Hex("545b5f")); g.Flush();
+                g.R(4, 9, 16, 9, 3.5f, Hex("eceae4"), navy); g.Flush();
+                g.C(12, 9, 5.6f, Hex("f2c14e"), Hex("8a5200")); g.Flush();
+                g.R(6.5f, 13, 11, 2.2f, 1, Hex("f07b36")); g.Flush(); break;
+            case "rocket": // 흰 로켓 + 주황 띠·핀 + 불꽃
+                g.P(Hex("ffc94a"), Hex("c9620a"), 1.2f, 9.5f, 18.5f, 14.5f, 18.5f, 12, 23.5f); g.Flush();
+                g.P(Hex("f07b36"), Hex("8a3a10"), 1.4f, 7.5f, 13, 9.5f, 9, 9.5f, 18.5f, 6, 19); g.P(Hex("f07b36"), Hex("8a3a10"), 1.4f, 16.5f, 13, 14.5f, 9, 14.5f, 18.5f, 18, 19); g.Flush();
+                g.P(Hex("f4f2ec"), navy, 1.6f, 12, 1.5f, 15, 6, 15, 18.5f, 9, 18.5f, 9, 6); g.Flush();
+                g.C(12, 9.5f, 1.9f, blue, navy, 1f); g.R(9.2f, 14.5f, 5.6f, 1.6f, 0.4f, Hex("f07b36")); g.Flush(); break;
+            case "fuel":   // 연료통: 초록 통 + 흰 띠 + 짙은 뚜껑
+                g.R(13, 2, 4.5f, 3.5f, 1, Hex("33403f")); g.R(6, 3, 5.5f, 2.4f, 1, Hex("33403f")); g.Flush();
+                g.R(4.5f, 5, 15, 16.5f, 3.5f, Hex("34b37e"), Hex("1c5e40")); g.Flush();
+                g.R(4.6f, 11, 14.8f, 3, 0.5f, Hex("f2efe6")); g.Seg(7.5f, 7.5f, 7.5f, 9.5f, 1.4f, Hex("8be8bf")); g.Flush(); break;
+            case "tower":  // 관제탑: 짙은 다리 + 돔 관제실 + 빨간 표시등
+                g.Seg(8, 21, 10, 11, 2, Hex("545b5f")); g.Seg(16, 21, 14, 11, 2, Hex("545b5f")); g.Seg(9, 16, 15, 16, 1.6f, Hex("545b5f")); g.Flush();
+                g.R(5, 7, 14, 6, 2.5f, Hex("eceae4"), navy); g.Flush();
+                g.C(12, 7, 4.4f, Hex("f2c14e"), Hex("8a5200")); g.Flush();
+                g.Seg(12, 2.6f, 12, 0.8f, 1.2f, navy); g.C(12, 2.6f, 1.4f, Hex("ff5a3c")); g.Flush(); break;
+            case "road":   // 길: 크림 띠 + 가운데 점선, 끝에 깃발
+                g.P(Hex("f1dcc0"), Hex("7a4a20"), 1.5f, 8, 3, 16, 3, 21, 21, 3, 21); g.Flush();
+                g.Seg(12, 6, 12, 8.5f, 1.4f, Hex("c9965a")); g.Seg(12, 11, 12, 13.5f, 1.4f, Hex("c9965a")); g.Seg(12, 16, 12, 19, 1.4f, Hex("c9965a")); g.Flush(); break;
+            case "rover":  // 채굴 로버: 흰 트럭 + 짐칸 얼음 + 바퀴
+                g.R(2.5f, 9, 12, 7, 2, Hex("bfe6ff"), Hex("5a9ccc"), 1.4f); g.Flush();
+                g.R(13, 7, 8.5f, 9, 2.5f, Hex("eceae4"), navy); g.R(15.5f, 9, 4, 3, 0.8f, blue); g.Flush();
+                g.C(6.5f, 18, 2.6f, ink, Hex("8f949e"), 1.2f); g.C(17.5f, 18, 2.6f, ink, Hex("8f949e"), 1.2f); g.Flush(); break;
             default:
                 g.C(12, 12, 8, Hex("c3cfe6"), navy); g.Flush(); break;
         }

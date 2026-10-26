@@ -48,10 +48,14 @@ public class MissionBoard : MonoBehaviour
         // 살림
         new Kind{ id="bell",  group="econ",   icon="bell",   unit=0.12f, goal=t=>R50(GameState.I.BottlePrice*(60+20*t)), open=g=>true, name=n=>"벨 "+n.ToString("N0")+" 벌기" },
         new Kind{ id="up",    group="econ",   icon="up",     unit=3f,    goal=t=>2+t/4,      open=g=>UpsLeft(g)>=4,                             name=n=>"업그레이드 "+n+"번" },
+        // 우주(3·4장): 화물선 주문·수출 발사·연료
+        new Kind{ id="order", group="space",  icon="ship",   unit=6f,    goal=t=>2+t/4,      open=g=>g.PadLv("port")>=1,                         name=n=>"화물선 주문 "+n+"건" },
+        new Kind{ id="launch",group="space",  icon="rocket", unit=12f,   goal=t=>1+t/6,      open=g=>g.PadLv("launch")>=1,                       name=n=>"수출 발사 "+n+"번" },
+        new Kind{ id="fuel",  group="space",  icon="fuel",   unit=0.6f,  goal=t=>R5(20+4*t), open=g=>g.PadLv("fuel")>=1 || g.PadLv("canyon")>=1, name=n=>"연료 "+n+"개 만들기" },
     };
     // 아직 살 수 있는 업그레이드 레벨 수(발판·시트 스탯, 지금 조건이 열린 것만). 다 사 버렸으면 "업그레이드 n번" 미션은 낼 수 없다
     static int UpsLeft(GameState g) { int n = 0; foreach (var d in Pads.ALL) if (d.active && g.PadReq(d.id)) n += Mathf.Max(0, d.max - g.PadLv(d.id)); return n; }
-    static readonly string[] GROUPS = { "supply", "gather", "people", "econ" };
+    static readonly string[] GROUPS = { "supply", "gather", "people", "econ", "space" };
     static Kind Def(string id) { foreach (var k in KINDS) if (k.id == id) return k; return null; }
 
     /// 시트 표시용
@@ -177,6 +181,7 @@ public class MissionBoard : MonoBehaviour
         // 열린 종류가 있는 묶음 중 셋(물·얼음·정착민·벨은 늘 열려 있어 넷 다 후보) → 묶음마다 한 종류(새로 열린 것에 무게 2)
         var groups = new List<string>(GROUPS);
         Shuffle(groups, rnd);
+        if (G.PadLv("port") >= 1) { groups.Remove("space"); groups.Insert(0, "space"); }
         S.missions.Clear();
         int sum = 0, price = Mathf.Max(1, G.BottlePrice);
         foreach (var gname in groups)
@@ -201,6 +206,7 @@ public class MissionBoard : MonoBehaviour
         Changed(); G.Save();
     }
     static float Weight(Kind k) => k.id == "o2" || k.id == "food" || k.id == "rego" || k.id == "fert" || k.id == "vip" ? 2f : 1f;
+    // 우주항을 연 뒤엔 우주 묶음을 늘 셋 중 하나로(3·4장 하루가 기지 일만으로 채워지지 않게)
     static void Shuffle<T>(List<T> l, System.Random r) { for (int i = l.Count - 1; i > 0; i--) { int j = r.Next(i + 1); var t = l[i]; l[i] = l[j]; l[j] = t; } }
 
     // 진행도: 열린 발판(메뉴 스탯 제외) 수 / 3 + 정착 단계, 0~8

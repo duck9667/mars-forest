@@ -146,10 +146,10 @@ public static class Prim
 //  피벗은 모형 높이 ITEM_H 의 가운데(SyncStack 이 h/2 + 층×h 에 둔다). GAP 은 더미 간격 권장값(모형 발자국 + 틈)
 public static class Items
 {
-    public static readonly Dictionary<string, float> ITEM_H = new Dictionary<string, float> { { "ice", 5.2f }, { "bottle", 8.0f }, { "bill", 3.2f }, { "coin", 1.8f }, { "rego", 5.0f }, { "soil", 6.0f }, { "fert", 6.0f }, { "o2", 8.4f }, { "food", 5.6f } };
+    public static readonly Dictionary<string, float> ITEM_H = new Dictionary<string, float> { { "ice", 5.2f }, { "bottle", 8.0f }, { "bill", 3.2f }, { "coin", 1.8f }, { "rego", 5.0f }, { "soil", 6.0f }, { "fert", 6.0f }, { "o2", 8.4f }, { "food", 5.6f }, { "fuel", 7.2f } };
     static readonly Dictionary<string, Vector2> GAP = new Dictionary<string, Vector2> {
         { "ice", new Vector2(10.5f, 8.5f) }, { "bottle", new Vector2(7.6f, 7.6f) }, { "o2", new Vector2(7.4f, 7.4f) }, { "food", new Vector2(11.5f, 9.2f) },
-        { "soil", new Vector2(10.5f, 8.5f) }, { "fert", new Vector2(10.5f, 8.5f) }, { "rego", new Vector2(11.5f, 9.5f) }, { "bill", new Vector2(16f, 12f) }, { "coin", new Vector2(10f, 10f) } };
+        { "soil", new Vector2(10.5f, 8.5f) }, { "fert", new Vector2(10.5f, 8.5f) }, { "rego", new Vector2(11.5f, 9.5f) }, { "bill", new Vector2(16f, 12f) }, { "coin", new Vector2(10f, 10f) }, { "fuel", new Vector2(8.6f, 7.6f) } };
     public static Vector2 Gap(string kind) => GAP.TryGetValue(kind, out var g) ? g : new Vector2(15, 11);
     public static Color ColorOf(string kind)
     {
@@ -163,6 +163,7 @@ public static class Items
             case "fert": return GameConfig.FERT;
             case "o2": return GameConfig.O2;
             case "food": return GameConfig.FOOD;
+            case "fuel": return GameConfig.FUEL;
             default: return GameConfig.GOLD;
         }
     }
@@ -198,8 +199,10 @@ public static class Items
     public static readonly Color REGO_T = GameConfig.Hex("c45f3a"), REGO_M = GameConfig.Hex("9c3f26"), REGO_A = GameConfig.Hex("86351f"), REGO_D = GameConfig.Hex("5a2216");
     static readonly Color SOIL_L = GameConfig.Hex("86613f"), SOIL_D = GameConfig.Hex("553a27"), SOIL_TIE = GameConfig.Hex("d8b88a");
     static readonly Color FERT_L = GameConfig.Hex("a8c45e"), FERT_D = GameConfig.Hex("6f8a34"), FERT_TIE = GameConfig.Hex("f6e6d2");
+    // 연료통(3장): 초록 통 + 흰 띠 + 짙은 뚜껑(KayKit 초록 탱크 containers_A와 같은 계열)
+    static readonly Color FUEL_D = GameConfig.Hex("23845b"), FUEL_L = GameConfig.Hex("63d3a2"), FUEL_BAND = GameConfig.Hex("f2efe6"), FUEL_CAP = GameConfig.Hex("33403f");
 
-    public static Material MatOf(string kind) => kind == "ice" ? IceMat : kind == "bottle" || kind == "o2" ? ToyMesh.Mat(0.45f) : ToyMesh.Mat(0.1f);
+    public static Material MatOf(string kind) => kind == "ice" ? IceMat : kind == "bottle" || kind == "o2" || kind == "fuel" ? ToyMesh.Mat(0.45f) : ToyMesh.Mat(0.1f);
     // 얼음 재질(r6): 뒤가 비치는 불투명 얼음(Shaders/MarsIce: 비침·속 깊이·가장자리 밝힘). 셰이더가 없으면 예전 정점 색 재질
     static Material _ice; static bool iceTried;
     public static Material IceMat
@@ -252,6 +255,12 @@ public static class Items
             case "rego":     // 레골리스: 붉은 저폴리 돌 + 작은 조각
                 m.At(0, y0 + 1.4f, 0).Blob(new Vector3(5f, 2.7f, 4f), 1, 7, 0.2f, REGO_T, REGO_M, REGO_D, REGO_A, 0.5f);
                 m.At(3.4f, y0 + 1.0f, -2f).Blob(new Vector3(2.2f, 1.6f, 2f), 0, 9, 0.2f, REGO_T, REGO_A, REGO_D);
+                return m;
+            case "fuel":     // 연료통: 둥글게 깎은 초록 통 + 흰 띠 + 짙은 뚜껑·손잡이
+                m.At(0, y0 + 2.6f, 0).Bevel(new Vector3(6.4f, 5.2f, 4.4f), 1.1f, GameConfig.FUEL, FUEL_D, FUEL_L, FUEL_L, GameConfig.FUEL);
+                m.At(0, y0 + 2.4f, 0).Box(new Vector3(6.55f, 1.1f, 4.55f), FUEL_BAND);
+                m.At(1.4f, y0 + 5.2f, 0).Cyl(0.9f, 0.9f, 1.2f, 8, FUEL_CAP, FUEL_CAP);
+                m.At(-1.2f, y0 + 5.5f, 0).Box(new Vector3(2.4f, 0.8f, 1.0f), FUEL_CAP);
                 return m;
             case "ice":      // 얼음: 깎은 하늘색 덩어리(가운데 진하고 모서리 흰빛)
                 m.At(0, -0.2f, 0).Bevel(new Vector3(9, 4.6f, 7), 0.9f, ICE_FACE, ICE_CORE, ICE_EDGE, ICE_TOP, ICE_TOP_CORE).Glint(new Vector3(9, 4.6f, 7), ICE_GLINT);
@@ -308,6 +317,14 @@ public static class Items
                     m.At(new Vector3(7.6f, -0.2f, s * 3.2f), new Vector3(0, 0, -90)).Cyl(1f, 1f, 1.4f, 8, O2_VALVE, O2_VALVE);
                 }
                 m.At(0, -0.2f, 0).Box(new Vector3(3.2f, h - 0.2f, 13.6f), O2_BAND);
+                return m;
+            case "fuel":     // 연료통 둘을 나란히(초록 통 + 흰 띠, 위에 짙은 뚜껑)
+                for (int i = -1; i <= 1; i += 2)
+                {
+                    m.At(i * 4.3f, -0.3f, 0).Bevel(new Vector3(8f, h - 0.6f, 12f), 1.4f, GameConfig.FUEL, FUEL_D, FUEL_L, FUEL_L, GameConfig.FUEL);
+                    m.At(i * 4.3f, -0.4f, 0).Box(new Vector3(8.15f, 1.0f, 12.15f), FUEL_BAND);
+                    m.At(i * 4.3f, h / 2 - 0.4f, 3.2f).Cyl(1.1f, 1.1f, 0.9f, 8, FUEL_CAP, FUEL_CAP);
+                }
                 return m;
             case "food":     // 노란 나무 상자 + 감자 6알. KayKit 통일(r7)에선 Restaurant 감자 상자(crate_potatoes)를 등짐 블록 크기로
                 if (KK.On) { m.At(0, y0, 0).Kk("crate_potatoes", new Vector3(8.5f, h / 0.97f, 6.25f)); return m; }

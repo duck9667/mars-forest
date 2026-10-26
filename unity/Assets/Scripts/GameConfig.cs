@@ -77,6 +77,7 @@ public static class GameConfig
     public static readonly Color FERT = Hex("8fae4a");   // 비료
     public static readonly Color O2 = Hex("e9f4ff");     // 산소통
     public static readonly Color FOOD = Hex("f2b33d");   // 식량
+    public static readonly Color FUEL = Hex("34b37e");   // 연료통(3장 우주항, KayKit 초록 탱크와 같은 계열)
     public const int SETTLE_Q_CAP = 40, SETTLE_OUT_CAP = 24;
     public const float ELEC_T = 1.4f, PURIF_T = 1.2f, MIXER_T = 1.4f, GREEN_T = 2.0f;
     public const int REGO_SPOTS = 8;
@@ -145,7 +146,24 @@ public static class Pads
         //  주택 증축: 레벨마다 집마다 +1명(인구 상한 32 → 40 → 48 → 56)·세금 +50%·도착 간격 단축 상한 +5%(Frontier). 기존 집 모형이 조금 높아진다
         //  이주 준비금: 레벨마다 다음 정착지를 벨 FUND_STEP씩 들고 시작(PrestigeManager가 이주 때 넣는다). 이주하면 레벨은 다른 발판처럼 0
         new PadDef{ id="habx",    name="주택 증축",      icon="🏠", pos=Vector2.zero, cost=l=>6000f*Mathf.Pow(2f,l), max=3, req=g=>g.PadLv("hab")>=1 && g.S.stage>=8, reqText="기지 정비", menu=true, active=true },
-        new PadDef{ id="fund",    name="이주 준비금",    icon="🚀", pos=Vector2.zero, cost=l=>10000f*Mathf.Pow(1.5f,l), max=5, req=g=>g.PadLv("hq")>=5, reqText="본부 Lv5", menu=true, active=true },
+        //  이주 준비금(fund)은 3장부터 쓰지 않는다(이주를 화면에서 뺐다, docs/chapter3-design.md). 옛 저장 레벨은 RegionWorld가 한 번 벨로 돌려준다
+        new PadDef{ id="fund",    name="이주 준비금",    icon="🚀", pos=Vector2.zero, cost=l=>10000f*Mathf.Pow(1.5f,l), max=5, req=g=>g.PadLv("hq")>=5, reqText="본부 Lv5", menu=true, active=false },
+        // ---- 3장 우주항 (docs/chapter3-design.md): 1번 도로 → 우주항 → 연료 공장·발사대·착륙장·관제탑 ----
+        new PadDef{ id="road1",   name="1번 도로",      icon="🛣", pos=new Vector2(414,416),  cost=l=>20000f, max=1, req=g=>g.S.stage>=10, reqText="2장 마을 선포", zone=true, active=true },
+        new PadDef{ id="port",    name="우주항",        icon="🚀", pos=new Vector2(612,416),  cost=l=>30000f, max=1, req=g=>g.PadLv("road1")>=1, reqText="1번 도로", zone=true, active=true },
+        new PadDef{ id="fuel",    name="연료 공장",      icon="⛽", pos=new Vector2(735,520),  cost=l=>25000f, max=1, req=g=>g.PadLv("port")>=1 && g.S.stage>=11, reqText="첫 화물선", zone=true, active=true },
+        new PadDef{ id="launch",  name="발사대",        icon="🚀", pos=new Vector2(880,560),  cost=l=>40000f, max=1, req=g=>g.PadLv("fuel")>=1 && g.S.stage>=12, reqText="연료 생산", zone=true, active=true },
+        new PadDef{ id="pad2",    name="착륙장 B",      icon="🛸", pos=new Vector2(865,300),  cost=l=>30000f, max=1, req=g=>g.PadLv("port")>=1 && g.S.stage>=13, reqText="첫 수출", zone=true, active=true },
+        new PadDef{ id="tower",   name="관제탑",        icon="📡", pos=new Vector2(1020,484), cost=l=>25000f*Mathf.Pow(1.6f,l), max=3, req=g=>g.PadLv("port")>=1 && g.S.stage>=13+Mathf.Min(1,g.PadLv("tower")), reqText="첫 수출", zone=true, active=true },
+        new PadDef{ id="pad3",    name="착륙장 C",      icon="🛸", pos=new Vector2(990,300),  cost=l=>40000f, max=1, req=g=>g.PadLv("pad2")>=1 && g.S.stage>=14, reqText="정기 항로", zone=true, active=true },
+        // ---- 4장 얼음 협곡: 2번 도로 → 협곡(광맥·정제소) → 채굴 로버 ----
+        new PadDef{ id="road2",   name="2번 도로",      icon="🛣", pos=new Vector2(1108,416), cost=l=>40000f, max=1, req=g=>g.PadLv("port")>=1 && g.S.stage>=15, reqText="우주항 개항", zone=true, active=true },
+        new PadDef{ id="canyon",  name="얼음 협곡",      icon="🧊", pos=new Vector2(1212,416), cost=l=>50000f, max=1, req=g=>g.PadLv("road2")>=1, reqText="2번 도로", zone=true, active=true },
+        new PadDef{ id="rover",   name="채굴 로버",      icon="🚙", pos=new Vector2(1452,470), cost=l=>40000f*Mathf.Pow(1.6f,l), max=3, req=g=>g.PadLv("canyon")>=1 && g.S.stage>=17+g.PadLv("rover"), reqText="협곡 연료", zone=true, active=true },
+        // 시트 전용 속도(3·4장): 연료 공장·정제소 처리 시간 ÷(1 + 0.3×Lv)
+        new PadDef{ id="fuelspd", name="연료 공장 속도",  icon="⛽", pos=Vector2.zero, cost=l=>3000f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("fuel")>=1, reqText="연료 공장", menu=true, active=true },
+        new PadDef{ id="drillspd",name="드릴 속도",     icon="⛏", pos=Vector2.zero, cost=l=>20000f*Mathf.Pow(1.8f,l), max=3, req=g=>g.PadLv("port")>=1 && g.PadLv("drill")>=1, reqText="우주항", menu=true, active=true },
+        new PadDef{ id="refspd",  name="정제소 속도",    icon="🧊", pos=Vector2.zero, cost=l=>5000f*Mathf.Pow(1.8f,l), max=5, req=g=>g.PadLv("canyon")>=1, reqText="얼음 협곡", menu=true, active=true },
     };
     public const int FUND_STEP = 1500;   // 이주 준비금 한 레벨 = 새 정착지 시작 벨(Lv5 7,500: 1장 초반 발판 몇 개를 바로 살 만큼)
     // 시트 전용 시설 속도 발판(SettleStations 시설 순서: 전기분해기·정화기·배합기·온실)
@@ -158,7 +176,9 @@ public static class Pads
         // 1장: 물(삐걱·병입기·얼음밭·해빙기) → 산소(전기분해기) → 가게 손(선반·뽀삐·간판) → 흙·비료(채굴장·토양 공장) → 식량(온실) → 쉼터(우리·돔)
         "cashier","bottler","ice2","melter","o2","shelf","runner","ads","bottler","mine","melter","soil","farm","ads","drill","pen","shelf","dome",
         // 2장(태양광·거주 구역·본부는 정착 단계로 잠겨 있다가 열림): 전력 → 본부 → 거주 → 본부 …
-        "solar","hq","hab","hq","runspd","bottler","melter","hq","runner2","ads","shelf","runspd","bottler","melter","hq","runspd","ads","bottler","melter","runspd","shelf","hq"
+        "solar","hq","hab","hq","runspd","bottler","melter","hq","runner2","ads","shelf","runspd","bottler","melter","hq","runspd","ads","bottler","melter","runspd","shelf","hq",
+        // 3장 우주항 → 4장 얼음 협곡(길·지역은 장 단계로 잠겨 있다가 열림)
+        "road1","port","fuel","launch","pad2","tower","tower","tower","pad3","road2","canyon","rover","rover","rover"
     };
 
     static Dictionary<string, PadDef> _byId;
