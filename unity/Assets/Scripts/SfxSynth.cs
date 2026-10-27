@@ -23,11 +23,12 @@ public static class SfxSynth
     static float N() => (float)(rng.NextDouble() * 2 - 1);
     static float R(float a, float b) => a + (float)rng.NextDouble() * (b - a);
 
-    // 효과음 13개: 첫 소리가 바로 나야 하니 AudioManager.Awake에서 동기로 한 번
+    // 효과음 15개: 첫 소리가 바로 나야 하니 AudioManager.Awake에서 동기로 한 번.
+    // 새 소리는 목록 끝에만 붙인다(고정 시드 난수를 차례로 쓰므로 앞 소리들이 그대로 남는다)
     public static List<Snd> BuildSfx()
     {
         rng = new Random(9667);
-        return new List<Snd> { Pick(), Put(), Coin(), Sell(), Ding(), Tick(), Pad(), Up(), No(), Pop(), Whoosh(), Clack(), Drip() };
+        return new List<Snd> { Pick(), Put(), Coin(), Sell(), Ding(), Tick(), Pad(), Up(), No(), Pop(), Whoosh(), Clack(), Drip(), Sputter(), Weld() };
     }
 
     // 배경 루프 5개: 길어서 백그라운드 스레드에서 한 번(메인 스레드 멈춤 없음). 클립 변환은 메인 스레드가 한다
@@ -266,6 +267,29 @@ public static class SfxSynth
         var b = new B(0.08f, SR);
         b.Sweep(0f, 0.08f, t => 800f + 900f * (1f - Ex(t, 0.012f)), 1f, 0.022f, 0.001f);
         return S("drip", b.Done(), SR);
+    }
+
+    // 콜록(고장 난 우주선 엔진, CrashShip): 낮게 눌린 잡음 터짐 셋이 점점 약해지고 밑에 툭 떨어지는 저음
+    static Snd Sputter()
+    {
+        var b = new B(0.3f, SR);
+        float[] at = { 0f, 0.075f, 0.16f }; float[] amp = { 1f, 0.7f, 0.45f };
+        for (int i = 0; i < at.Length; i++)
+        {
+            b.Noise(at[i], 0.07f, amp[i], 0.024f, 900f, 90f);
+            b.Sweep(at[i], 0.07f, t => 120f * (1f + 0.6f * Ex(t, 0.012f)), 0.55f * amp[i], 0.03f, 0.002f, 0.2f);
+        }
+        return S("sputter", b.Done(), SR);
+    }
+
+    // 용접 지직(수리 불티, CrashShip): 높은 잡음 알갱이가 0.16초 동안 불규칙하게 튀고 끝에 가는 쉬익
+    static Snd Weld()
+    {
+        var b = new B(0.2f, SR);
+        float t0 = 0f;
+        for (int i = 0; i < 9; i++) { b.Noise(t0, 0.012f, R(0.4f, 1f), 0.004f, 9000f, 2600f); t0 += R(0.008f, 0.02f); }
+        b.Noise(0.02f, 0.16f, 0.22f, 0.06f, 7000f, 3200f);
+        return S("weld", b.Done(), SR);
     }
 
     // ───────── 배경 루프 ─────────

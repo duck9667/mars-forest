@@ -21,6 +21,7 @@ public class AudioManager : MonoBehaviour
     {
         { "pick", 0.8f }, { "put", 0.75f }, { "coin", 0.55f }, { "sell", 0.6f }, { "ding", 0.5f }, { "tick", 0.7f }, { "pad", 0.6f },
         { "up", 0.55f }, { "no", 0.45f }, { "pop", 0.6f }, { "whoosh", 0.45f }, { "clack", 0.6f }, { "drip", 0.45f },
+        { "sputter", 0.55f }, { "weld", 0.35f },   // 고장 난 우주선 엔진 콜록·수리 용접(CrashShip)
     };
     // 별칭: 의미 이름 → 합성 클립
     static readonly Dictionary<string, string> ALIAS = new Dictionary<string, string>

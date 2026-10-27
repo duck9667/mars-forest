@@ -60,7 +60,7 @@ public class SettlementManager : MonoBehaviour
     public const int MISSION_GOAL = 5;   // 9단계: 8단계 뒤 끝낸 하루 미션 수(하루 3개 중 2개 안팎 → 2~3일)
     // 3·4장 목표 수치(진행 속도 측정으로 맞춤, docs/pacing-report.md "3·4장")
     public const int FUEL_GOAL = 40, ORDERS_14 = 12, ORDERS_15 = 24, LAUNCH_15 = 6, ARRIVE_15 = 90;
-    public const int VEIN_GOAL = 40, REF_17 = 60, HAUL_18 = 150, LAUNCH_19 = 12, ORDERS_19 = 30, REF_20 = 400, LAUNCH_20 = 20, ARRIVE_20 = 150;
+    public const int VEIN_GOAL = 40, REF_17 = 200, HAUL_18 = 150, LAUNCH_19 = 12, ORDERS_19 = 30, REF_20 = 400, LAUNCH_20 = 20, ARRIVE_20 = 150;
 
     /// 단계 항목 하나: 이름·현재·목표. bin = 설치형(0/1, 진행 막대 대신 체크)
     public struct Item
