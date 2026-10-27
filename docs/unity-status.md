@@ -19,7 +19,7 @@
 
 ## How To Build And Install
 - 맥에서 바로 해 보기: `./tools/unity-qa.sh`로 맥 빌드를 만들고 `open -n unity/Builds/Mac/MarsBottle.app --args -save play`로 띄운다(마우스 드래그·WASD 이동, 휠 확대). `-save 이름`으로 저장을 나눌 수 있다.
-- 아이폰 설치: 폰을 케이블로 연결하고 잠금을 푼 뒤 `./tools/ios-install.sh`. Unity iOS 빌드 → 서명 없이 xcodebuild → 받아 둔 개발 프로파일로 직접 서명 → `devicectl` 설치까지 한 번에 한다(약 10분). 프로파일(com.jakekwak.marsforest)은 2026-10-30에 만료되고, 만료 뒤나 다른 맥에서는 Xcode에 Apple ID로 로그인해 자동 서명 빌드를 한 번 해서 새 프로파일을 받아야 한다(무료).
+- 아이폰 설치: 폰을 케이블로 연결하고 잠금을 푼 뒤 `./tools/ios-install.sh`. Unity iOS 빌드 → 서명 없이 xcodebuild → 받아 둔 개발 프로파일로 직접 서명 → `devicectl` 설치까지 한 번에 한다(약 10분). 무료 서명 프로파일은 7일짜리다. 2026-10-27부터 이 맥의 Xcode에 Apple ID가 로그인돼 있어서, 설치 스크립트가 프로파일 만료 48시간 전부터 자동 서명 빌드로 새 프로파일을 받아 쓴다(지금 프로파일은 2026-11-03 만료).
 - 자동 검증: `QA_ARGS="..." ./tools/unity-qa.sh`는 앱을 숨김·무음으로 띄워 자동 플레이 봇을 돌리고 스크린샷을 남긴다. 인자 목록은 `unity/README.md`.
 
 ## Known Gaps

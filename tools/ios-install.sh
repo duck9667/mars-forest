@@ -5,7 +5,8 @@
 #   3) 번들 ID에 맞는 프로파일을 찾아 embedded.mobileprovision + codesign(프레임워크 → 앱, 프로파일 entitlements)
 #   4) devicectl로 설치
 # 사용: tools/ios-install.sh [기기 UDID]   BUNDLE_ID 기본 com.jakekwak.marsforest
-# 프로파일이 만료됐으면 Xcode 계정으로 한 번 자동 서명 빌드를 해서 새 프로파일을 받아야 한다(Xcode → 설정 → Accounts).
+# 프로파일이 48시간 안에 만료되면 Xcode 계정(Xcode → 설정 → Accounts, 한 번 로그인해 두면 됨)으로 자동 서명 빌드를 돌려 새 프로파일(7일)을 받는다.
+#   팀 ID는 TEAM_ID(기본 SXH247VWQA).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUNDLE_ID="${BUNDLE_ID:-com.jakekwak.marsforest}"
@@ -15,13 +16,33 @@ UDID="${1:-$(xcrun devicectl list devices 2>/dev/null | awk '/physical/ {for(i=1
 [ -n "$UDID" ] || { echo "실기기를 찾지 못했어요"; exit 1; }
 
 # 번들 ID에 맞는 가장 늦게 만료되는 프로파일
-PROF=""; LATEST=""
-for f in "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"/*.mobileprovision; do
-  [ -f "$f" ] || continue
-  id=$(security cms -D -i "$f" 2>/dev/null | plutil -extract Entitlements.application-identifier raw -o - - 2>/dev/null || true)
-  exp=$(security cms -D -i "$f" 2>/dev/null | plutil -extract ExpirationDate raw -o - - 2>/dev/null || true)
-  if [[ "$id" == *".$BUNDLE_ID" ]] && [[ "$exp" > "$LATEST" ]]; then PROF="$f"; LATEST="$exp"; fi
-done
+PD="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+pick_profile() {
+  PROF=""; LATEST=""; MATCH=()
+  for f in "$PD"/*.mobileprovision; do
+    [ -f "$f" ] || continue
+    id=$(security cms -D -i "$f" 2>/dev/null | plutil -extract Entitlements.application-identifier raw -o - - 2>/dev/null || true)
+    exp=$(security cms -D -i "$f" 2>/dev/null | plutil -extract ExpirationDate raw -o - - 2>/dev/null || true)
+    [[ "$id" == *".$BUNDLE_ID" ]] || continue
+    MATCH+=("$f")
+    if [[ "$exp" > "$LATEST" ]]; then PROF="$f"; LATEST="$exp"; fi
+  done
+}
+pick_profile
+# 48시간 안에 만료되면 새로 받기: 기존 것을 잠시 치워야 Xcode가 새 프로파일을 만든다. 실패하면 되돌린다.
+SOON="$(date -u -v+48H +%Y-%m-%dT%H:%M:%SZ)"
+if [[ -z "$LATEST" || "$LATEST" < "$SOON" ]] && [ -d "$ROOT/unity/Builds/iOS/Unity-iPhone.xcodeproj" ]; then
+  echo "== 프로파일 갱신(만료 ${LATEST:-없음})"
+  BK="$(mktemp -d)"; for f in "${MATCH[@]}"; do mv "$f" "$BK/"; done
+  if xcodebuild -project "$ROOT/unity/Builds/iOS/Unity-iPhone.xcodeproj" -scheme Unity-iPhone -configuration Release -destination 'generic/platform=iOS' \
+      -derivedDataPath "$(mktemp -d)" -allowProvisioningUpdates -allowProvisioningDeviceRegistration CODE_SIGN_STYLE=Automatic \
+      DEVELOPMENT_TEAM="${TEAM_ID:-SXH247VWQA}" PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" CODE_SIGN_IDENTITY="Apple Development" build > "$ROOT/unity/Logs/xcodebuild-profile.log" 2>&1; then
+    rm -rf "$BK"
+  else
+    echo "프로파일 갱신 실패(Xcode에 Apple ID 로그인 필요할 수 있음): unity/Logs/xcodebuild-profile.log"; mv "$BK"/* "$PD/" 2>/dev/null || true
+  fi
+  pick_profile
+fi
 [ -n "$PROF" ] || { echo "$BUNDLE_ID 프로파일이 없어요(Xcode 로그인 후 자동 서명 빌드 한 번 필요)"; exit 1; }
 [[ "$LATEST" > "$(date -u +%Y-%m-%dT%H:%M:%SZ)" ]] || { echo "프로파일 만료: $LATEST"; exit 1; }
 IDENT="$(security find-identity -v -p codesigning | grep -v REVOKED | grep 'Apple Development' | head -1 | awk '{print $2}')"
