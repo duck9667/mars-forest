@@ -64,6 +64,15 @@ public class HintSystem : MonoBehaviour
             string kid = PadManager.I.visOrder[0]; var kd = Pads.Get(kid);
             if ((kd.zone || kid == "hq") && S.bells >= G.PadRemain(kid)) { targetKey = "pad:" + kid; return kd.pos; }
         }
+        // 3장 12단계(연료 생산)가 지금 목표면 연료 공장에 얼음 넣기가 먼저. SpacePort.Hint는 화물선이 물을 기다리면(물이 바닥나 있으면) 얼음을 해빙기로 돌려서
+        //  3장 내내 물이 바닥인 판에선 연료 40개가 2~13분으로 들쭉날쭉했다(3·4장 측정 10/27, docs/pacing-report.md)
+        if (S.stage == 11 && SpacePort.I != null && SpacePort.I.FuelBuilt && !full)
+        {
+            int left = SettlementManager.FUEL_GOAL - S.fuelMade - S.fuelQ;
+            int hi = G.HeldAll("ice");
+            if (left > 0 && hi > 0 && (hi >= Mathf.Min(left, GameConfig.ICE_BATCH) || !anyOpen)) { targetKey = "fuel"; delivering = true; return SpacePort.FUEL_PT; }
+            if (left > hi && anyOpen) return Ice();
+        }
         // 3·4장 지역 일(화물선 주문·연료 공장·발사대·정제소·광맥): 있으면 그게 먼저, 없으면 아래 기지 일
         if (S.stage >= 10 && SpacePort.Hint(Player.I.pos, out var rp, out var rk, out var rd)) { targetKey = rk; delivering = rd; return rp; }
         var ss = SettleStations.I;

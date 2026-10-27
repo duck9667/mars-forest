@@ -113,6 +113,25 @@ public class DevTools : MonoBehaviour
         Debug.Log("pace stage t=" + t.ToString("0") + " stage=" + st + " bells=" + G.S.bells.ToString("0") + " custs=" + G.S.custs + " pop=" + G.S.pop + " idle=" + idleT.ToString("0") + " padWait=" + padWaitT.ToString("0") + " " + IncomeStr());
         if (quitStage > 0 && st >= quitStage && !quitting) { quitting = true; StartCoroutine(QuitSoon()); }
     }
+    // 지역 누계 한 줄: 연료 공장 큐/출력/생산·로켓 연료·주문·발사·새 정착민·화물선 상태(착륙장마다 state)·정제소·광맥·로버
+    string SpaceStr()
+    {
+        var S = G.S; var sb = new System.Text.StringBuilder();
+        sb.Append("fuel=").Append(S.fuelQ).Append('/').Append(S.fuelOut).Append('/').Append(S.fuelMade).Append(" rocket=").Append(S.rocketFuel).Append(S.rocketT > 0 ? "b" : "")
+          .Append(" orders=").Append(S.orders).Append(" launches=").Append(S.launches).Append(" arrivals=").Append(S.arrivals).Append(" ships=");
+        foreach (var sh in S.ships) sb.Append(sh.state);
+        sb.Append(" ref=").Append(S.refQ).Append('/').Append(S.refOut).Append('/').Append(S.refMade).Append(" vein=").Append(S.veinPicked).Append(" hauled=").Append(S.roverHauled)
+          .Append(" water=").Append(S.water).Append(" bottles=").Append(S.bottles).Append(" elecOut=").Append(S.elecOut).Append(" grnOut=").Append(S.grnOut).Append(" bag=[").Append(G.CarrySummary()).Append(']');
+        return sb.ToString();
+    }
+    static readonly Dictionary<string, float> tgtT = new Dictionary<string, float>();
+    static string TgtStr()
+    {
+        var l = new List<KeyValuePair<string, float>>(tgtT); l.Sort((a, b) => b.Value.CompareTo(a.Value));
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < l.Count && i < 8; i++) sb.Append(l[i].Key).Append('=').Append(l[i].Value.ToString("0")).Append(' ');
+        return sb.ToString();
+    }
     static string IncomeStr()
     {
         var sb = new System.Text.StringBuilder("income");
@@ -126,7 +145,13 @@ public class DevTools : MonoBehaviour
         if (!h.hasTarget) idleT += Time.deltaTime;
         if (G.S.bells < 1f && !pl.walking && PadManager.I != null && PadManager.I.NearestVisible(pl.pos) is var v && v != null && Vector2.Distance(pl.pos, v.def.pos) < GameConfig.R_PAD) padWaitT += Time.deltaTime;
         int m = Mathf.FloorToInt(t / 60f);
-        if (m != lastEconMin) { lastEconMin = m; Debug.Log("pace min=" + m + " bells=" + G.S.bells.ToString("0") + " stage=" + G.S.stage + " price=" + G.BottlePrice + " custs=" + G.S.custs + " lost=" + G.S.lost + " pop=" + G.S.pop + " idle=" + idleT.ToString("0") + " padWait=" + padWaitT.ToString("0") + " " + IncomeStr()); }
+        if (m != lastEconMin)
+        {
+            lastEconMin = m; Debug.Log("pace min=" + m + " bells=" + G.S.bells.ToString("0") + " stage=" + G.S.stage + " price=" + G.BottlePrice + " custs=" + G.S.custs + " lost=" + G.S.lost + " pop=" + G.S.pop + " idle=" + idleT.ToString("0") + " padWait=" + padWaitT.ToString("0") + " " + IncomeStr());
+            // 3·4장 측정(10/27): 지역 누계와 지난 1분 동안 봇이 향한 일(키 앞부분별 게임 초)
+            if (G.S.stage >= 10) Debug.Log("pace space min=" + m + " " + SpaceStr() + " tgt " + TgtStr());
+            tgtT.Clear();
+        }
     }
 
     int frames; float fpsT, diagT, lastReal;
@@ -215,6 +240,7 @@ public class DevTools : MonoBehaviour
             foreach (var id in PadManager.I.visOrder)
                 if (G.S.bells >= G.PadRemain(id)) { target = Pads.Get(id).pos; key = "pad:" + id; break; }
         }
+        { int c = key.IndexOf(':'); string tk = c > 0 ? key.Substring(0, c) : key == "" ? "none" : key; if (!h.hasTarget && !key.StartsWith("pad:")) tk = "idle"; tgtT[tk] = (tgtT.TryGetValue(tk, out var tv) ? tv : 0f) + Time.deltaTime; }
         Vector2 d = target - pl.pos; float dist = d.magnitude;
         float stop = key.StartsWith("pad:") ? 12f : key.StartsWith("ice:") || key.StartsWith("rego:") ? 18f : 12f;
         JamGuard(key, dist, stop);
