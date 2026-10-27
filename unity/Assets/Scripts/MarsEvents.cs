@@ -2,17 +2,19 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// 화성 이벤트: 가끔 일어나는 작은 사건 3종으로 하루에 변화를 준다.
+// 화성 이벤트: 가끔 일어나는 작은 사건 4종으로 하루에 변화를 준다.
 //  · 조건: 튜토리얼이 끝나고(S.tut ≥ 3) 판매 20 이후. 220~380초마다 한 번 판정해 75%로 발생(화성 하루 300초에 대략 0~1번), 같은 이벤트 연속 금지, 한 번에 하나.
 //  · 먼지 폭풍(40~60초): 화면이 살짝 탁해지고(PostFX 채도·대비·비네트 소폭, 해 조금 흐리게, 번쩍임 없음) 지면 가까이 옅은 먼지 띠 몇 줄이 화면 위·아래 가장자리로 흐른다.
 //    태양광 발전·충전 정지(Frontier 전력 배율 1), 플레이어 이동 −15%(GameState.Speed). 시작 4초·끝 6초에 걸쳐 서서히. 시작에 아이콘 알약(글자 없음).
-//  · 보급선: 착륙장 북서쪽에 작은 보급 캡슐이 낙하산으로 내려앉는다. 닿으면 벨 + 물통 8개가 등짐으로(못 담는 몫은 벨로),
+//  · 보급선: 지구 화물선이 하늘을 낮게 가로지르다 머리 위에서 보급 캡슐을 떨군다(r10). 캡슐은 착륙장 북서쪽에 낙하산으로 내려앉는다
+//    (3장 이후 플레이어가 기지 동쪽에 있으면 그 둘레 빈터에, 이때는 물통만). 닿으면 벨 + 물통 8개가 등짐으로(못 담는 몫은 벨로),
 //    토양 공장이 있으면 반은 레골리스 묶음 8개가 토양 정화기로 바로 날아간다(등짐에 실으면 북쪽 생산 체인으로 끌려가 가게가 빈다). 60초 지나면 사라짐.
 //  · 운석: 채굴장·개척지 등 열린 북쪽 구역(없으면 기지 근처) 빈 땅에 작은 운석이 떨어져(약한 흔들림) 얼음 박힌 덩어리가 남는다.
 //    닿으면 얼음 16장이 해빙기로(해빙기 큐가 이미 많으면 벨). 90초 뒤 사라짐.
+//  · 불시착(3장 이후, 기지 동쪽에서만): 고장 난 우주선이 연기 꼬리를 끌고 빈터에 내려앉는다. 수리 물건을 채우면 정착민·벨, 이륙(CrashShip.cs).
 // 보급 캡슐·운석은 HintSystem 우선순위 위쪽에 잠깐 끼어 화살표·링으로만 위치를 알린다(라벨·말풍선 없음).
 // 진행 중 이벤트는 저장하지 않는다(앱을 다시 켜면 없음). 저장은 다음 판정까지 남은 초 S.evNext 하나.
-// 검증 인자: -event storm|supply|meteor [초] (그 초에 바로 발생, 조건 무시. 초 생략 시 1초)
+// 검증 인자: -event storm|supply|meteor|crash|orbit [초] (그 초에 바로 발생, 조건 무시. 초 생략 시 1초. orbit은 SpaceSky 궤도 풍경을 바로 띄움)
 public class MarsEvents : MonoBehaviour
 {
     public static MarsEvents I;
@@ -26,7 +28,9 @@ public class MarsEvents : MonoBehaviour
     public bool PickupTarget(out Vector2 p)
     {
         p = cur != null ? cur.pos : Vector2.zero;
-        return cur != null && cur.ready && !cur.done;
+        if (cur != null && cur.ready && !cur.done) return true;
+        // 불시착 우주선: 수리 물건을 들고 있을 때만(안 들었으면 칩만 보고 평소 일을 하다 가져온다)
+        return CrashShip.I != null && CrashShip.I.HintTarget(out p);
     }
 
     // ---- 수치 ----
@@ -54,12 +58,16 @@ public class MarsEvents : MonoBehaviour
     bool storming, stormEndSaid; float stormT, stormLen, stormK;
     class Pickup { public string kind, reward; public Vector2 pos; public Transform root, lid; public float t, life; public bool ready, done; public readonly List<Material> sparkle = new List<Material>(); }
     Pickup cur;
-    public bool Active => storming || cur != null;
+    public bool Active => storming || cur != null || (CrashShip.I != null && CrashShip.I.Active);
     static bool argDone; string devKind; float devAt, devT;
     bool qaLog;
     readonly List<Material> owned = new List<Material>();
 
-    void Awake() { I = this; }
+    void Awake()
+    {
+        I = this;
+        if (GetComponent<CrashShip>() == null) gameObject.AddComponent<CrashShip>();   // 불시착 우주선(같은 오브젝트, Bootstrap은 그대로)
+    }
 
     void Start()
     {
@@ -115,6 +123,8 @@ public class MarsEvents : MonoBehaviour
     string PickKind()
     {
         var l = new List<string>(); foreach (var k in KINDS) if (k != lastKind) l.Add(k);
+        // 3장 이후 기지 동쪽에선 불시착이 끼고, 우주 쪽 사건이 더 자주 보이게 두 몫
+        if (lastKind != "crash" && CrashShip.Eligible) { l.Add("crash"); l.Add("crash"); }
         return l[Random.Range(0, l.Count)];
     }
 
@@ -123,6 +133,8 @@ public class MarsEvents : MonoBehaviour
         if (kind == "storm") { if (!storming) StartStorm(); }
         else if (kind == "supply") { if (cur == null) StartCoroutine(CoSupply()); }
         else if (kind == "meteor") { if (cur == null) StartCoroutine(CoMeteor()); }
+        else if (kind == "crash") { CrashShip.I?.Begin(); }
+        else if (kind == "orbit") { SpaceSky.I?.DevOrbit(); return; }
         else { Debug.LogWarning("event: 모르는 이벤트 " + kind); return; }
         lastKind = kind;
         Debug.Log("event: " + kind + " 시작 (sold=" + S.sold + " day=" + S.day + ")");
@@ -296,10 +308,67 @@ public class MarsEvents : MonoBehaviour
     }
 
     // ---- 보급선 ----
+    // 떨굴 자리: 3장 이후 플레이어가 기지 동쪽(1번 도로·우주항·협곡)에 있으면 그 둘레 빈터(불시착과 같은 규칙), 아니면 기지 착륙장 북서쪽
+    Vector2 SupplySpot(out bool east)
+    {
+        east = false;
+        var pl = Player.I;
+        if (S.stage >= 10 && pl != null && pl.pos.x > Regions.EAST_X + 40f && CrashShip.FindSpot(pl.pos, out var q)) { east = true; return q; }
+        return SUPPLY_POS;
+    }
+
+    // 지구 화물선(우주항 화물선과 같은 금빛 돔 착륙선): 서쪽 밖 → 떨굴 자리 위(감속) → 0.4초 멈춤. 떠나는 길은 따로(캡슐 하강과 겹쳐서)
+    const float FREIGHT_H = 190f;   // 더 높으면 화면 맨 위 HUD 뒤로 숨는다
+    IEnumerator CoFreighterIn(Vector2 at)
+    {
+        var fr = new GameObject("freighter").transform; fr.SetParent(transform, false);
+        var tiltT = new GameObject("tilt").transform; tiltT.SetParent(fr, false);
+        var body = RegionDress.Put(tiltT, "body", RegionDress.Ship(), 0.25f); Prim.NoShadow(body);
+        var fl = new GameObject("flame").transform; fl.SetParent(tiltT, false); fl.localPosition = new Vector3(0, RegionDress.SHIP_ENGINE_H * GameConfig.K, 0);
+        var fc = RegionDress.Put(fl, "cone", RegionDress.ShipFlames(), 0f, 1f); Prim.NoShadow(fc);
+        fl.localScale = Vector3.one * 0.45f;
+        var sh = Prim.BlobShadow(transform, 60); sh.transform.localScale = new Vector3(60, 0.2f, 60) * GameConfig.K * 0.55f;
+        Vector2 a = at + new Vector2(-330f, -30f);
+        float el = 0; const float IN = 1.8f;
+        AudioManager.I?.Play("whoosh", 0.55f, 0.45f);
+        while (el < IN)
+        {
+            el += Time.deltaTime; float k = Mathf.Clamp01(el / IN), e = 1f - (1f - k) * (1f - k);
+            var g = Vector2.Lerp(a, at, e);
+            fr.position = WorldMap.W2U(g, FREIGHT_H);
+            tiltT.localRotation = Quaternion.Euler(0, 0, -12f * (1f - e));   // 진행 방향(동쪽)으로 기울었다가 멈추며 바로 섬
+            fl.localScale = Vector3.one * (0.4f + 0.06f * Mathf.Sin(el * 37f));
+            sh.transform.position = WorldMap.W2U(g, 0.2f);
+            yield return null;
+        }
+        el = 0;
+        while (el < 0.4f) { el += Time.deltaTime; fr.position = WorldMap.W2U(at, FREIGHT_H + Mathf.Sin(el * 8f) * 2f); yield return null; }
+        AudioManager.I?.Play("pop", 0.7f, 0.5f);
+        StartCoroutine(CoFreighterOut(fr, tiltT, fl, sh, at));
+    }
+    IEnumerator CoFreighterOut(Transform fr, Transform tiltT, Transform fl, GameObject sh, Vector2 at)
+    {
+        float el = 0; const float OUT = 2.4f;
+        while (el < OUT && fr != null)
+        {
+            el += Time.deltaTime; float k = Mathf.Clamp01(el / OUT), e = k * k;
+            var g = at + new Vector2(360f * e, -60f * e);
+            fr.position = WorldMap.W2U(g, FREIGHT_H + 160f * e);
+            tiltT.localRotation = Quaternion.Euler(0, 0, 14f * Mathf.Clamp01(k * 3f));
+            fl.localScale = Vector3.one * (0.55f + 0.08f * Mathf.Sin(el * 41f));
+            sh.transform.position = WorldMap.W2U(g, 0.2f);
+            sh.transform.localScale = new Vector3(60, 0.2f, 60) * GameConfig.K * Mathf.Lerp(0.55f, 0.2f, k);
+            yield return null;
+        }
+        if (fr != null) Destroy(fr.gameObject);
+        if (sh != null) Destroy(sh);
+    }
+
     IEnumerator CoSupply()
     {
-        var p = new Pickup { kind = "supply", pos = SUPPLY_POS, life = SUPPLY_LIFE };
-        bool rego = SettleStations.I != null && SettleStations.I.Open(1) && Random.value < 0.5f;   // 토양 공장이 있으면 반은 레골리스 묶음(정화기로)
+        var p = new Pickup { kind = "supply", pos = SupplySpot(out bool east), life = SUPPLY_LIFE };
+        // 토양 공장이 있으면 반은 레골리스 묶음(정화기로). 기지 동쪽에 떨어지면 정화기가 멀어 물통만
+        bool rego = !east && SettleStations.I != null && SettleStations.I.Open(1) && Random.value < 0.5f;
         p.reward = rego ? "rego" : "bottle";
         cur = p;
         Ping("capsule");
@@ -329,8 +398,12 @@ public class MarsEvents : MonoBehaviour
         }
         foreach (var r in chute.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
+        // 지구 화물선이 서쪽 하늘에서 낮게 들어와 머리 위에 잠깐 멈추고 캡슐을 떨군 뒤 동쪽 위로 떠난다(캡슐은 그동안 숨김)
+        const float H0 = FREIGHT_H - 16f, DUR = 2.6f; float el = 0;
+        pod.gameObject.SetActive(false);
+        yield return CoFreighterIn(p.pos);
+        pod.gameObject.SetActive(true);
         // 하강 2.6초(감속), 살짝 흔들림
-        const float H0 = 300f, DUR = 2.6f; float el = 0;
         AudioManager.I?.Play("whoosh", 0.7f, 0.35f);
         while (el < DUR)
         {
