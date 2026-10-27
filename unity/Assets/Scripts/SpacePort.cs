@@ -77,6 +77,7 @@ public class SpacePort : MonoBehaviour
         // 저장 복원: 하강 중이면 내려앉은 것으로, 정착민·이륙 중이면 빈 착륙장으로
         foreach (var s in S.ships) { if (s.state == 1) s.state = 2; else if (s.state >= 3) { s.state = 0; s.t = 4f; } }
         var root = new GameObject("spacePort").transform; root.SetParent(transform, false);
+        PortDress.Build(root, () => PortOpen);   // 꾸밈(유도등·연료 관·화물 마당·조명탑·안테나·가장자리 바위). 착륙장보다 먼저(유도등 재질)
         for (int i = 0; i < PADS.Length; i++) BuildPad(root, i);
         BuildFuel(root); BuildLaunch(root); BuildTower(root);
         G.OnPadLevel += OnPad;
@@ -99,6 +100,7 @@ public class SpacePort : MonoBehaviour
         var v = sv[i];
         v.padRoot = new GameObject("landingPad" + i).transform; v.padRoot.SetParent(root, false); v.padRoot.position = WorldMap.W2U(PADS[i]);
         RegionDress.Put(v.padRoot, "pad", RegionDress.LandingPad(), 0.2f);
+        PortDress.PadDress(v.padRoot, i);
         v.ship = new GameObject("ship").transform; v.ship.SetParent(v.padRoot, false);
         RegionDress.Put(v.ship, "body", RegionDress.Ship(), 0.25f);
         var bk = Prim.Sphere(v.ship, "beacon", new Vector3(0, 46f, 0) * GameConfig.K, 4, GameConfig.Hex("ff5a3c")); Prim.NoShadow(bk);
@@ -180,6 +182,7 @@ public class SpacePort : MonoBehaviour
     void OnPad(string id, int lv)
     {
         if (lv < 1) return;
+        PortDress.OnPad(id);
         for (int i = 0; i < PADS.Length; i++)
             if (id == PAD_IDS[i] && !sv[i].built)
             {
@@ -210,6 +213,7 @@ public class SpacePort : MonoBehaviour
         TickRocket(dt);
         TickTower(dt);
         TickWalkers(dt);
+        PortDress.Tick(dt, i => sv[i].built ? S.ships[i].state : -1);
     }
 
     // ---- 화물선 ----
