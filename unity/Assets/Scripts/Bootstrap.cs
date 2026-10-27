@@ -34,6 +34,10 @@ public static class Bootstrap
         new GameObject("Settle").AddComponent<SettleStations>();
         new GameObject("Frontier").AddComponent<Frontier>();               // 2장 개척지: 거주 구역·태양광 단지
         new GameObject("Zones").AddComponent<ZoneManager>();
+        new GameObject("Regions").AddComponent<RegionWorld>();            // 3·4장 동쪽 지역: 길·관문·지역 바닥·메사 테두리
+        new GameObject("SpacePort").AddComponent<SpacePort>();            // 3장 우주항: 화물선·연료 공장·발사대·관제탑
+        new GameObject("IceCanyon").AddComponent<IceCanyon>();            // 4장 얼음 협곡: 광맥·정제소·채굴 로버
+        new GameObject("SpaceSky").AddComponent<SpaceSky>();              // 궤도선 그림자·밤 발사 불꽃
         new GameObject("Player").AddComponent<Player>();
         new GameObject("Pads").AddComponent<PadManager>();
         new GameObject("Customers").AddComponent<CustomerSystem>();

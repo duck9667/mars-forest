@@ -48,10 +48,14 @@ public class ZoneManager : MonoBehaviour
         var corners = z.key == "shop"
             ? new[] { new Vector2(z.x0, z.y0), new Vector2(z.x1, z.y0), new Vector2(z.x0, z.y1), new Vector2(z.x1, z.y1) }
             : new[] { new Vector2(z.x0, z.y0) };
-        foreach (var c in corners)
+        foreach (var c in corners) AddLamp(c);
+    }
+    /// 가로등 하나(이미 있는 등과 30 안이면 건너뜀). 3·4장 길·지역(RegionWorld)도 쓴다
+    public void AddLamp(Vector2 c)
+    {
         {
             bool near = false; foreach (var q in lampSpots) if ((q - c).sqrMagnitude < 30 * 30) { near = true; break; }
-            if (near) continue; lampSpots.Add(c);
+            if (near) return; lampSpots.Add(c);
             var root = new GameObject("lamp").transform; root.SetParent(transform, false); root.position = WorldMap.W2U(c);
             Prim.Box(root, "post", new Vector3(0, 22 * GameConfig.K, 0), new Vector3(3, 44, 3), GameConfig.Hex("3b3a52"));
             var bulb = Prim.Sphere(root, "bulb", new Vector3(0, 46 * GameConfig.K, 0), 7, GameConfig.Hex("fff1c2"));

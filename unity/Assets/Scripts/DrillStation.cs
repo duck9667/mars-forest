@@ -37,7 +37,7 @@ public class DrillStation : MonoBehaviour
         t += dt;
         if (bit != null) { bit.Rotate(0, 720 * dt, 0); bit.position = WorldMap.W2U(WorldMap.STN["drill"].x, WorldMap.STN["drill"].y, 80 + Mathf.Sin(t * 6f) * 6f); }
         S.drillT += dt;
-        if (S.drillT >= GameConfig.DRILL_PERIOD)
+        if (S.drillT >= GameConfig.DRILL_PERIOD / (1f + 0.6f * GameState.I.PadLv("drillspd")))   // 3장 시트 "드릴 속도"(우주항 주문·산소에 물이 더 필요해서)
         {
             S.drillT = 0;
             if (S.meltQ < GameConfig.MELT_CAP) StartCoroutine(Fire());

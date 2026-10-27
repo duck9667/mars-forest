@@ -319,7 +319,9 @@ public class CustomerSystem : MonoBehaviour
             }, 0.3f, 30f);
         }
         AudioManager.I.Play("sell");
-        WorldLabels.I.Float(c.head.position + Vector3.up * 1.5f, "+" + earn + (combo >= 3 ? "  ×" + Mathf.Min(combo, 5) : ""), true, big);
+        // 큰 금액(VIP·병값 ×4 이상)만 "+n"을 띄우고, 작은 판매는 동전 몇 개만 튄다(콤보 배수는 HUD 배지가 보여 준다)
+        if (c.vip || WorldLabels.BigMoney(earn)) WorldLabels.I.Float(c.head.position + Vector3.up * 1.5f, "+" + earn, true, big);
+        else JuiceFX.I.CoinPop(c.head.position + Vector3.up * 1.2f, 3);
         JuiceFX.I.Squash(Stations.I.registerView, 0.4f);
         G.NotifySold();
     }

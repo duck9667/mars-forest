@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// 정착 목표 10단계, 두 장(docs/settlement-design.md "정착 목표" · docs/chapter2-design.md "정착 목표 2장"). S.stage = 달성한 단계 수(0~10, 10 = 화성 마을 선포).
+// 정착 목표 20단계, 네 장(3·4장은 docs/chapter3-design.md)(docs/settlement-design.md "정착 목표" · docs/chapter2-design.md "정착 목표 2장"). S.stage = 달성한 단계 수(0~10, 10 = 화성 마을 선포).
 //  1장 생존(1~5): 1 물 확보: 물 공급 30 → 100벨 / 2 숨 쉴 공기: 전기분해기·산소 공급 20 → 300벨 / 3 흙 살리기: 채굴장·토양 공장·비료 20 → 600벨
 //   / 4 첫 수확: 온실·식량 공급 20 → 1,000벨 / 5 생존 완료: 정착민 60·물 200·산소 100·식량 100 누적 → 1,200벨(1장 끝, 2장 시작 무전)
 //  2장 마을(6~10): 6 전력 확보: 태양광 단지·전력으로 기계 가동 180초 → 1,500벨 / 7 첫 이웃: 거주 구역·인구 10 → 2,000벨
@@ -25,8 +25,8 @@ public class SettlementManager : MonoBehaviour
     GameState G => GameState.I;
     SaveData S => G.S;
 
-    public const int COUNT = 10, PER_CHAPTER = 5;
-    public static readonly string[] CHAPTERS = { "생존", "마을" };
+    public const int COUNT = 20, PER_CHAPTER = 5;
+    public static readonly string[] CHAPTERS = { "생존", "마을", "우주항", "얼음 협곡" };   // 3·4장: docs/chapter3-design.md(이어지는 세계, 초기화 없음)
     public class StageDef { public string name; public int reward; public string[] zones; }
     // zones: 이 단계에 필요한 구역(지도에서 금테로 강조). "hq"는 구역이 아니라 본부 터
     public static readonly StageDef[] STAGES =
@@ -43,9 +43,24 @@ public class SettlementManager : MonoBehaviour
         new StageDef{ name="기지 정비",  reward=3000, zones=new[]{ "hq" } },
         new StageDef{ name="자급 마을",  reward=4000, zones=new[]{ "hab" } },
         new StageDef{ name="화성 마을 선포", reward=0, zones=new[]{ "hq", "hab" } },
+        // 3장 우주항(동쪽 1번 도로 너머)
+        new StageDef{ name="첫 화물선",  reward=3000, zones=new[]{ "port" } },
+        new StageDef{ name="연료 생산",  reward=4000, zones=new[]{ "port" } },
+        new StageDef{ name="첫 수출",    reward=5000, zones=new[]{ "port" } },
+        new StageDef{ name="정기 항로",  reward=6000, zones=new[]{ "port" } },
+        new StageDef{ name="우주항 개항", reward=0,   zones=new[]{ "port" } },
+        // 4장 얼음 협곡(2번 도로 너머)
+        new StageDef{ name="협곡 도착",  reward=6000, zones=new[]{ "canyon" } },
+        new StageDef{ name="협곡 연료",  reward=7000, zones=new[]{ "canyon" } },
+        new StageDef{ name="로버 출동",  reward=8000, zones=new[]{ "canyon" } },
+        new StageDef{ name="대량 수출",  reward=9000, zones=new[]{ "port", "canyon" } },
+        new StageDef{ name="협곡 기지 완성", reward=0, zones=new[]{ "canyon" } },
     };
     public const float POWER_GOAL = 180f;
     public const int MISSION_GOAL = 5;   // 9단계: 8단계 뒤 끝낸 하루 미션 수(하루 3개 중 2개 안팎 → 2~3일)
+    // 3·4장 목표 수치(진행 속도 측정으로 맞춤, docs/pacing-report.md "3·4장")
+    public const int FUEL_GOAL = 40, ORDERS_14 = 12, ORDERS_15 = 24, LAUNCH_15 = 6, ARRIVE_15 = 90;
+    public const int VEIN_GOAL = 40, REF_17 = 60, HAUL_18 = 150, LAUNCH_19 = 12, ORDERS_19 = 30, REF_20 = 400, LAUNCH_20 = 20, ARRIVE_20 = 150;
 
     /// 단계 항목 하나: 이름·현재·목표. bin = 설치형(0/1, 진행 막대 대신 체크)
     public struct Item
@@ -93,6 +108,18 @@ public class SettlementManager : MonoBehaviour
             case 7: l.Add(Cnt("본부 레벨", G.PadLv("hq"), 3)); l.Add(Cnt("산소 누적", S.supO, 250)); break;
             case 8: l.Add(Cnt("인구", S.pop, 24)); l.Add(Cnt("하루 미션 완료", S.missionAll, MISSION_GOAL)); break;
             case 9: l.Add(Cnt("본부 레벨", G.PadLv("hq"), 5)); l.Add(Bin("주택 증축", G.PadLv("habx") >= 1)); l.Add(Cnt("인구", S.pop, 40)); l.Add(Cnt("물 누적", S.supW, 2000)); l.Add(Cnt("산소 누적", S.supO, 600)); l.Add(Cnt("식량 누적", S.supF, 400)); break;
+            // 3장 우주항
+            case 10: l.Add(Bin("우주항 열기", G.PadLv("port") >= 1)); l.Add(Cnt("화물선 주문", S.orders, 1)); break;
+            case 11: l.Add(Bin("연료 공장", G.PadLv("fuel") >= 1)); l.Add(Cnt("연료 생산", S.fuelMade, FUEL_GOAL)); break;
+            case 12: l.Add(Bin("발사대", G.PadLv("launch") >= 1)); l.Add(Cnt("수출 발사", S.launches, 1)); break;
+            case 13: l.Add(Bin("착륙장 B", G.PadLv("pad2") >= 1)); l.Add(Cnt("관제탑 레벨", G.PadLv("tower"), 1)); l.Add(Cnt("주문 누계", S.orders, ORDERS_14)); break;
+            case 14: l.Add(Cnt("관제탑 레벨", G.PadLv("tower"), 3)); l.Add(Cnt("주문 누계", S.orders, ORDERS_15)); l.Add(Cnt("발사 누계", S.launches, LAUNCH_15)); l.Add(Cnt("새 정착민", S.arrivals, ARRIVE_15)); break;
+            // 4장 얼음 협곡
+            case 15: l.Add(Bin("얼음 협곡 열기", G.PadLv("canyon") >= 1)); l.Add(Cnt("광맥 얼음", S.veinPicked, VEIN_GOAL)); break;
+            case 16: l.Add(Cnt("정제 연료", S.refMade, REF_17)); break;
+            case 17: l.Add(Cnt("채굴 로버", G.PadLv("rover"), 1)); l.Add(Cnt("로버 운반", S.roverHauled, HAUL_18)); break;
+            case 18: l.Add(Cnt("채굴 로버", G.PadLv("rover"), 2)); l.Add(Cnt("발사 누계", S.launches, LAUNCH_19)); l.Add(Cnt("주문 누계", S.orders, ORDERS_19)); break;
+            case 19: l.Add(Cnt("채굴 로버", G.PadLv("rover"), 3)); l.Add(Cnt("정제 연료", S.refMade, REF_20)); l.Add(Cnt("발사 누계", S.launches, LAUNCH_20)); l.Add(Cnt("새 정착민", S.arrivals, ARRIVE_20)); break;
         }
         return l;
     }
@@ -113,7 +140,7 @@ public class SettlementManager : MonoBehaviour
     {
         if (devApplied) return;   // 재조립(Restart) 뒤 다시 덮어쓰지 않게
         devApplied = true;
-        if (int.TryParse(DevArgs.Get("-stage"), out var st)) S.stage = Mathf.Clamp(st, 0, COUNT);
+        if (int.TryParse(DevArgs.Get("-stage"), out var st)) { S.stage = Mathf.Clamp(st, 0, COUNT); Regions.stage = S.stage; }
         var sup = DevArgs.Get("-sup");
         if (!string.IsNullOrEmpty(sup))
         {
@@ -180,27 +207,30 @@ public class SettlementManager : MonoBehaviour
         {
             story.Push("stage_" + S.stage, 1.0f);
             if (S.stage == PER_CHAPTER) story.Push("ch2_start", 1.3f);
-            if (S.stage >= COUNT) story.QueueEnding(1.2f);
+            if (S.stage == 2 * PER_CHAPTER) story.QueueEnding(1.2f, "ending");            // 2장 마을 선포: 엔딩 컷 → 동쪽 우주항으로
+            if (S.stage == 3 * PER_CHAPTER) story.Push("ch4_start", 1.3f);                 // 3장 우주항 개항 → 4장 얼음 협곡
+            if (S.stage >= COUNT) story.QueueEnding(1.2f, "ending4");                     // 4장 끝(지금 지역 끝)
         }
-        bool final = S.stage >= COUNT;
+        bool final = S.stage >= 2 * PER_CHAPTER && S.stage % PER_CHAPTER == 0;   // 2장부터 장 끝은 큰 축하판
         busyT = final ? 3.6f : 2.2f;
         StartCoroutine(final ? CoFinal() : CoBanner(idx));
     }
 
-    // ---- 단계 달성: 금색 배너(화면 위쪽, 입력 막지 않음. 목표 상자 팝(중앙 +120)과 겹치지 않는 높이) 팝 0.4s → 1.1s → 떠오르며 사라짐 ----
+    // ---- 단계 달성: 금색 배너 [깃발] n/5 · [벨] +보상(화면 위쪽, 입력 막지 않음. 목표 상자 팝(중앙 +120)과 겹치지 않는 높이) 팝 0.4s → 1.1s → 떠오르며 사라짐 ----
     IEnumerator CoBanner(int idx)
     {
         if (HUD.I == null) yield break;
         var def = STAGES[idx];
         var box = UIKit.Panel(HUD.I.transform, "stageBanner", UIKit.SignOk);
-        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 330), new Vector2(340, 108));
+        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 330), new Vector2(280, 76));
         var cg = box.gameObject.AddComponent<CanvasGroup>(); cg.blocksRaycasts = false; cg.interactable = false;
-        var row = UIKit.Row(box.transform, "row", 8); UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(320, 48));
-        UIKit.IconImg(row.transform, "flag", 36);
-        var t1 = UIKit.Text(row.transform, StageTag(idx) + " · " + def.name, 28, UIKit.SignOk.text); UIKit.Stroke(t1, Color.white, 1.2f);
-        var row2 = UIKit.Row(box.transform, "row2", 6); UIKit.Anchor(row2.GetComponent<RectTransform>(), new Vector2(0.5f, 0), new Vector2(0, 14), new Vector2(320, 38));
-        UIKit.IconImg(row2.transform, "bell", 28);
-        var t2 = UIKit.Text(row2.transform, "+" + def.reward.ToString("N0"), 30, UIKit.GOLD_INK); UIKit.Stroke(t2, Color.white, 1.2f);
+        // 한 줄: [깃발] 3/5 · [벨] +600. 단계 이름은 지도에서(텍스트 다이어트 10/26)
+        var row = UIKit.Row(box.transform, "row", 8); UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0, 3), new Vector2(300, 56));
+        UIKit.IconImg(row.transform, "flag", 40);
+        var t1 = UIKit.Text(row.transform, (idx % PER_CHAPTER + 1) + "/" + PER_CHAPTER, 32, UIKit.SignOk.text); UIKit.Stroke(t1, Color.white, 1.2f);
+        UIKit.RT(row.transform, "gap").gameObject.AddComponent<LayoutElement>().minWidth = 10;
+        UIKit.IconImg(row.transform, "bell", 30);
+        var t2 = UIKit.Text(row.transform, "+" + def.reward.ToString("N0"), 32, UIKit.GOLD_INK); UIKit.Stroke(t2, Color.white, 1.2f);
         AudioManager.I?.Play("up", 1.1f); AudioManager.I?.Play("ding", 1.3f, 0.6f); JuiceFX.I?.Vibrate(30);
         float el = 0; bool burst = false;
         while (el < 0.4f)
@@ -219,18 +249,18 @@ public class SettlementManager : MonoBehaviour
         yield return FadeUp(brt, cg, 0.35f);
     }
 
-    // ---- 화성 마을 선포(10단계, 게임 하나의 끝): 큰 금색 판(왕관 · 화성 마을 선포!) + 색종이·링 + 약한 번쩍임, 2.2s ----
+    // ---- 화성 마을 선포(10단계, 게임 하나의 끝): 큰 금색 판(왕관 · 깃발 5/5) + 색종이·링 + 약한 번쩍임, 2.2s ----
     IEnumerator CoFinal()
     {
         if (HUD.I == null) yield break;
         var box = UIKit.Panel(HUD.I.transform, "settledBanner", UIKit.SignOk);
-        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 320), new Vector2(400, 150));
+        var brt = box.rectTransform; UIKit.Anchor(brt, new Vector2(0.5f, 0.5f), new Vector2(0, 320), new Vector2(320, 120));
         var cg = box.gameObject.AddComponent<CanvasGroup>(); cg.blocksRaycasts = false; cg.interactable = false;
-        var row = UIKit.Row(box.transform, "row", 10); UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0.5f, 1), new Vector2(0, -12), new Vector2(380, 70));
-        UIKit.IconImg(row.transform, "crown", 56);
-        var t1 = UIKit.Text(row.transform, "화성 마을 선포!", 44, UIKit.SignOk.text); UIKit.Stroke(t1, Color.white, 1.6f); UIKit.DropShadow(t1, 2f, 0.25f);
-        var t2 = UIKit.Text(box.transform, "새 정착지로 떠날 수 있어요", 22, UIKit.GOLD_INK);
-        UIKit.Anchor(t2.rectTransform, new Vector2(0.5f, 0), new Vector2(0, 22), new Vector2(380, 34));
+        // 왕관 + [깃발] 5/5만(글자 설명은 엔딩 컷이 맡는다)
+        var row = UIKit.Row(box.transform, "row", 10); UIKit.Anchor(row.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0, 4), new Vector2(300, 96));
+        UIKit.IconImg(row.transform, "crown", 84);
+        UIKit.IconImg(row.transform, "flag", 44);
+        var t1 = UIKit.Text(row.transform, PER_CHAPTER + "/" + PER_CHAPTER, 44, UIKit.SignOk.text); UIKit.Stroke(t1, Color.white, 1.6f); UIKit.DropShadow(t1, 2f, 0.25f);
         AudioManager.I?.Play("up", 1f); AudioManager.I?.Play("ding", 1.2f, 0.8f);
         JuiceFX.I?.Flash(0.18f); JuiceFX.I?.Shake(5); JuiceFX.I?.Vibrate(50);   // 번쩍임은 이 단계에만, 약하게(아트 바이블)
         if (Player.I != null)

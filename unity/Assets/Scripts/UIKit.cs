@@ -277,6 +277,12 @@ public static class UIKit
             Add(q => { Vector2 pa = q - a, ba = b - a; float hh = Mathf.Clamp01(Vector2.Dot(pa, ba) / Mathf.Max(1e-5f, Vector2.Dot(ba, ba))); return (pa - ba * hh).magnitude - hw; },
                 Rect.MinMaxRect(Mathf.Min(a.x, b.x) - hw, Mathf.Min(a.y, b.y) - hw, Mathf.Max(a.x, b.x) + hw, Mathf.Max(a.y, b.y) + hw), fill, stroke, sw);
         }
+        // 초승달: 큰 원에서 옆으로 비킨 원을 뺀 모양
+        public void Crescent(float cx, float cy, float r, float ox, float oy, float r2, Color fill, Color? stroke = null, float sw = 1.6f)
+        {
+            var c1 = V(cx, cy); var c2 = V(cx + ox, cy + oy); float r1 = r * s, rr2 = r2 * s;
+            Add(q => Mathf.Max((q - c1).magnitude - r1, rr2 - (q - c2).magnitude), new Rect(c1.x - r1, c1.y - r1, r1 * 2, r1 * 2), fill, stroke, sw);
+        }
         public void Line(Color col, float w, Color? stroke, float sw, params float[] xy) { for (int i = 0; i + 3 < xy.Length; i += 2) Seg(xy[i], xy[i + 1], xy[i + 2], xy[i + 3], w, col, stroke, sw); }
         public void Line(Color col, float w, params float[] xy) => Line(col, w, null, 1.6f, xy);
         public void P(Color fill, Color? stroke, float sw, params float[] xy)
@@ -332,6 +338,10 @@ public static class UIKit
             case "pen": return "rabbit"; case "dome": return "home"; case "sold": return "bottle";
             case "hab": case "habx": return "home"; case "solar": return "sun"; case "fund": return "chest";
             case "elecspd": return "o2"; case "purspd": return "gear"; case "mixspd": return "bolt"; case "grnspd": return "food";
+            // 3·4장(docs/chapter3-design.md)
+            case "road1": case "road2": return "road"; case "port": case "pad2": case "pad3": return "ship";
+            case "fuel": case "fuelspd": return "fuel"; case "launch": return "rocket"; case "tower": return "tower";
+            case "canyon": return "ice"; case "rover": return "rover"; case "refspd": return "gear"; case "drillspd": return "drill";
             default: return "flag";
         }
     }
@@ -459,6 +469,55 @@ public static class UIKit
             case "hand":   // 64 격자 온보딩 손 포인터
                 g.Seg(31.5f, 9, 31.5f, 32, 11, white, navy, 3.2f); g.R(21, 28, 32, 30, 10, white, navy, 3.2f); g.Seg(14, 42, 25, 50, 9.5f, white, navy, 3.2f); g.Flush();
                 g.C(31.5f, 4.5f, 5.5f, new Color(1, 0.84f, 0.3f, 0.9f)); g.Flush(); break;
+            case "moon":   // 밤: 노란 초승달 + 작은 별
+                g.Crescent(11, 12.5f, 8.5f, 4.6f, -3.2f, 7.4f, Hex("ffe9a8"), goldD); g.Flush();
+                g.C(19, 5, 1.5f, Hex("fff6d6"), goldD, 1f); g.Flush(); break;
+            case "storm":  // 먼지 폭풍: 모래색 바람 줄 셋 + 먼지 알갱이
+                {
+                    Color sand = Hex("e8ad72"), sandD = Hex("7a3a14");
+                    g.Seg(3, 7, 15, 7, 2.8f, sand, sandD, 1.3f); g.Seg(6, 12, 21, 12, 2.8f, sand, sandD, 1.3f); g.Seg(3, 17, 13, 17, 2.8f, sand, sandD, 1.3f);
+                    g.C(18.5f, 6.5f, 1.4f, sand, sandD, 1f); g.C(17.5f, 17.5f, 1.4f, sand, sandD, 1f); g.Flush(); break;
+                }
+            case "meteor": // 운석: 주황 꼬리 + 붉은 돌 + 얼음 조각
+                g.Seg(9, 13, 20, 3.5f, 2.6f, Hex("ffb64b"), Hex("a8501a"), 1.1f); g.Seg(13, 16, 21.5f, 9.5f, 1.8f, Hex("ffd27a"), Hex("a8501a"), 1f); g.Seg(7, 10, 13.5f, 3, 1.8f, Hex("ffd27a"), Hex("a8501a"), 1f); g.Flush();
+                g.C(8.5f, 15.5f, 6, Hex("b5532e"), Hex("5a2410")); g.Flush();
+                g.R(5.5f, 12.5f, 4.2f, 4.2f, 1, Hex("cfeeff"), Hex("5a9ccc"), 1.1f); g.Flush(); break;
+            case "capsule": // 보급선: 빨간 낙하산 + 줄 + 흰 상자
+                {
+                    var dome = new List<float>();
+                    for (int i = 0; i <= 10; i++) { float a = Mathf.PI * i / 10f; dome.Add(12 - Mathf.Cos(a) * 9.5f); dome.Add(10 - Mathf.Sin(a) * 7.5f); }
+                    g.P(Hex("ff6b5a"), Hex("8a1a10"), 1.5f, dome.ToArray()); g.Flush();
+                    g.Seg(4, 10, 9.5f, 15.5f, 1.1f, navy); g.Seg(20, 10, 14.5f, 15.5f, 1.1f, navy); g.Seg(12, 10, 12, 15.5f, 1.1f, navy); g.Flush();
+                    g.R(7.5f, 15, 9, 7, 1.5f, Hex("eef2f6"), navy); g.Flush();
+                    g.R(7.9f, 17.3f, 8.2f, 2, 0, Hex("ff9a3a")); g.Flush(); break;
+                }
+            // ---- 3·4장 아이콘 ----
+            case "ship":   // 화물 우주선: 금빛 돔 + 흰 몸통 + 다리 둘
+                g.Seg(6.5f, 15, 3.5f, 21, 2.2f, Hex("545b5f")); g.Seg(17.5f, 15, 20.5f, 21, 2.2f, Hex("545b5f")); g.Flush();
+                g.R(4, 9, 16, 9, 3.5f, Hex("eceae4"), navy); g.Flush();
+                g.C(12, 9, 5.6f, Hex("f2c14e"), Hex("8a5200")); g.Flush();
+                g.R(6.5f, 13, 11, 2.2f, 1, Hex("f07b36")); g.Flush(); break;
+            case "rocket": // 흰 로켓 + 주황 띠·핀 + 불꽃
+                g.P(Hex("ffc94a"), Hex("c9620a"), 1.2f, 9.5f, 18.5f, 14.5f, 18.5f, 12, 23.5f); g.Flush();
+                g.P(Hex("f07b36"), Hex("8a3a10"), 1.4f, 7.5f, 13, 9.5f, 9, 9.5f, 18.5f, 6, 19); g.P(Hex("f07b36"), Hex("8a3a10"), 1.4f, 16.5f, 13, 14.5f, 9, 14.5f, 18.5f, 18, 19); g.Flush();
+                g.P(Hex("f4f2ec"), navy, 1.6f, 12, 1.5f, 15, 6, 15, 18.5f, 9, 18.5f, 9, 6); g.Flush();
+                g.C(12, 9.5f, 1.9f, blue, navy, 1f); g.R(9.2f, 14.5f, 5.6f, 1.6f, 0.4f, Hex("f07b36")); g.Flush(); break;
+            case "fuel":   // 연료통: 초록 통 + 흰 띠 + 짙은 뚜껑
+                g.R(13, 2, 4.5f, 3.5f, 1, Hex("33403f")); g.R(6, 3, 5.5f, 2.4f, 1, Hex("33403f")); g.Flush();
+                g.R(4.5f, 5, 15, 16.5f, 3.5f, Hex("34b37e"), Hex("1c5e40")); g.Flush();
+                g.R(4.6f, 11, 14.8f, 3, 0.5f, Hex("f2efe6")); g.Seg(7.5f, 7.5f, 7.5f, 9.5f, 1.4f, Hex("8be8bf")); g.Flush(); break;
+            case "tower":  // 관제탑: 짙은 다리 + 돔 관제실 + 빨간 표시등
+                g.Seg(8, 21, 10, 11, 2, Hex("545b5f")); g.Seg(16, 21, 14, 11, 2, Hex("545b5f")); g.Seg(9, 16, 15, 16, 1.6f, Hex("545b5f")); g.Flush();
+                g.R(5, 7, 14, 6, 2.5f, Hex("eceae4"), navy); g.Flush();
+                g.C(12, 7, 4.4f, Hex("f2c14e"), Hex("8a5200")); g.Flush();
+                g.Seg(12, 2.6f, 12, 0.8f, 1.2f, navy); g.C(12, 2.6f, 1.4f, Hex("ff5a3c")); g.Flush(); break;
+            case "road":   // 길: 크림 띠 + 가운데 점선, 끝에 깃발
+                g.P(Hex("f1dcc0"), Hex("7a4a20"), 1.5f, 8, 3, 16, 3, 21, 21, 3, 21); g.Flush();
+                g.Seg(12, 6, 12, 8.5f, 1.4f, Hex("c9965a")); g.Seg(12, 11, 12, 13.5f, 1.4f, Hex("c9965a")); g.Seg(12, 16, 12, 19, 1.4f, Hex("c9965a")); g.Flush(); break;
+            case "rover":  // 채굴 로버: 흰 트럭 + 짐칸 얼음 + 바퀴
+                g.R(2.5f, 9, 12, 7, 2, Hex("bfe6ff"), Hex("5a9ccc"), 1.4f); g.Flush();
+                g.R(13, 7, 8.5f, 9, 2.5f, Hex("eceae4"), navy); g.R(15.5f, 9, 4, 3, 0.8f, blue); g.Flush();
+                g.C(6.5f, 18, 2.6f, ink, Hex("8f949e"), 1.2f); g.C(17.5f, 18, 2.6f, ink, Hex("8f949e"), 1.2f); g.Flush(); break;
             default:
                 g.C(12, 12, 8, Hex("c3cfe6"), navy); g.Flush(); break;
         }

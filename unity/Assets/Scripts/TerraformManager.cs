@@ -226,7 +226,7 @@ public class TerraformManager : MonoBehaviour
     });
 
     // 통통한 저폴리 나무(밑동 = 원점). tall: 수관 두 덩어리를 겹쳐 얹은 키 큰 나무 하나 / 보통: 큰 나무 + 옆 작은 나무
-    static Mesh TreeMesh(bool tall, int v) => ToyMesh.Cached("terraTree" + (tall ? "T" : "N") + v, m =>
+    public static Mesh TreeMesh(bool tall, int v) => ToyMesh.Cached("terraTree" + (tall ? "T" : "N") + v, m =>
     {
         if (tall)
         {

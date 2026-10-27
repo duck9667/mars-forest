@@ -32,7 +32,7 @@ public class WorldLabels : MonoBehaviour
     {
         public RectTransform rt; public Text text; public Image bg; public Image icon, icon2, tail; public Func<Vector3> world; public Vector2 offset; public bool hidden;
         public UIKit.Style style; public bool autoIcon = true; public bool plain;   // plain: 배경 없는 플로팅 글자
-        internal Transform row0, row1; internal Text text2; internal Image iconB; internal bool empty; internal int size; internal string lastSet;
+        internal Transform row0, row1; internal Text text2; internal Image iconB, iconMid; internal bool empty; internal int size; internal string lastSet;
         internal VerticalLayoutGroup vl;
 
         // 글자 바꾸기. autoIcon이면 원본 라벨 관례의 접두어를 아이콘으로 바꾼다:
@@ -58,6 +58,16 @@ public class WorldLabels : MonoBehaviour
             text.text = body;
             empty = string.IsNullOrEmpty(body) && icon == null;
             Apply();
+        }
+        // 글자 없는 아이콘 줄 [a] → [b] (튜토리얼 말풍선). b가 null이면 [a]만
+        public void SetIconPair(string a, string b)
+        {
+            string key = "\u0001" + a + ">" + b; if (key == lastSet) return; lastSet = key;
+            autoIcon = false; text.text = "";
+            ApplyIcon(ref icon, row0, a, true);
+            ApplyIcon(ref iconMid, row0, b != null ? "arrow" : null, false);
+            ApplyIcon(ref iconB, row0, b, false);
+            empty = icon == null; Apply();
         }
         // 앞 아이콘 직접 지정(자동 인식 끔). null이면 제거
         public void SetIcon(string name) { autoIcon = false; ApplyIcon(ref icon, row0, name, true); empty = string.IsNullOrEmpty(text.text) && icon == null; Apply(); }
@@ -171,13 +181,17 @@ public class WorldLabels : MonoBehaviour
     }
 
     // 플로팅 텍스트(.fl): 1.1s, 높이 40+50t, 두꺼운 외곽선. gold: 금색, big: 크고 더 두꺼운 갈색 외곽선. 처음 0.5s 튀어오름(.3→1.4→.95→1)
-    public void Float(Vector3 world, string text, bool gold = false, bool big = false)
+    // icon: 앞 아이콘 직접 지정(글자 대신 아이콘 + 짧은 숫자). 큰 금액이 아닌 "+n"은 띄우지 말고 동전 연출로(BigMoney)
+    public void Float(Vector3 world, string text, bool gold = false, bool big = false, string icon = null)
     {
         var l = Make(() => world, text, big ? 40 : 28, big ? UIKit.Hex("ffe58a") : gold ? UIKit.GOLD : Color.white, Vector2.zero, null);
+        if (icon != null) l.SetIcon(icon);
         UIKit.Stroke(l.text, big ? UIKit.Hex("7a3a00") : UIKit.INK, big ? 3f : 2.4f);
         UIKit.DropShadow(l.text, 3f, 0.4f);
         StartCoroutine(CoFloat(l));
     }
+    /// 플로팅 "+n"을 띄울 만한 큰 금액인지(병값 × 4 이상). 작은 금액은 동전 연출만(플레이 화면 글자 규칙)
+    public static bool BigMoney(int n) => GameState.I != null && n >= GameState.I.BottlePrice * 4;
     IEnumerator CoFloat(Label l)
     {
         float el = 0;

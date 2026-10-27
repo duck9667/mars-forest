@@ -3,7 +3,7 @@ using UnityEngine;
 
 // 생존 기지 생산 체인(docs/settlement-design.md): 레골리스 더미 8 · 전기분해기(물통→산소통) · 토양 정화기(레골리스→흙) · 비료 배합기(흙→비료) · 온실(비료+물 10→식량)
 // 시설마다 입력 큐(…Q, 상한 40)·출력 더미(…Out, 상한 24)·타이머(…T). 구역이 열리기 전엔 모형·더미 모두 숨김(구역 = 발판 id)
-public class SettleStations : MonoBehaviour
+public partial class SettleStations : MonoBehaviour
 {
     public static SettleStations I;
     GameState G => GameState.I;
@@ -59,7 +59,8 @@ public class SettleStations : MonoBehaviour
 
     // 시설이 지금 못 돈다(출력 가득·온실 물 부족): 이때는 큐 상한을 넘겨서라도 받아 준다(등짐이 안 빠져 꼼짝 못 하는 일 방지)
     bool Stalled(int i) => Out(i) >= GameConfig.SETTLE_OUT_CAP || (i == 3 && S.water < GREEN_WATER);
-    public bool CanPut(int i) => Open(i) && (Q(i) + qPend[i] < GameConfig.SETTLE_Q_CAP || Stalled(i));
+    //  단, 온실은 물이 모자라 멈춘 동안 받으면 큐가 끝없이 쌓여(봇 측정 2,000+) 물을 다 가져가 병입기가 굶는다 → 온실은 늘 큐 상한까지만(3장 측정 10/26)
+    public bool CanPut(int i) => Open(i) && (Q(i) + qPend[i] < GameConfig.SETTLE_Q_CAP || (Stalled(i) && i != 3));
     public void Put(int i) { qPend[i] = Mathf.Max(0, qPend[i] - 1); Q(i)++; }
     public bool Near(int i, Vector2 p) => Open(i) && WorldMap.NearStn(p, KEYS[i], R_FAC);
     // 갈 곳이 있는 것만 집는다: 비료는 온실이 열려야(그 전엔 배합기에 쌓이기만 = 비료 생산 누계), 레골리스는 정화기가 있어야
@@ -203,12 +204,16 @@ public class SettleStations : MonoBehaviour
             rViews[i] = pile; rShown[i] = true;
             g.gameObject.SetActive(false);
         }
-        BuildElec(); BuildPurif(); BuildMixer(); BuildGreen();
-        // 목표 그림(docs/art/target_north_v1.png)처럼 기계가 구역을 채우게: 키만 1.25배(충돌 발자국 그대로), 온실은 전체 1.2배
-        for (int i = 0; i < 3; i++) Grow(i, new Vector3(1f, 1.25f, 1f));
-        Grow(3, new Vector3(1.2f, 1.2f, 1.2f));
-        // 레벨 외형(시설 속도 발판): 저장된 레벨 그대로 짓는다
-        for (int i = 0; i < 4; i++) BuildLook(i);
+        if (KK.On) KkBuild();   // KayKit 통일(r7, SettleStationsKK.cs). -kk 0 이면 아래 예전 모형
+        else
+        {
+            BuildElec(); BuildPurif(); BuildMixer(); BuildGreen();
+            // 목표 그림(docs/art/target_north_v1.png)처럼 기계가 구역을 채우게: 키만 1.25배(충돌 발자국 그대로), 온실은 전체 1.2배
+            for (int i = 0; i < 3; i++) Grow(i, new Vector3(1f, 1.25f, 1f));
+            Grow(3, new Vector3(1.2f, 1.2f, 1.2f));
+            // 레벨 외형(시설 속도 발판): 저장된 레벨 그대로 짓는다
+            for (int i = 0; i < 4; i++) BuildLook(i);
+        }
         for (int i = 0; i < 4; i++) views[i].gameObject.SetActive(false);
     }
 

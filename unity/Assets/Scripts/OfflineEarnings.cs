@@ -9,7 +9,7 @@ using UnityEngine.UI;
 //   n = round(secs × rate); n < 10 → 없음
 // 시작(원본은 시작 버튼 탭) + 앱 복귀(OnApplicationPause(false)·OnApplicationFocus(true), 원본 visibilitychange) 때 계산.
 // GameState 자동저장(3초)이 savedAt을 덮기 전에 Awake에서 저장된 값을 잡아 둔다. 한 번 계산한 시각 이후로만 다시 세서 중복 지급을 막는다.
-// 모달: 남색 판 + 회전하는 금빛 살 위 보물 상자(들썩임) + 벨 "+n"(0부터 차오름) + "m분 동안 삐걱이 팔았어요" + 확인 → 동전 14개 HUD로.
+// 모달: 남색 판 + 회전하는 금빛 살 위 보물 상자(들썩임) + 벨 "+n"(0부터 차오름) + [삐걱] m분 + 확인 → 동전 14개 HUD로.
 // 검증 인자: -offline <초> (저장 시각을 그만큼 과거로 간주, 앱 실행당 1회). -shot 검증 실행에선 -offline이 있을 때만 계산,
 // -autoplay 중엔 4초 뒤 스스로 확인(봇이 막히지 않게)
 public class OfflineEarnings : MonoBehaviour
@@ -107,7 +107,7 @@ public class OfflineEarnings : MonoBehaviour
         // 한 줄: [삐걱] m분 동안 삐걱이 팔았어요
         var row2 = UIKit.Row(panel.transform, "line", 6); At(row2, -22, new Vector2(340, 36));
         UIKit.IconImg(row2.transform, "robot", 28);
-        var line = UIKit.Text(row2.transform, modalMins + "분 동안 삐걱이 팔았어요", 23, UIKit.SUB);
+        var line = UIKit.Text(row2.transform, modalMins + "분", 23, UIKit.SUB);   // [삐걱] m분(글자 줄이기)
         // 확인 버튼
         bool ok = false;
         var btn = UIKit.Button(panel.transform, "ok", UIKit.Gold, new Vector2(220, 70), "확인", 32, () => ok = true, "check", 30);
@@ -124,7 +124,7 @@ public class OfflineEarnings : MonoBehaviour
             if (FloatingJoystick.I) FloatingJoystick.I.suppressed = true;   // 시트가 닫히며 풀어도 다시 잡는다
             scrim.color = new Color(UIKit.SCRIM.r, UIKit.SCRIM.g, UIKit.SCRIM.b, UIKit.SCRIM.a * Mathf.Clamp01(el / 0.25f));
             prt.localScale = Vector3.one * Mathf.Max(0.001f, JuiceFX.EaseOutBack(Mathf.Clamp01(el / 0.45f)));
-            int n = modalN; line.text = modalMins + "분 동안 삐걱이 팔았어요";
+            int n = modalN; line.text = modalMins + "분";
             float k = Mathf.Clamp01((el - 0.3f) / 0.7f); int v = Mathf.RoundToInt(n * (1f - (1f - k) * (1f - k)));
             if (v != shown) { shown = v; amt.text = "+" + v.ToString("N0"); tickT -= dt; if (tickT <= 0f) { tickT = 0.06f; AudioManager.I.PlayHz("tick", 600f + 700f * k, 480f, 0.4f); } }
             rayImg.rectTransform.localRotation = Quaternion.Euler(0, 0, -el * 25f);

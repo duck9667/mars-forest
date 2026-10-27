@@ -174,7 +174,8 @@ public static class WorldMap
     // §2 blocked(): 경계 + STN AABB(+10 x / +8 y) + 열린 구역 울타리(게이트 틈만 통과, jake 피드백 "울타리를 왜 넘어가냐"). 드릴은 설치 후만.
     public static bool Blocked(float x, float y)
     {
-        if (x < 14 || x > 386 || y < GameConfig.Y_MIN + 6 || y > 1024) return true;
+        if (x < 14 || y < GameConfig.Y_MIN + 6 || y > 1024) return true;
+        if (x > Regions.EAST_X) return Regions.EastBlocked(x, y);   // 기지 동쪽: 1번 도로·우주항·2번 도로·얼음 협곡(docs/chapter3-design.md)
         if (NorthBlocked(x, y)) return true;
         foreach (var s in STN.Values)
         {

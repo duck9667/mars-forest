@@ -14,7 +14,7 @@ public class CharRig : MonoBehaviour
     public float ph;   // 걷기 위상(개체마다 다르게 해 줄이 한 박자로 흔들리지 않게)
 }
 
-public static class CharacterKit
+public static partial class CharacterKit
 {
     const float K = GameConfig.K;
 
@@ -45,6 +45,7 @@ public static class CharacterKit
     // 키 ≈ 64(헬멧 꼭대기)+안테나 2. 머리가 전체의 절반 가까운 치비 비율.
     public static void BuildPlayer(Transform body, out Transform head, out Transform armL, out Transform armR, out Transform legL, out Transform legR)
     {
+        if (Kk) { BuildPlayerKK(body, out head, out armL, out armR, out legL, out legR); return; }   // KayKit 톤(r7, CharacterKitKK.cs)
         Color suit = SUIT, acc = ORANGE;
         legL = Limb(body, "legL", -6, 13, 0, 5f, 8f, suit);
         legR = Limb(body, "legR", 6, 13, 0, 5f, 8f, suit);
@@ -75,6 +76,7 @@ public static class CharacterKit
     // 키 ≈ 54(머리 꼭대기), 모자 58. 머리 위 병 스택은 호출처가 y 56(VIP 66)에 둔다.
     public static void BuildCustomer(Transform body, Color col, int acc, bool vip, out Transform head)
     {
+        if (Kk) { BuildCustomerKK(body, col, acc, vip, out head); return; }
         if (vip) col = GOLD;
         var rig = body.gameObject.AddComponent<CharRig>();
         rig.ph = Random.Range(0f, 7f);
@@ -117,12 +119,13 @@ public static class CharacterKit
     // 키 ≈ 46(머리 꼭대기), 비콘 60. head 는 (0,38,0) 그룹이라 호출처가 까딱 애니를 건다.
     public static void BuildCashier(Transform view, out Transform head)
     {
-        head = RobotCore(view, BOT_GREY);
+        head = Kk ? RobotCoreKK(view, BOT_GREY, "grey") : RobotCore(view, BOT_GREY);
     }
 
     // ───────── 뽀삐 (bRobot 분홍): 몸은 삐걱과 같은 골격, 손수레(BuildCart)를 뒤에 끌고 다닌다 ─────────
     public static void BuildRunner(Transform body, out Transform head)
     {
+        if (Kk) { BuildRunnerKK(body, out head); return; }
         head = RobotCore(body, BOT_PINK);
         // 뒤로 뻗은 팔 2개(긴 축 z): 어깨(y 29, z 0)에서 손(y 22, z -12)으로 내려가 손수레 손잡이 꼭대기를 잡는다
         Box(body, "armL", -11, 25.5f, -6, 4, 4, 14, STEEL_D).transform.localRotation = Quaternion.Euler(-30, 0, 0);
@@ -133,6 +136,7 @@ public static class CharacterKit
     // 원본은 앞(z +26)에서 밀지만 적재 자리가 병입기 모델과 겹쳐 뒤로 끄는 형태로 바꿈.
     public static Transform BuildCart(Transform view, out Transform stack)
     {
+        if (Kk) return BuildCartKK(view, out stack);
         var cart = Group(view, "cart", 0, 0, -26);
         var rig = cart.gameObject.AddComponent<CharRig>();
         Box(cart, "bed", 0, 12, 0, 28, 12, 24, PLANK);

@@ -10,7 +10,7 @@ using UnityEngine;
 //    전력: 햇빛만큼 + 밤엔 배터리가 남은 동안 모든 기계 속도 +20%(PowerMul → GameState.MachineSpeedMul).
 // 바닥 길(크림 타일)은 GroundPainter.PaintFloor가 Walks()를 받아 구역 바닥에 그린다. 구역이 잠겨 있으면 모형은 숨김(해제 순간 차례로 솟음).
 // 검증 인자: -pop N(인구 미리 채우기), -batt f(배터리 0~1)
-public class Frontier : MonoBehaviour
+public partial class Frontier : MonoBehaviour
 {
     public static Frontier I;
     GameState G => GameState.I;
@@ -106,7 +106,7 @@ public class Frontier : MonoBehaviour
             AudioManager.I.Play("pop", 1.2f + i * 0.04f, 0.3f);
             yield return new WaitForSeconds(0.08f);
         }
-        if (Player.I != null) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2.2f, "주택 증축 · 정원 " + Cap + "명", true, false);
+        if (Player.I != null) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2.2f, Cap.ToString(), true, false, "home");   // [집] 정원 숫자만
         yield return new WaitForSeconds(0.6f);
         ApplyHouseLift();   // 입주 찌그러짐과 겹쳐 옛 배율로 되돌아간 집이 있으면 다시 맞춘다
     }
@@ -182,7 +182,7 @@ public class Frontier : MonoBehaviour
     IEnumerator CoTaxLabel(int n)
     {
         yield return new WaitForSeconds(0.9f);   // "n일째" 글자와 겹치지 않게 조금 뒤에
-        if (Player.I != null) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2.2f, "세금 +" + n, true, false);
+        if (Player.I != null) WorldLabels.I.Float(Player.I.view.position + Vector3.up * 2.2f, "+" + n, true, false, "home");   // [집] +세금
         AudioManager.I.Play("coin", 1.2f, 0.6f);
     }
 
@@ -249,10 +249,11 @@ public class Frontier : MonoBehaviour
         var pc = GameConfig.Hex("ffd27a"); pc.a = 0f; poolMat = Mats.Trans(pc); owned.Add(poolMat);
         habRoot = new GameObject("hab").transform; habRoot.SetParent(transform, false);
         solarRoot = new GameObject("solar").transform; solarRoot.SetParent(transform, false);
-        for (int i = 0; i < HOUSES.Length; i++) BuildHouse(i);
+        bool kk = KK.On;   // KayKit 통일(r7, FrontierKK.cs). -kk 0 이면 예전 모형
+        for (int i = 0; i < HOUSES.Length; i++) { if (kk) KkHouse(i); else BuildHouse(i); }
         BuildPlaza();
-        foreach (var r in ROWS) BuildRow(r);
-        BuildBattery(); BuildInverter();
+        foreach (var r in ROWS) { if (kk) KkRow(r); else BuildRow(r); }
+        if (kk) { KkBattery(); KkInverter(); } else { BuildBattery(); BuildInverter(); }
     }
 
     // 둥근 돔 주택(목표 그림 docs/art/target_frontier_v1.png): 얇은 받침 → 낮고 넓은 흰 돔(이글루처럼) + 아래 강조색 띠 →

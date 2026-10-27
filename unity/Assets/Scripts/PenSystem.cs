@@ -7,7 +7,7 @@ using UnityEngine;
 // 원본 app/index.html: bHopper(699), bPenProps(637), onPad·spawnHoppers(836~838), tickMachines 팁 누적(846), tickHoppers(881), 수거(810), 팁 더미(1047)
 // 원본과 다르게 둔 것(연출만, 수치는 그대로): 해제 직후 토끼가 게이트에서 하나씩 팝, 팁이 쌓일 때 가까운 토끼가 동전을 던져 올림,
 // 대기 중 두리번·코 씰룩·가끔 빙키, 건초·물그릇·당근에 들러 오물거림, 플레이어가 다가오면 비켜 깡충, 수거하면 다 같이 깡충.
-public class PenSystem : MonoBehaviour
+public partial class PenSystem : MonoBehaviour
 {
     public static PenSystem I;
     void Awake() { I = this; }
@@ -92,7 +92,9 @@ public class PenSystem : MonoBehaviour
     {
         if (built) return; built = true;
         propsRoot = new GameObject("penProps").transform; propsRoot.SetParent(transform, false);
-        BuildTipPlate(); BuildHay(); BuildCarrots(); BuildBowl(); BuildHutch();
+        BuildTipPlate();
+        if (KK.On) { KkHay(); KkCarrots(); KkBowl(); KkHutch(); }   // KayKit 통일(r7, PenSystemKK.cs). -kk 0 이면 예전 소품
+        else { BuildHay(); BuildCarrots(); BuildBowl(); BuildHutch(); }
         // 팁 금액 라벨은 두지 않는다: 동전 더미로 보인다 (jake 피드백 10/24)
         shown = S.penTip; SyncPile(false);
         if (fx) StartCoroutine(CoUnlock());
@@ -148,13 +150,17 @@ public class PenSystem : MonoBehaviour
         h.shadow = Prim.BlobShadow(h.view, 24).transform; h.shadowBase = h.shadow.localScale;
         h.lift = Group(h.view, "lift", 0, 0, 0);
         h.root = Group(h.lift, "root", 0, 0, 0); h.root.localScale = Vector3.one * 1.25f;
-        h.body = Ell(h.root, "body", 0, 10, 0, 18, 16.2f, 21.6f, TAN).transform;
-        Sph(h.root, "head", 0, 17, 8, 14, TAN);
-        h.earL = Ear(h.root, -3); h.earR = Ear(h.root, 3);
-        Sph(h.root, "eyeL", -3, 18, 14, 2.6f, DARK); Sph(h.root, "eyeR", 3, 18, 14, 2.6f, DARK);
-        h.nose = Sph(h.root, "nose", 0, 15.5f, 15, 2.6f, NOSE).transform; h.noseBase = h.nose.localScale;
-        Ell(h.root, "footL", -5, 2.5f, 4, 7, 3.5f, 11.2f, TAN_D); Ell(h.root, "footR", 5, 2.5f, 4, 7, 3.5f, 11.2f, TAN_D);
-        Sph(h.root, "tail", 0, 10, -11, 6, WHITE);
+        if (CharacterKit.Kk) { CharacterKit.BuildBunny(h.root, out h.body, out h.earL, out h.earR, out h.nose); h.noseBase = h.nose.localScale; }   // KayKit 톤 저폴리(r7)
+        else
+        {
+            h.body = Ell(h.root, "body", 0, 10, 0, 18, 16.2f, 21.6f, TAN).transform;
+            Sph(h.root, "head", 0, 17, 8, 14, TAN);
+            h.earL = Ear(h.root, -3); h.earR = Ear(h.root, 3);
+            Sph(h.root, "eyeL", -3, 18, 14, 2.6f, DARK); Sph(h.root, "eyeR", 3, 18, 14, 2.6f, DARK);
+            h.nose = Sph(h.root, "nose", 0, 15.5f, 15, 2.6f, NOSE).transform; h.noseBase = h.nose.localScale;
+            Ell(h.root, "footL", -5, 2.5f, 4, 7, 3.5f, 11.2f, TAN_D); Ell(h.root, "footR", 5, 2.5f, 4, 7, 3.5f, 11.2f, TAN_D);
+            Sph(h.root, "tail", 0, 10, -11, 6, WHITE);
+        }
         hoppers.Add(h);
         return h;
     }
@@ -294,7 +300,6 @@ public class PenSystem : MonoBehaviour
         JuiceFX.I.Squash(pile, 0.8f);
         JuiceFX.I.Ring(pile.position, GameConfig.GOLD, 12);
         AudioManager.I.PlayHz("coin", 1250, 1100, 0.45f);
-        WorldLabels.I.Float(WorldMap.W2U(WorldMap.PEN_TIP.x, WorldMap.PEN_TIP.y - 4, 18), "+" + add, true);
     }
 
     // ───────── §1.1 6번째 행동: 토끼 벨 수거 ─────────
@@ -313,7 +318,7 @@ public class PenSystem : MonoBehaviour
         var fly = new List<Transform>(coins); coins.Clear();
         var cam = Camera.main;
         if (cam != null && HUD.I != null) HUD.I.Coins(cam.WorldToScreenPoint(TipWorld), () => HUD.I.BellsScreen(), 8);
-        WorldLabels.I.Float(WorldMap.W2U(WorldMap.PEN_TIP.x, WorldMap.PEN_TIP.y - 8, 10), "+" + n, true, n >= G.BottlePrice * 4);
+        if (WorldLabels.BigMoney(n)) WorldLabels.I.Float(WorldMap.W2U(WorldMap.PEN_TIP.x, WorldMap.PEN_TIP.y - 8, 10), "+" + n, true, true);   // 작은 수거는 동전만
         AudioManager.I.Play("pick", 0.62f, 0.7f); AudioManager.I.Play("whoosh", 1.3f, 0.3f);
         JuiceFX.I.Ring(pile.position, Color.white, 16);
         // 토끼들: 플레이어 쪽을 보고 차례로 깡충

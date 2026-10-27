@@ -180,7 +180,8 @@ public class DevTools : MonoBehaviour
     // 카운터+계산대처럼 가로로 긴 장애물은 직진으로 못 지나므로 Blocked() 위 격자 BFS로 경로를 잡는다(8단위 격자, 0.4초마다 재계산).
     // 봇 정책: 빈손이고 가장 가까운 노출 발판을 바로 살 수 있으면 힌트보다 발판을 우선한다(QA에서 발판·구역을 밟기 위해).
     float holdT, stuckT, escapeT; Vector2 lastPos, escapeDir;
-    const float CELL = 8f, GY0 = GameConfig.Y_MIN; const int GW = 51, GH = (int)((GameConfig.H - GameConfig.Y_MIN) / CELL) + 1;   // x 0..400, y Y_MIN(−640)..1040 (생존 기지·2장 개척지 포함)
+    const float CELL = 8f, GY0 = GameConfig.Y_MIN; const int GH = (int)((GameConfig.H - GameConfig.Y_MIN) / CELL) + 1;   // y Y_MIN(−640)..1040 (생존 기지·2장 개척지 포함)
+    static readonly int GW = (int)(Regions.GROUND_X1 / CELL) + 1;   // x 0..1720 (3·4장 동쪽 지역 포함)
     readonly List<Vector2> path = new List<Vector2>(); float pathT; Vector2 pathTarget;
     void Bot()
     {

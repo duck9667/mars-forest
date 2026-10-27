@@ -86,7 +86,7 @@ public class Player : MonoBehaviour
     public Vector3 BillTop() => stackAnchor.TransformPoint(At(0, BillH + BILL_LH * 0.5f, 0));
     Vector3 MaxWorld() => stackAnchor.TransformPoint(At(0, TopH(G.Carry), 0)) + Vector3.up * 9 * GameConfig.K;
     // 그 종류 하나를 등짐에서 빼고, 빠진 자리(비행 출발점)를 돌려준다
-    Vector3 TakeOut(string kind)
+    public Vector3 TakeOut(string kind)
     {
         int i = S.p.carry.LastIndexOf(kind);
         Vector3 from = i >= 0 && i < MaxShow ? stackAnchor.TransformPoint(SlotLocal(i)) : StackTop();
@@ -295,6 +295,9 @@ public class Player : MonoBehaviour
         }
         // 7~9. 생존 기지 생산 체인
         SettleInteract();
+        // 10. 3·4장 지역(우주항 화물선·연료 공장·발사대, 얼음 협곡 광맥·정제소)
+        if (actT <= 0 && SpacePort.I != null) SpacePort.I.Interact(this);
+        if (actT <= 0 && IceCanyon.I != null) IceCanyon.I.Interact(this);
     }
 
     // 7. 레골리스 줍기 → 8. 시설에 원료 넣기(물통→전기분해기, 레골리스→정화기, 흙→배합기, 비료→온실) → 9. 출력 받기(산소통·흙·비료·식량)
@@ -336,10 +339,10 @@ public class Player : MonoBehaviour
     }
 
     // 탑과 같은 모양의 블록이 날아오고 날아간다(조금 작게)
-    GameObject FlyBlock(string kind) { var go = Items.CarryBlock(ArcFlyer.I.transform, kind); go.transform.localScale = Vector3.one * FLY_S; return go; }
+    public GameObject FlyBlock(string kind) { var go = Items.CarryBlock(ArcFlyer.I.transform, kind); go.transform.localScale = Vector3.one * FLY_S; return go; }
     public const float FLY_S = 0.7f;   // 나는 블록 배율(탑 블록 0.6보다 조금 크게)
 
-    void Arrive(string kind)
+    public void Arrive(string kind)
     {
         G.PendDone(kind);
         G.AddCarry(kind);
@@ -373,7 +376,7 @@ public class Player : MonoBehaviour
             yield return new WaitForSeconds(0.04f);
         }
         yield return new WaitForSeconds(0.22f);
-        WorldLabels.I.Float(body.position + Vector3.up * 2f, "+" + amount, true, amount >= G.BottlePrice * 4);
+        if (WorldLabels.BigMoney(amount)) WorldLabels.I.Float(body.position + Vector3.up * 2f, "+" + amount, true, amount >= G.BottlePrice * 8);   // 작은 수거는 지폐 비행만
         if (big) { JuiceFX.I.CoinPop(body.position + Vector3.up * 1f, 12); JuiceFX.I.Shake(3); }
         G.collectingCash = false;
     }

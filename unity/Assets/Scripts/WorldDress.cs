@@ -4,7 +4,7 @@ using UnityEngine;
 // §9 환경: 맵 바깥을 감싸는 메사(평평한 붉은 절벽) 테두리 + 포인트 바위 몇 개(저폴리 돌무더기), 착륙선 4단, 로버, 위성 안테나, 드럼통.
 // jake 피드백("어설픈 산맥이 아쉽다")으로 원본의 가장자리 바위 40여 개 흩뿌림을 "협곡 안 기지" 테두리로 바꿨다.
 // 원본 index.html 546~550행(착륙선), 555행(드럼통), 562행(안테나), 573행(로버). World.Start가 호출한다.
-public static class WorldDress
+public static partial class WorldDress
 {
     const float LANDER_X = 84f, LANDER_Y = 988f; // 원본 253행 LANDER
 
@@ -20,11 +20,13 @@ public static class WorldDress
     {
         for (int i = rockRoot.childCount - 1; i >= 0; i--) { var c = rockRoot.GetChild(i); c.SetParent(null, false); Object.Destroy(c.gameObject); }
         Rocks(rockRoot);
-        Lander(worldRoot);
+        if (KK.On) { KayKitDress.Lander(LANDER_X, LANDER_Y); KayKitDress.Props(worldRoot); }   // KayKit 시범(-kk 0 이면 예전 로켓)
+        else Lander(worldRoot);
         // 기지 본부(2장): 착륙장 동쪽 터에 레벨마다 자라는 건물. 배경 레이어(World 아래)가 아니라 기계처럼 외곽선을 받게 따로 둔다
         new GameObject("HQ").AddComponent<HQSystem>();
         // 착륙장 옆 로버 (원본 573행: mdl('rover',64,SK(orange,dark)), rotation.y=-2.3, at(344,990)) → 본부 터 자리라 터 남서쪽 모서리 밖(놀이 경계 밖)으로
-        ModelLib.Put(worldRoot, "rover", 64, 64, 64, 274 - 200, 0, 1052 - 520, -2.3f, ModelLib.SK(ModelLib.COL.orange, ModelLib.COL.dark));
+        if (KK.On) KkRover(worldRoot);   // KayKit 통일(r7): 로버 = KayKit 우주 트럭(spacetruck)
+        else ModelLib.Put(worldRoot, "rover", 64, 64, 64, 274 - 200, 0, 1052 - 520, -2.3f, ModelLib.SK(ModelLib.COL.orange, ModelLib.COL.dark));
         NorthPipe(worldRoot);
     }
 
@@ -53,7 +55,11 @@ public static class WorldDress
     static void Rocks(Transform rockRoot)
     {
         var rnd = new Rnd();
-        for (int i = 0; i < MESAS.Length; i++) Mesa(rockRoot, MESAS[i], MESA_H[i], rnd);
+        for (int i = 0; i < MESAS.Length; i++)
+        {
+            if (KK.On && (i == 12 || i == 13)) { for (int k = 0; k < 21; k++) rnd.Next(); KkMesa(rockRoot, MESAS[i], MESA_H[i], i); continue; }   // KayKit 통일(r7): 앞(남) 낮은 메사 둘은 KayKit 지형 조각으로(난수는 예전 메사가 쓰던 21개를 건너뛰어 나머지 모양 유지)
+            Mesa(rockRoot, MESAS[i], MESA_H[i], rnd);
+        }
         // 포인트 바위: 메사 발치·경계 안쪽 빈자리에 몇 개만 (x, y, 크기, 회전)
         // 소품 밀도 절반(2026-10-25): 11개 → 6개
         // 착륙장 옆(134,1050) 바위는 뺐다(다듬기 3차: 착륙장 앞 갈색 파편처럼 보였다, target_south_v1)
@@ -62,7 +68,7 @@ public static class WorldDress
         for (int i = 0; i < spots.Length; i++)
         {
             var sp = spots[i];
-            var go = ToyMesh.Put(rockRoot, "rock", RockMesh(i % 3, sp.z * 1.5f), ToyMesh.Mat(0.08f), WorldMap.W2U(sp.x, sp.y, 0f) - rockRoot.position);
+            var go = ToyMesh.Put(rockRoot, "rock", KK.On ? KkRockMesh(i % 2, sp.z * 1.5f) : RockMesh(i % 3, sp.z * 1.5f), ToyMesh.Mat(0.08f), WorldMap.W2U(sp.x, sp.y, 0f) - rockRoot.position);
             go.transform.localRotation = Quaternion.Euler(0, sp.w * Mathf.Rad2Deg, 0);
         }
     }
@@ -158,7 +164,8 @@ public static class WorldDress
             Prim.Box(g, "saddle", WorldMap.W2U(X, y, 2.5f), new Vector3(9, 5, 4), dark);
             Prim.Box(g, "band", WorldMap.W2U(X, y, H), new Vector3(R + 1.6f, R + 1.6f, 2), dark);
         }
-        ModelLib.Put(g, "tankBig", 24, 24, 24, X + 6 - 200, 0, -392 - 520, 0.5f, ModelLib.SK(ModelLib.COL.blue));   // 개척 길(x ≤380) 끝과 안 겹치게 동쪽으로
+        if (KK.On) ToyMesh.Put(g, "tankBig", KkTankMesh(), ToyMesh.Mat(0.2f), WorldMap.W2U(X + 6, -392, 0f) - g.position);   // KayKit 톤 저장 탱크(r7)
+        else ModelLib.Put(g, "tankBig", 24, 24, 24, X + 6 - 200, 0, -392 - 520, 0.5f, ModelLib.SK(ModelLib.COL.blue));   // 개척 길(x ≤380) 끝과 안 겹치게 동쪽으로
     }
 
     // 착륙선: Kenney 로켓 파츠 4단 (날개·연료·몸통·코), S=23, SK(orange, dark) (원본 546~550행)

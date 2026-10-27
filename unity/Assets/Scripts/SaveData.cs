@@ -48,7 +48,17 @@ public class SaveData
     public float powerRun = 0;                           // 2장 6단계: 태양광 전력으로 기계가 일한 초(SettlementManager, 2장부터 셈)
     public int missionAll = 0;                           // 2장 9단계: 8단계 뒤 끝낸 하루 미션 누계(SettlementManager.MISSION_GOAL, 예전 0/1 저장은 1개로 이어짐)
     public float evNext = 0;                             // 화성 이벤트(MarsEvents): 다음 판정까지 남은 초(0이면 새로 정함)
+    // ---- 3·4장 이어지는 세계 (docs/chapter3-design.md) ----
+    public int fundBack = 0;                             // 옛 이주 준비금(fund)을 벨로 돌려줬음(1)
+    public List<ShipSave> ships = new List<ShipSave>();  // 착륙장마다 화물선 상태·주문
+    public int orders, launches, arrivals;               // 채운 주문·수출 발사·화물선이 데려온 정착민 누계
+    public int fuelQ, fuelOut, fuelMade; public float fuelT;   // 연료 공장: 물통 큐·연료통 출력·생산 누계·타이머
+    public int rocketFuel; public float rocketT;         // 발사대: 실은 연료, 새 로켓 조립까지 남은 초
+    public int refQ, refOut, refMade, veinPicked, roverHauled; public float refT;   // 얼음 협곡: 정제소 얼음 큐·연료 출력·정제 누계·광맥에서 주운 얼음·로버가 나른 얼음
+    public float[] vspots = new float[8];                // 광맥 얼음 자리 리스폰 타이머
 }
+// 착륙장 하나의 화물선: state 0 빈 착륙장(t = 다음 도착까지), 1 내려오는 중, 2 내려앉아 주문 대기, 3 정착민 내림, 4 이륙
+[Serializable] public class ShipSave { public int state; public float t; public int needW, needO, needF, gotW, gotO, gotF, reward, seed; }
 
 public static class SaveSystem
 {
@@ -96,6 +106,8 @@ public static class SaveSystem
         if (d.qskip == null) d.qskip = new List<int>();
         if (d.story == null) d.story = new List<string>();
         if (d.missions == null) d.missions = new List<MissionSave>();
+        if (d.ships == null) d.ships = new List<ShipSave>();
+        if (d.vspots == null || d.vspots.Length < 8) d.vspots = new float[8];
         // Phase 2 저장(qv<3)은 우리·돔 목표(9·10번)를 보상 없이 건너뛰었다. 아직 그 발판이 없으면 9번으로 되돌리고,
         // 그 뒤 이미 보상받은 목표(11번 물병 300개 등)는 qskip에 넣어 다시 보상하지 않는다
         if (d.qv < 3)
@@ -108,6 +120,7 @@ public static class SaveSystem
         foreach (var e in d.pads) { if (e.id == "drill") WorldMap.drillInstalled = e.lv >= 1; if (e.id == "dome") WorldMap.domeOpen = e.lv >= 1; }
         // 구역 열림(울타리·북쪽 통행)도 위치 검사 전에 채운다. 비워 두면 북쪽 구역에서 저장한 위치가 막힌 땅으로 보여 시작점으로 튄다(ZoneManager가 다시 채움)
         foreach (var z in WorldMap.ZONES) { bool open = z.open; foreach (var e in d.pads) if (z.pad != null && e.id == z.pad && e.lv >= 1) open = true; WorldMap.SetZoneOpen(z.key, open); }
+        Regions.Sync(d);   // 동쪽 길·지역 열림도 위치 검사 전에(우주항·협곡에서 저장한 위치가 막힌 땅으로 보이지 않게)
         if (WorldMap.Blocked(d.p.x, d.p.y)) { d.p.x = WorldMap.PLAYER_START.x; d.p.y = WorldMap.PLAYER_START.y; }
         // 비활성·요구조건 미충족 발판의 부분 납입금 환불
         for (int i = d.pads.Count - 1; i >= 0; i--)
